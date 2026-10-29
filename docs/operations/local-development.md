@@ -153,18 +153,22 @@ Then request `http://127.0.0.1:3040/health` again. Stop with `Ctrl+C`.
 
 ## Quality commands
 
-| Command                                 | Purpose                                                    |
-| --------------------------------------- | ---------------------------------------------------------- |
-| `pnpm run doctor`                       | Validate Node.js, pnpm, and workspace prerequisites.       |
-| `pnpm lint`                             | Run ESLint across the repository.                          |
-| `pnpm format`                           | Format supported files with Prettier.                      |
-| `pnpm format:check`                     | Check formatting without writing changes.                  |
-| `pnpm typecheck`                        | Type-check contracts, web, desktop, and stall-service.     |
-| `pnpm build`                            | Build contracts, then web, desktop, and stall-service.     |
-| `pnpm check`                            | Run doctor, lint, format check, and typecheck.             |
-| `pnpm --filter @polivo/contracts smoke` | Run the contracts validation smoke check (requires build). |
+| Command                                 | Purpose                                                         |
+| --------------------------------------- | --------------------------------------------------------------- |
+| `pnpm run doctor`                       | Validate Node.js, pnpm, and workspace prerequisites.            |
+| `pnpm lint`                             | Run ESLint across the repository.                               |
+| `pnpm format`                           | Format supported files with Prettier.                           |
+| `pnpm format:check`                     | Check formatting without writing changes.                       |
+| `pnpm typecheck`                        | Type-check contracts, web, desktop, and stall-service.          |
+| `pnpm build`                            | Build contracts, then web, desktop, and stall-service.          |
+| `pnpm test`                             | Run contracts unit tests and stall-service integration tests.   |
+| `pnpm test:coverage`                    | Run unit and integration tests with coverage.                   |
+| `pnpm test:e2e:web`                     | Build the web app and run Playwright Chromium end-to-end tests. |
+| `pnpm test:e2e:desktop`                 | Build the desktop app and run the Electron smoke test.          |
+| `pnpm check`                            | Run doctor, lint, format check, typecheck, and `pnpm test`.     |
+| `pnpm --filter @polivo/contracts smoke` | Run the contracts validation smoke check (requires build).      |
 
-Test runners will be configured in phase 06.
+Automated testing details, fixture rules, coverage expectations, and GitHub Actions job names are documented in `testing-and-ci.md`.
 
 ## Workspace layout reminder
 

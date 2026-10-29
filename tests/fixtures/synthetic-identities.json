@@ -1,0 +1,8 @@
+{
+  "tenantId": "tenant-synthetic-001",
+  "deviceId": "device-synthetic-001",
+  "farmerId": "farmer-synthetic-001",
+  "buyerId": "buyer-synthetic-001",
+  "staffUsername": "synthetic.staff",
+  "credentialPlaceholder": "synthetic-credential-not-for-production"
+}

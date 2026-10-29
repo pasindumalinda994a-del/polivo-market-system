@@ -4,6 +4,7 @@ Update this file after every meaningful implementation change. Record completed 
 
 ## Current Phase
 
+- Phase 06 complete: testing and continuous integration implemented and locally verified.
 - Phase 05 complete: shared contracts and validation (`@polivo/contracts`) implemented and verified.
 - Phase 04 complete: web, desktop, and stall-service application foundations bootstrapped.
 - Phase 03 complete: monorepo tooling and environment configured.
@@ -12,7 +13,7 @@ Update this file after every meaningful implementation change. Record completed 
 
 ## Current Goal
 
-- Begin `docs/implementation/06-testing-and-continuous-integration.md` when that guide is available.
+- Begin `docs/implementation/07-brand-design-system-and-app-shells.md`.
 - Continue subsequent implementation units only after each prior unit is verified.
 
 ## Completed
@@ -62,6 +63,17 @@ Update this file after every meaningful implementation change. Record completed 
   - Transport decisions: opaque IDs max length `128`; ISO 8601 timestamps with offset; `YYYY-MM-DD` calendar dates; pagination default `20` / max `100`; `LOCAL_API_CONTRACT_VERSION` and `SYNC_PROTOCOL_VERSION` both `"1"`.
   - Deferred: money/weight/commission/payment schemas (phase 08), business endpoints, auth, sync workers, desktop/web wiring.
   - Verification: contracts smoke passed; clean rebuild without pre-existing `dist/` succeeded; compiled stall-service `/health` returned expected JSON; `pnpm lint`, `pnpm format:check`, `pnpm typecheck`, `pnpm build`, and `pnpm check` passed.
+- Applied step `06-testing-and-continuous-integration.md`:
+  - Selected tools: Vitest `5.0.5`, `@vitest/coverage-v8` `5.0.5`, Playwright `@playwright/test` `1.64.1` (Electron under test remains `45.1.0`).
+  - Suites: contracts unit tests colocated under `packages/contracts/src/**/*.test.ts`; stall-service integration under `tests/integration/`; web e2e under `tests/e2e/web/` (Chromium, port `3100`); desktop Electron smoke under `tests/e2e/desktop/` against `apps/desktop/out/main/index.js`.
+  - Fixtures: synthetic identities under `tests/fixtures/`; `tests/performance/` left reserved with `.gitkeep`.
+  - Root commands: `test:unit`, `test:integration`, `test`, `test:watch`, `test:coverage`, `test:e2e:web`, `test:e2e:desktop`; `check` now includes `pnpm test`.
+  - Coverage for contracts schemas and stall-service `app.ts` / `config.ts` (text, HTML, LCOV under `coverage/`).
+  - CI workflow `.github/workflows/ci.yml` with jobs `quality-and-build` (ubuntu), `web-e2e` (ubuntu), `desktop-smoke` (windows-latest); triggers on pull requests, pushes to `main`, and `workflow_dispatch`.
+  - Documented in `docs/operations/testing-and-ci.md`; linked from `docs/operations/local-development.md`.
+  - Local verification: `pnpm run doctor`, `pnpm lint`, `pnpm format:check`, `pnpm typecheck`, `pnpm test` (45 tests), `pnpm test:coverage`, `pnpm build`, `pnpm test:e2e:web`, `pnpm test:e2e:desktop`, and `pnpm check` passed on this Windows host.
+  - Deliberate temporary assertion break confirmed contracts tests fail, then restored.
+  - Remote GitHub Actions status: not observed in this session (workflow not yet pushed/run on GitHub; `gh` CLI unavailable locally). Mark `quality-and-build`, `web-e2e`, and `desktop-smoke` required only after their first successful remote run.
 
 ## In Progress
 
@@ -69,7 +81,7 @@ Update this file after every meaningful implementation change. Record completed 
 
 ## Next Up
 
-- Apply `docs/implementation/06-testing-and-continuous-integration.md` when available.
+- Apply `docs/implementation/07-brand-design-system-and-app-shells.md`.
 - Continue subsequent implementation units only after each prior unit is verified.
 
 ## Open Questions
@@ -106,3 +118,4 @@ These are unresolved in the context files. Record accepted resolutions under `do
 - Environment note: host Node.js was upgraded to 26.13.0 LTS for this phase. This Node install did not expose `corepack` on PATH; pnpm `12.16.1` was available via the existing user-global pnpm shim and satisfied `packageManager`.
 - Phase 04 note: pnpm `allowBuilds` in `pnpm-workspace.yaml` permits `electron`, `esbuild`, `sharp`, and `unrs-resolver` lifecycle scripts required by the application toolchains. No Tailwind/shadcn yet (design system deferred). Desktop↔service wiring remains phase 16.
 - Phase 05 note: contracts consumers must build or watch `@polivo/contracts` before resolving package exports; no new build orchestrator was added.
+- Phase 06 note: root `package.json` sets `"type": "module"` so Vitest configs load as ESM. Playwright Chromium must be installed once via `pnpm exec playwright install chromium`. Web e2e uses dedicated port `3100`. Desktop smoke verified locally on Windows against built electron-vite output.
