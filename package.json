@@ -13,7 +13,7 @@
     "dev:desktop": "pnpm --filter @polivo/desktop dev",
     "dev:service": "pnpm --filter @polivo/stall-service dev",
     "build": "pnpm --filter @polivo/contracts build && pnpm --filter @polivo/web build && pnpm --filter @polivo/desktop build && pnpm --filter @polivo/stall-service build",
-    "typecheck": "pnpm --filter @polivo/contracts typecheck && pnpm --filter @polivo/web typecheck && pnpm --filter @polivo/desktop typecheck && pnpm --filter @polivo/stall-service typecheck",
+    "typecheck": "pnpm --filter @polivo/contracts build && pnpm --filter @polivo/contracts typecheck && pnpm --filter @polivo/web typecheck && pnpm --filter @polivo/desktop typecheck && pnpm --filter @polivo/stall-service typecheck && tsc --noEmit -p tsconfig.test.json",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -29,6 +29,7 @@
   "devDependencies": {
     "@eslint/js": "10.0.1",
     "@playwright/test": "1.64.1",
+    "@types/node": "26.6.6",
     "@vitest/coverage-v8": "5.0.5",
     "eslint": "10.13.0",
     "eslint-config-next": "16.4.3",

@@ -41,7 +41,7 @@ Run from the repository root.
 | `pnpm test:e2e:desktop` | Build the desktop app, then run the Electron smoke test |
 | `pnpm check`            | Doctor, lint, format check, typecheck, then `pnpm test` |
 
-Existing build, lint, formatting, and type-check commands remain unchanged aside from `check` including unit and integration tests.
+Existing build, lint, and formatting commands remain unchanged. `pnpm check` includes unit and integration tests. `pnpm typecheck` builds `@polivo/contracts` first (so stall-service can resolve package declarations), type-checks each application package, then type-checks Vitest unit and integration sources via root `tsconfig.test.json`.
 
 Browser and desktop suites stay explicit because they need Playwright browsers and built application output.
 
@@ -50,7 +50,7 @@ Browser and desktop suites stay explicit because they need Playwright browsers a
 - Unit and integration tests do not require network access, cloud credentials, or a listening server.
 - `pnpm test:e2e:web` builds `@polivo/web` and starts a production Next.js server on dedicated port **3100**.
 - `pnpm test:e2e:desktop` builds `@polivo/desktop` and launches Electron against `apps/desktop/out/main/index.js`.
-- Contracts consumers that resolve package exports still need `pnpm --filter @polivo/contracts build` before compiled application runs; Vitest aliases contracts source for integration tests.
+- Contracts consumers that resolve package exports still need `pnpm --filter @polivo/contracts build` before compiled application runs; Vitest and `tsconfig.test.json` alias contracts source for integration tests.
 
 ## Browser installation
 
