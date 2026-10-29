@@ -1,6 +1,7 @@
 {
   "name": "polivo-market-system",
   "private": true,
+  "type": "module",
   "packageManager": "pnpm@12.16.1",
   "engines": {
     "node": ">=26.13.0 <27"
@@ -16,10 +17,19 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "check": "pnpm run doctor && pnpm run lint && pnpm run format:check && pnpm run typecheck"
+    "test:unit": "vitest run --project contracts",
+    "test:integration": "vitest run --project integration",
+    "test": "vitest run --project contracts --project integration",
+    "test:watch": "vitest --project contracts --project integration",
+    "test:coverage": "vitest run --project contracts --project integration --coverage",
+    "test:e2e:web": "pnpm --filter @polivo/web build && playwright test --config=tests/e2e/web/playwright.config.ts",
+    "test:e2e:desktop": "pnpm --filter @polivo/desktop build && playwright test --config=tests/e2e/desktop/playwright.config.ts",
+    "check": "pnpm run doctor && pnpm run lint && pnpm run format:check && pnpm run typecheck && pnpm test"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
+    "@playwright/test": "1.64.1",
+    "@vitest/coverage-v8": "5.0.5",
     "eslint": "10.13.0",
     "eslint-config-next": "16.4.3",
     "eslint-config-prettier": "10.1.8",
@@ -28,6 +38,7 @@
     "globals": "17.13.0",
     "prettier": "3.9.10",
     "typescript": "5.9.3",
-    "typescript-eslint": "8.72.1"
+    "typescript-eslint": "8.72.1",
+    "vitest": "5.0.5"
   }
 }
