@@ -1,0 +1,72 @@
+# Dependencies
+node_modules/
+
+# Application and tooling build output
+dist/
+build/
+out/
+.next/
+.vite/
+.turbo/
+*.tsbuildinfo
+
+# Electron packaging and release artifacts
+release/
+*.exe
+*.dmg
+*.AppImage
+*.msi
+*.nsis.7z
+*.blockmap
+
+# Test coverage and temporary artifacts
+coverage/
+.nyc_output/
+*.lcov
+tmp/
+temp/
+.tmp/
+
+# Local environment files (keep sanitized examples)
+.env
+.env.*
+!.env.example
+
+# Runtime SQLite databases and WAL companions
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+*.sqlite-wal
+*.sqlite-shm
+
+# Runtime logs
+logs/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Local backups and diagnostic exports
+backups/
+*.bak
+*.backup
+exports/
+diagnostics/
+
+# Private signing keys and certificate containers
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+!*.example.crt
+
+# Operating-system temporary files
+.DS_Store
+Thumbs.db
+Desktop.ini
+ehthumbs.db
+$RECYCLE.BIN/

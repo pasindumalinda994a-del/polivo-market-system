@@ -1,0 +1,16 @@
+---
+description: Polivo project context and implementation workflow
+alwaysApply: true
+---
+
+# Polivo Project Rule
+
+- Read and follow the root `AGENTS.md`.
+- Use the six files under `docs/context` as the canonical project context: `project-overview.md`, `architecture.md`, `code-standards.md`, `ui-context.md`, `ai-workflow-rules.md`, and `progress-tracker.md`.
+- Read the current numbered guide under `docs/implementation` before changing code.
+- Check `docs/context/progress-tracker.md` before starting work.
+- Stay within the current phase and its necessary prerequisites.
+- Record unresolved questions in the progress tracker rather than inventing business behavior.
+- Update progress and report verification results before finishing.
+
+Keep detailed architecture, coding standards, and UI requirements in their canonical files. Do not duplicate those specifications in this rule.

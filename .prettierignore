@@ -1,0 +1,17 @@
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
+node_modules
+dist
+build
+.next
+out
+coverage
+release
+*.min.js
+*.tsbuildinfo
+
+# Preserve intentional formatting in existing project context and implementation guides.
+AGENTS.md
+docs/context/**
+docs/implementation/**
