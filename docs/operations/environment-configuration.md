@@ -8,14 +8,14 @@ Document each new variable when its integration is implemented. Sanitized `.env.
 
 Placeholder Clerk and Supabase development variables are defined ahead of phase 11. SDKs and runtime validation are not wired yet; fill local values before integrations that require them.
 
-| Variable                                 | Required for integrations | Public | Description                                                                 |
-| ---------------------------------------- | ------------------------- | ------ | --------------------------------------------------------------------------- |
-| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`      | Yes (Clerk)               | Yes    | Clerk development publishable key. Browser-safe.                            |
-| `CLERK_SECRET_KEY`                       | Yes (Clerk)               | No     | Clerk development secret key. Server-only.                                  |
-| `NEXT_PUBLIC_SUPABASE_URL`               | Yes (Supabase)            | Yes    | Supabase project URL. Browser-safe.                                         |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`   | Yes (Supabase)            | Yes    | Supabase development publishable key. Browser-safe.                         |
-| `SUPABASE_SECRET_KEY`                    | Yes (Supabase)            | No     | Supabase privileged secret / service-role key. Server-only.                 |
-| `DATABASE_URL`                           | Yes (migrations/schema)   | No     | Postgres connection string for cloud schema and migrations. Server-only.    |
+| Variable                               | Required for integrations | Public | Description                                                              |
+| -------------------------------------- | ------------------------- | ------ | ------------------------------------------------------------------------ |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`    | Yes (Clerk)               | Yes    | Clerk development publishable key. Browser-safe.                         |
+| `CLERK_SECRET_KEY`                     | Yes (Clerk)               | No     | Clerk development secret key. Server-only.                               |
+| `NEXT_PUBLIC_SUPABASE_URL`             | Yes (Supabase)            | Yes    | Supabase project URL. Browser-safe.                                      |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Yes (Supabase)            | Yes    | Supabase development publishable key. Browser-safe.                      |
+| `SUPABASE_SECRET_KEY`                  | Yes (Supabase)            | No     | Supabase privileged secret / service-role key. Server-only.              |
+| `DATABASE_URL`                         | Yes (migrations/schema)   | No     | Postgres connection string for cloud schema and migrations. Server-only. |
 
 Loading behavior:
 
@@ -29,13 +29,13 @@ Loading behavior:
 
 Host only `@polivo/web` on Vercel. Do not select the Electron app or stall-service as the web project.
 
-| Setting | Value |
-| ------- | ----- |
-| Framework | Next.js |
-| Root Directory | `apps/web` |
+| Setting         | Value                                                                                                                                                         |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Framework       | Next.js                                                                                                                                                       |
+| Root Directory  | `apps/web`                                                                                                                                                    |
 | Install Command | Prefer `apps/web/vercel.json` (`cd ../.. && pnpm install --frozen-lockfile`) so the monorepo lockfile and workspace packages install from the repository root |
-| Build Command | Prefer `apps/web/vercel.json` (`pnpm run build`). That script builds `@polivo/ui` then runs `next build` |
-| Node.js | Match repository `.node-version` / root `engines.node` (currently Node.js 26.x) |
+| Build Command   | Prefer `apps/web/vercel.json` (`pnpm run build`). That script builds `@polivo/ui` then runs `next build`                                                      |
+| Node.js         | Match repository `.node-version` / root `engines.node` (currently Node.js 26.x)                                                                               |
 
 `@polivo/ui` publishes compiled exports from `packages/ui/dist/`, which is not committed. A bare `next build` on a clean Vercel checkout fails with `Can't resolve '@polivo/ui'` unless the UI package is built first.
 
