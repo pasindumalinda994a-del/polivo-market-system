@@ -31,9 +31,16 @@ function SidebarNav({ items, compact = false, onNavigate, className, ...props }:
                 {item.icon}
               </span>
             ) : null}
-            <span className={cn(compact && "sr-only md:not-sr-only")}>{item.label}</span>
+            <span className={cn(compact && "md:sr-only")}>{item.label}</span>
             {!isAvailable ? (
-              <span className="ml-auto text-xs font-normal text-text-inverse/70">Soon</span>
+              <span
+                className={cn(
+                  "ml-auto text-xs font-normal text-text-inverse/70",
+                  compact && "md:sr-only",
+                )}
+              >
+                Soon
+              </span>
             ) : null}
           </>
         );

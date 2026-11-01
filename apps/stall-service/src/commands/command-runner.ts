@@ -165,7 +165,7 @@ export function runIdempotentCommand<TInput, TResult>(
       if (replay !== null && replay.requestFingerprint !== fingerprint) {
         throw conflictError("Idempotency key was reused with a different request payload.");
       }
-      throw conflictError("A conflicting write occurred.");
+      throw internalError("Unexpected uniqueness violation during command execution.", error);
     }
     if (classified.kind === "unavailable") {
       throw serviceUnavailableError("Local storage is unavailable.");

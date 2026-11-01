@@ -123,7 +123,7 @@ Outbox insertion is the durable handoff. Network delivery and acknowledgements b
 
 ## Sequence allocation
 
-`allocateNextBillSequence(stallId, billType)` updates `bill_sequences.next_value` inside the caller’s transaction. It does not use `MAX(bill_number) + 1`. Missing configuration is a clear error. Supported values stay within safe integer bounds. Farmer and trader sequences remain separate. Example starts such as `111111` / `444444` are not seeded unless numbering policy is approved.
+`allocateNextBillSequence(tx, stallId, billType)` updates `bill_sequences.next_value` inside the caller’s transaction. It does not use `MAX(bill_number) + 1`. Missing configuration is a clear error. Supported values stay within safe integer bounds. Farmer and trader sequences remain separate. Example starts such as `111111` / `444444` are not seeded unless numbering policy is approved.
 
 ## Failure and retry policy
 

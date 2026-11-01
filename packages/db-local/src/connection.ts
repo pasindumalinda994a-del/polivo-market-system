@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { chmodSync, existsSync, mkdirSync, openSync, closeSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, openSync, closeSync, unlinkSync } from "node:fs";
 import { dirname } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
@@ -137,6 +137,7 @@ export function initializeNewDatabase(rawPath: string): LocalDatabase {
       .run(installationId, createdAt);
   } catch (error) {
     local.close();
+    removeDatabaseArtifacts(absolutePath);
     throw error;
   }
 
@@ -159,4 +160,17 @@ export function openExistingDatabaseAndVerify(rawPath: string): LocalDatabase {
     throw error;
   }
   return local;
+}
+
+/** Best-effort removal of a newly created DB file and WAL sidecars after failed init. */
+function removeDatabaseArtifacts(absolutePath: string): void {
+  for (const path of [absolutePath, `${absolutePath}-wal`, `${absolutePath}-shm`]) {
+    try {
+      if (existsSync(path)) {
+        unlinkSync(path);
+      }
+    } catch {
+      // Ignore cleanup failures (for example transient Windows file locks).
+    }
+  }
 }

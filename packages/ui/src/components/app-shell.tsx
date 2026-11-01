@@ -72,6 +72,7 @@ function AppShell({
       ) : null}
 
       <aside
+        id="app-shell-sidebar"
         className={cn(
           "fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-bg-navigation text-text-inverse transition-transform md:static md:translate-x-0",
           compactNav ? "md:w-20" : "md:w-64",

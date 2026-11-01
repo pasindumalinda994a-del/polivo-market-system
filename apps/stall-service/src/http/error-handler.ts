@@ -53,8 +53,14 @@ export function registerErrorHandler(app: FastifyInstance): void {
         return;
       }
 
-      if (fastifyError.statusCode === 400 && /json|body|content-type/i.test(fastifyError.message)) {
-        sendApiError(reply, validationError("Malformed request body.", []), requestId);
+      const status = fastifyError.statusCode;
+      if (status !== undefined && status >= 400 && status < 500) {
+        const message = status === 413 ? "Request body is too large." : "Malformed request.";
+        sendApiError(
+          reply,
+          new AppError({ code: "VALIDATION_ERROR", message, httpStatus: status }),
+          requestId,
+        );
         return;
       }
 

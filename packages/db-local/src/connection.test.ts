@@ -1,7 +1,7 @@
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   DatabaseConnectionError,
@@ -10,6 +10,7 @@ import {
   openExistingDatabaseAndVerify,
   type LocalDatabase,
 } from "./connection.js";
+import * as runner from "./migrations/runner.js";
 import { applyPendingMigrations, getMigrationStatus } from "./migrations/runner.js";
 import {
   moneyMinorFromSqliteInteger,
@@ -108,6 +109,21 @@ describe("local database connection lifecycle", () => {
     writeFileSync(path, "not sqlite", "utf8");
     expect(() => openExistingDatabase(path)).toThrow();
     expect(readFileSync(path, "utf8")).toBe("not sqlite");
+  });
+
+  it("removes the new database file when initialization fails after creation", () => {
+    const path = tempDbPath("cleanup-on-fail.sqlite");
+    const spy = vi.spyOn(runner, "applyPendingMigrations").mockImplementation(() => {
+      throw new Error("forced migration failure");
+    });
+    try {
+      expect(() => initializeNewDatabase(path)).toThrow(/forced migration failure/);
+      expect(existsSync(path)).toBe(false);
+      expect(existsSync(`${path}-wal`)).toBe(false);
+      expect(existsSync(`${path}-shm`)).toBe(false);
+    } finally {
+      spy.mockRestore();
+    }
   });
 });
 

@@ -39,8 +39,23 @@ function ensureMigrationsTable(db: DatabaseSync): void {
   `);
 }
 
+function schemaMigrationsTableExists(db: DatabaseSync): boolean {
+  const row = db
+    .prepare(
+      `SELECT 1 AS present
+       FROM sqlite_master
+       WHERE type = 'table' AND name = 'schema_migrations'
+       LIMIT 1`,
+    )
+    .get() as { present: number } | undefined;
+  return row !== undefined;
+}
+
 function readApplied(db: DatabaseSync): AppliedMigration[] {
-  ensureMigrationsTable(db);
+  if (!schemaMigrationsTableExists(db)) {
+    return [];
+  }
+
   const rows = db
     .prepare(
       `SELECT id, name, checksum, applied_at
@@ -164,6 +179,7 @@ export function applyPendingMigrations(
 ): AppliedMigration[] {
   beginExclusive(db);
   try {
+    ensureMigrationsTable(db);
     const status = getMigrationStatus(db, migrations);
     const newlyApplied: AppliedMigration[] = [];
 

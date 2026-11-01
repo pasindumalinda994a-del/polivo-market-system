@@ -22,7 +22,7 @@ Additional v1 rules:
 - Do not allow individual sale commission overrides in v1.
 - The stall owner, or staff given permission, can update the stall’s default bands.
 - Updated bands apply to new sales only.
-- Store the applied commission rate and amount with each finalized sale so later band changes do not alter old bills.
+- Store the applied commission rate and amount with each finalized sale line so later band changes do not alter old bills.
 
 ## Reasoning
 

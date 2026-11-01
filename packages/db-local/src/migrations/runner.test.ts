@@ -123,6 +123,12 @@ describe("migration runner", () => {
       const after = getMigrationStatus(local.db);
       expect(after.applied).toHaveLength(0);
       expect(after.pending.length).toBeGreaterThan(0);
+      const migrationsTable = local.db
+        .prepare(
+          `SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'schema_migrations'`,
+        )
+        .get();
+      expect(migrationsTable).toBeUndefined();
     } finally {
       local.close();
     }

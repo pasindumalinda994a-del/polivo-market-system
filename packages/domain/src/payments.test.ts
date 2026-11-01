@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { DomainError } from "./money.js";
 import {
   allocatePaymentOldestFirst,
   applyFarmerAdvance,
@@ -32,6 +33,39 @@ describe("allocatePaymentOldestFirst", () => {
     expect(result.allocations).toEqual([{ billId: "b1", appliedMinor: 40_000 }]);
     expect(result.remainingOutstandingByBillId.b1).toBe(60_000);
     expect(result.creditMinor).toBe(0);
+  });
+
+  it("compares finalizedAt as instants across timezone offsets", () => {
+    // +05:30 → 04:30Z (earlier); 06:00Z is later. Lexicographic string order is reversed.
+    const result = allocatePaymentOldestFirst(
+      [
+        {
+          billId: "later-utc",
+          outstandingMinor: 100_000,
+          finalizedAt: "2026-11-01T06:00:00.000Z",
+        },
+        {
+          billId: "earlier-offset",
+          outstandingMinor: 50_000,
+          finalizedAt: "2026-11-01T10:00:00+05:30",
+        },
+      ],
+      50_000,
+    );
+
+    expect(result.allocations).toEqual([{ billId: "earlier-offset", appliedMinor: 50_000 }]);
+  });
+
+  it("rejects duplicate bill ids", () => {
+    expect(() =>
+      allocatePaymentOldestFirst(
+        [
+          { billId: "b1", outstandingMinor: 100_000, finalizedAt: "2026-11-01T00:00:00.000Z" },
+          { billId: "b1", outstandingMinor: 100_000, finalizedAt: "2026-11-02T00:00:00.000Z" },
+        ],
+        200_000,
+      ),
+    ).toThrow(DomainError);
   });
 });
 

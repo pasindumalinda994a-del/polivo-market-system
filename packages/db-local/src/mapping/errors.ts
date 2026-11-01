@@ -60,7 +60,7 @@ export function requireAbsoluteTimestamp(value: unknown, field: string): string 
   if (Number.isNaN(parsed)) {
     throw new RowMappingError(`Invalid absolute timestamp for ${field}.`);
   }
-  if (!/[zZ]|[+-]\d{2}:\d{2}$/.test(text)) {
+  if (!/(?:[zZ]|[+-]\d{2}:\d{2})$/.test(text)) {
     throw new RowMappingError(`Absolute timestamp for ${field} must include a timezone offset.`);
   }
   return text;

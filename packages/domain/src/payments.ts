@@ -25,6 +25,14 @@ function assertNonNegativeMoney(value: MoneyMinor, label: string): void {
   }
 }
 
+function finalizedAtEpochMs(finalizedAt: string): number {
+  const epochMs = Date.parse(finalizedAt);
+  if (Number.isNaN(epochMs)) {
+    throw new DomainError("INVALID_BILL", "Bill finalizedAt must be a valid absolute timestamp");
+  }
+  return epochMs;
+}
+
 /**
  * Allocate a payment to unpaid bills oldest-first.
  * Extra money becomes customer credit.
@@ -35,9 +43,22 @@ export function allocatePaymentOldestFirst(
 ): AllocatePaymentResult {
   assertNonNegativeMoney(paymentMinor, "paymentMinor");
 
+  const seenBillIds = new Set<string>();
+  for (const bill of bills) {
+    if (bill.billId.length === 0) {
+      throw new DomainError("INVALID_BILL", "Bill id is required");
+    }
+    if (seenBillIds.has(bill.billId)) {
+      throw new DomainError("INVALID_BILL", `Duplicate bill id: ${bill.billId}`);
+    }
+    seenBillIds.add(bill.billId);
+  }
+
   const sorted = [...bills].sort((a, b) => {
-    if (a.finalizedAt < b.finalizedAt) return -1;
-    if (a.finalizedAt > b.finalizedAt) return 1;
+    const aMs = finalizedAtEpochMs(a.finalizedAt);
+    const bMs = finalizedAtEpochMs(b.finalizedAt);
+    if (aMs < bMs) return -1;
+    if (aMs > bMs) return 1;
     return a.billId.localeCompare(b.billId);
   });
 
@@ -46,9 +67,6 @@ export function allocatePaymentOldestFirst(
     assertNonNegativeMoney(bill.outstandingMinor, "outstandingMinor");
     if (bill.outstandingMinor === 0) {
       throw new DomainError("INVALID_BILL", "Unpaid bill outstanding must be greater than zero");
-    }
-    if (bill.billId.length === 0) {
-      throw new DomainError("INVALID_BILL", "Bill id is required");
     }
     remainingOutstandingByBillId[bill.billId] = bill.outstandingMinor;
   }

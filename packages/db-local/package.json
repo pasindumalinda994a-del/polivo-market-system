@@ -15,8 +15,8 @@
   "scripts": {
     "build": "tsc -p tsconfig.json && node ./scripts/copy-migrations.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "dev": "tsc -p tsconfig.json --watch",
-    "watch": "tsc -p tsconfig.json --watch",
+    "dev": "node ./scripts/copy-migrations.mjs && tsc -p tsconfig.json --watch",
+    "watch": "node ./scripts/copy-migrations.mjs && tsc -p tsconfig.json --watch",
     "db:init": "node ./dist/cli.js init",
     "db:migrate": "node ./dist/cli.js migrate",
     "db:status": "node ./dist/cli.js status"

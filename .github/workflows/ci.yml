@@ -96,8 +96,8 @@ jobs:
       - name: Install Playwright Chromium
         run: pnpm exec playwright install chromium --with-deps
 
-      - name: Build contracts and web application
-        run: pnpm --filter @polivo/contracts build && pnpm --filter @polivo/web build
+      - name: Build web application and workspace dependencies
+        run: pnpm --filter @polivo/web... build
 
       - name: Run web end-to-end tests
         run: pnpm exec playwright test --config=tests/e2e/web/playwright.config.ts
@@ -137,8 +137,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build desktop application
-        run: pnpm --filter @polivo/desktop build
+      - name: Build desktop application and workspace dependencies
+        run: pnpm --filter @polivo/desktop... build
 
       - name: Run desktop Electron smoke test
         run: pnpm exec playwright test --config=tests/e2e/desktop/playwright.config.ts
