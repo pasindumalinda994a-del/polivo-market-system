@@ -1,9 +1,12 @@
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 
+import { requireAbsoluteDatabasePath } from "@polivo/db-local";
+
 export type StallServiceConfig = {
   host: string;
   port: number;
+  databasePath: string;
 };
 
 const DEFAULT_HOST = "127.0.0.1";
@@ -62,6 +65,16 @@ function parseHost(raw: string | undefined): string {
   return raw;
 }
 
+function parseDatabasePath(raw: string | undefined): string {
+  if (raw === undefined) {
+    throw new Error(
+      "POLIVO_LOCAL_DB_PATH is required. Set an absolute path to the stall SQLite database file (outside the repository).",
+    );
+  }
+
+  return requireAbsoluteDatabasePath(raw);
+}
+
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): StallServiceConfig {
   if (env === process.env) {
     loadDotEnvFile();
@@ -70,5 +83,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): StallServiceCo
   return {
     host: parseHost(readOptionalEnv(env, "HOST")),
     port: parsePort(readOptionalEnv(env, "PORT")),
+    databasePath: parseDatabasePath(readOptionalEnv(env, "POLIVO_LOCAL_DB_PATH")),
   };
 }

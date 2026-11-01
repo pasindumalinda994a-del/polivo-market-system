@@ -73,24 +73,29 @@ The stall service binds to loopback only by default (`127.0.0.1`).
 
 ## Start each application
 
-The three applications currently run independently. Desktop-to-service communication is implemented in phase 16. No database or cloud service is connected yet.
+The three applications currently run independently. Desktop-to-service communication is implemented in phase 16. The stall service now opens a local SQLite database; cloud sync is not connected yet.
 
 Run each development command in a separate terminal:
 
 ```powershell
 pnpm dev:contracts
+pnpm dev:domain
+pnpm dev:db-local
+pnpm dev:ui
 pnpm dev:web
 pnpm dev:desktop
 pnpm dev:service
 ```
 
-Shared package `@polivo/contracts` must be built (or watched with `pnpm dev:contracts`) before dependent applications resolve its compiled exports. See `contracts-and-validation.md`.
+Shared packages `@polivo/contracts`, `@polivo/domain`, `@polivo/db-local`, and `@polivo/ui` must be built (or watched) before dependent applications resolve their compiled exports. See `contracts-and-validation.md`, `local-database-and-migrations.md`, `local-data-access-and-transactions.md`, and `design-system.md`.
 
 ### Web application
 
 1. Run `pnpm dev:web`.
 2. Open `http://localhost:3000` in a browser.
-3. Confirm the page shows **Polivo** and **Web application foundation**.
+3. Confirm the public page shows **Polivo** and **Web application foundation**.
+4. Open `http://localhost:3000/dashboard` for the dashboard shell.
+5. Open `http://localhost:3000/dev/ui` for the development-only component preview (unavailable in production builds).
 
 Stop the process with `Ctrl+C` in that terminal.
 
@@ -98,7 +103,7 @@ Stop the process with `Ctrl+C` in that terminal.
 
 1. Run `pnpm dev:desktop`.
 2. Electron launches a window that loads the Vite renderer.
-3. Confirm the window shows **Polivo** and **Desktop application foundation**.
+3. Confirm the window shows the desktop shell, including **Service connection not configured**.
 
 Stop the process with `Ctrl+C` in that terminal. Closing the window on Windows also exits the Electron process.
 
@@ -110,8 +115,17 @@ pnpm --filter @polivo/desktop preview
 
 ### Stall service
 
-1. Run `pnpm dev:service`.
-2. Request the health endpoint:
+1. Build the local database package and create a development database **outside the repository**:
+
+```powershell
+pnpm --filter @polivo/db-local build
+$env:POLIVO_LOCAL_DB_PATH = "$env:LOCALAPPDATA\Polivo\dev\stall.sqlite"
+pnpm --filter @polivo/db-local db:init
+```
+
+2. Copy `apps/stall-service/.env.example` to `apps/stall-service/.env` and set the same absolute `POLIVO_LOCAL_DB_PATH` (plus optional `HOST` / `PORT`). See `environment-configuration.md` and `local-database-and-migrations.md`.
+3. Run `pnpm dev:service` (requires `@polivo/db-local` and `@polivo/contracts` builds).
+4. Request the health endpoint:
 
 ```powershell
 Invoke-RestMethod http://127.0.0.1:3040/health
@@ -126,9 +140,9 @@ Expected response:
 }
 ```
 
-Stop the process with `Ctrl+C` in that terminal.
+`/health` is process health only; it does not assert schema readiness, provisioning, or sync.
 
-Optional local overrides use `apps/stall-service/.env`. Copy `apps/stall-service/.env.example` and adjust `HOST` / `PORT` as documented in `environment-configuration.md`.
+Stop the process with `Ctrl+C` in that terminal. Startup fails clearly if the database path is missing, unreadable, or schema-incompatible. Use `db:migrate` / `db:status` for explicit maintenance — the service does not auto-migrate on start.
 
 ## Shared contracts package
 
@@ -140,6 +154,28 @@ pnpm dev:contracts
 ```
 
 Use `pnpm build` from the repository root to build contracts before the applications. While editing schemas, keep `pnpm dev:contracts` running so `dist/` stays current. Restart the compiled stall service after contract output changes; `pnpm dev:service` still resolves `@polivo/contracts` from the built package exports, so rebuild or watch contracts when those schemas change. Details are in `contracts-and-validation.md`.
+
+## Shared domain package
+
+`@polivo/domain` publishes pure financial calculation helpers under `packages/domain/dist/`. That output is not committed. Confirmed rules are recorded in `docs/decisions/0003-confirmed-financial-rules.md`.
+
+```powershell
+pnpm --filter @polivo/domain build
+pnpm dev:domain
+```
+
+Root `pnpm build` and `pnpm typecheck` build `@polivo/domain` after contracts. Domain unit tests run through `pnpm test` (Vitest project `domain`).
+
+## Shared UI package
+
+`@polivo/ui` publishes compiled JavaScript under `packages/ui/dist/` and a public CSS entry at `@polivo/ui/styles.css`. Build output is not committed. Design-system usage is documented in `design-system.md`.
+
+```powershell
+pnpm --filter @polivo/ui build
+pnpm dev:ui
+```
+
+Root `pnpm build` and `pnpm typecheck` build `@polivo/ui` before web and desktop. Keep `pnpm dev:ui` running while editing shared components so `dist/` stays current.
 
 ## Build and start the compiled stall service
 
@@ -159,8 +195,8 @@ Then request `http://127.0.0.1:3040/health` again. Stop with `Ctrl+C`.
 | `pnpm lint`                             | Run ESLint across the repository.                               |
 | `pnpm format`                           | Format supported files with Prettier.                           |
 | `pnpm format:check`                     | Check formatting without writing changes.                       |
-| `pnpm typecheck`                        | Type-check contracts, web, desktop, and stall-service.          |
-| `pnpm build`                            | Build contracts, then web, desktop, and stall-service.          |
+| `pnpm typecheck`                        | Type-check contracts, UI, web, desktop, and stall-service.      |
+| `pnpm build`                            | Build contracts and UI, then web, desktop, and stall-service.   |
 | `pnpm test`                             | Run contracts unit tests and stall-service integration tests.   |
 | `pnpm test:coverage`                    | Run unit and integration tests with coverage.                   |
 | `pnpm test:e2e:web`                     | Build the web app and run Playwright Chromium end-to-end tests. |

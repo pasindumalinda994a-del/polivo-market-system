@@ -70,4 +70,11 @@ describe("stall-service application boundary", () => {
     const secondAfterClose = await second.inject({ method: "GET", url: "/health" });
     expect(secondAfterClose.statusCode).toBe(200);
   });
+
+  it("builds without an injected database and keeps /health process-only", async () => {
+    const app = createApp();
+    expect(app.getLocalDatabase()).toBeUndefined();
+    const response = await app.inject({ method: "GET", url: "/health" });
+    expect(response.statusCode).toBe(200);
+  });
 });

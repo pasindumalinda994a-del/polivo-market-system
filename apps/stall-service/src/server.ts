@@ -1,3 +1,5 @@
+import { openExistingDatabaseAndVerify, type LocalDatabase } from "@polivo/db-local";
+
 import { buildApp } from "./app.js";
 import { loadConfig } from "./config.js";
 
@@ -19,15 +21,38 @@ async function start(): Promise<void> {
     return;
   }
 
-  const app = buildApp();
+  let database: LocalDatabase | undefined;
+
+  try {
+    database = openExistingDatabaseAndVerify(config.databasePath);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(
+      JSON.stringify({
+        level: "error",
+        msg: "Failed to open or verify local database",
+        error: message,
+      }),
+    );
+    process.exitCode = 1;
+    return;
+  }
+
+  const app = buildApp({ database });
 
   const shutdown = async (signal: string): Promise<void> => {
     app.log.info({ signal }, "Shutting down stall service");
     try {
       await app.close();
+      database?.close();
       process.exit(0);
     } catch (error) {
       app.log.error({ err: error }, "Error while shutting down stall service");
+      try {
+        database?.close();
+      } catch {
+        // Ignore secondary close failures during shutdown.
+      }
       process.exit(1);
     }
   };
@@ -61,6 +86,11 @@ async function start(): Promise<void> {
       await app.close();
     } catch {
       // Ignore close failures after a failed listen.
+    }
+    try {
+      database.close();
+    } catch {
+      // Ignore database close failures after a failed listen.
     }
   }
 }

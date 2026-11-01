@@ -134,7 +134,7 @@ Use shadcn/ui with Tailwind CSS, as defined in the shared architecture.
 
 - **Navigation:** Keep destinations stable and label them clearly. Indicate the active page through shape, text, and color. Use consistent terminology for buyers/traders throughout the application.
 
-- **Desktop billing:** Keep party selection, line entry, transaction rows, totals, and final actions within a stable workspace. Make farmer ownership, vegetable, package weights, price, and amount easy to inspect.
+- **Desktop billing:** Keep party selection, line entry, transaction rows, totals, and final actions within a stable workspace. Make farmer ownership, vegetable, package weights, price, and amount easy to inspect. For the familiar older-app Seller Bill pattern (top module nav, paid/unpaid side lists, dense center workspace), follow [`desktop-billing-layout.md`](desktop-billing-layout.md) and the wireframe at `inspiration Layouts/Seller Bill Wireframr.png`. Reconcile that billing chrome with the left-rail application shell when billing UI is implemented.
 
 - **Billing table:** Use default row heights of 44–48 px. Keep numeric columns aligned and headers visible for long lists. Allow Sinhala text or zoom to increase row height instead of clipping content.
 

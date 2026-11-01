@@ -22,19 +22,21 @@ Do not invent Clerk, Supabase, or hosting environment-variable names before thos
 
 ## Stall Service
 
-Phase 04 introduces loopback host and port configuration only.
+Phase 09 requires loopback host/port plus an absolute local SQLite path.
 
-| Variable | Required | Default     | Description                                                                                                                  |
-| -------- | -------- | ----------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `HOST`   | No       | `127.0.0.1` | Bind address. Only loopback values are accepted in this phase: `127.0.0.1`, `localhost`, or `::1`.                           |
-| `PORT`   | No       | `3040`      | TCP port. Must be an integer from 1 to 65535. The service does not silently switch ports when the selected port is occupied. |
+| Variable               | Required | Default     | Description                                                                                                                                               |
+| ---------------------- | -------- | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `HOST`                 | No       | `127.0.0.1` | Bind address. Only loopback values are accepted in this phase: `127.0.0.1`, `localhost`, or `::1`.                                                        |
+| `PORT`                 | No       | `3040`      | TCP port. Must be an integer from 1 to 65535. The service does not silently switch ports when the selected port is occupied.                              |
+| `POLIVO_LOCAL_DB_PATH` | Yes      | —           | Absolute filesystem path to the stall SQLite database file. Must be outside the repository. Relative paths, `:memory:`, and URL-style paths are rejected. |
 
 Loading behavior:
 
 1. Copy `apps/stall-service/.env.example` to `apps/stall-service/.env` when local overrides are needed.
 2. On startup, `loadConfig()` in `apps/stall-service/src/config.ts` loads `apps/stall-service/.env` when that file exists, using Node.js `process.loadEnvFile`.
 3. Explicit process environment variables already set in the shell take precedence over values from the file when Node merges them after load (file values do not override existing variables).
-4. Invalid `HOST` or `PORT` values cause startup to fail with a clear error. Secret values are not printed.
+4. Invalid `HOST`, `PORT`, or `POLIVO_LOCAL_DB_PATH` values cause startup to fail with a clear error. Secret values are not printed.
+5. After config load, the process opens the existing database and verifies schema compatibility. It does not create or auto-migrate the file on normal startup. Use `@polivo/db-local` `db:init` / `db:migrate` for explicit maintenance. See [local-database-and-migrations.md](./local-database-and-migrations.md).
 
 Additional service rules:
 
@@ -43,6 +45,7 @@ Additional service rules:
 - Device credentials are created through provisioning, not committed in environment files.
 - Missing required configuration must produce a clear startup error.
 - Do not silently expose the service on all network interfaces.
+- Do not put live SQLite, WAL, or SHM files inside the git working tree.
 
 ## General Rules
 

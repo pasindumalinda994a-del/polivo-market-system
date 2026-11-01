@@ -7,13 +7,12 @@ This guide describes how automated tests and GitHub Actions checks are organized
 | Location                              | Owner                              | Purpose                                              |
 | ------------------------------------- | ---------------------------------- | ---------------------------------------------------- |
 | `packages/contracts/src/**/*.test.ts` | `@polivo/contracts`                | Unit tests for shared schemas and validation helpers |
+| `packages/domain/src/**/*.test.ts`    | `@polivo/domain`                   | Unit tests for confirmed financial calculations      |
 | `tests/integration/`                  | Stall-service application boundary | Fastify inject and configuration tests               |
 | `tests/e2e/web/`                      | Web application                    | Playwright Chromium end-to-end smoke                 |
 | `tests/e2e/desktop/`                  | Desktop application                | Playwright Electron startup and security smoke       |
 | `tests/fixtures/`                     | Shared synthetic data              | Deterministic non-production fixtures only           |
 | `tests/performance/`                  | Future (phase 43)                  | Reserved; no placeholder always-pass tests           |
-
-Future domain unit tests belong in `packages/domain` beside the implementation they verify.
 
 ## Tooling
 
@@ -32,7 +31,7 @@ Run from the repository root.
 
 | Command                 | Purpose                                                 |
 | ----------------------- | ------------------------------------------------------- |
-| `pnpm test:unit`        | Run contracts unit tests once                           |
+| `pnpm test:unit`        | Run contracts and domain unit tests once                |
 | `pnpm test:integration` | Run stall-service integration tests once                |
 | `pnpm test`             | Run unit and integration suites                         |
 | `pnpm test:watch`       | Watch the Vitest unit and integration suites            |
@@ -172,3 +171,5 @@ Do not mark checks required before their first successful observed run.
 - `local-development.md` — day-to-day application commands
 - `environment-configuration.md` — local environment variables
 - `contracts-and-validation.md` — shared contract package usage
+- `local-data-access-and-transactions.md` — transaction, idempotency, and repository foundations
+- `local-database-and-migrations.md` — SQLite ownership and migrations
