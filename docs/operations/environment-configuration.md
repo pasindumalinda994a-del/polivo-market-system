@@ -2,15 +2,28 @@
 
 This document defines configuration boundaries for Polivo Market System. Validate configuration at the boundary where it is used. Never log secret values. Use separate development, staging, and production configuration. Do not require production credentials for local tooling.
 
-Do not invent Clerk, Supabase, or hosting environment-variable names before those integrations are configured. Document each new variable when its integration is implemented. Sanitized `.env.example` files may be tracked; real environment files and credentials must not be committed.
+Document each new variable when its integration is implemented. Sanitized `.env.example` files may be tracked; real environment files and credentials must not be committed. Do not invent additional Clerk, Supabase, or hosting names beyond the documented set below.
 
 ## Web Application
 
-- No application environment variables are required in phase 04.
-- Public browser configuration must be explicitly designated as public.
-- Server credentials must remain server-only and must not be imported into client bundles.
-- Privileged Supabase credentials must never be exposed through public variables.
-- Clerk public and secret configuration must remain separate.
+Placeholder Clerk and Supabase development variables are defined ahead of phase 11. SDKs and runtime validation are not wired yet; fill local values before integrations that require them.
+
+| Variable                                 | Required for integrations | Public | Description                                                                 |
+| ---------------------------------------- | ------------------------- | ------ | --------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`      | Yes (Clerk)               | Yes    | Clerk development publishable key. Browser-safe.                            |
+| `CLERK_SECRET_KEY`                       | Yes (Clerk)               | No     | Clerk development secret key. Server-only.                                  |
+| `NEXT_PUBLIC_SUPABASE_URL`               | Yes (Supabase)            | Yes    | Supabase project URL. Browser-safe.                                         |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`   | Yes (Supabase)            | Yes    | Supabase development publishable key. Browser-safe.                         |
+| `SUPABASE_SECRET_KEY`                    | Yes (Supabase)            | No     | Supabase privileged secret / service-role key. Server-only.                 |
+| `DATABASE_URL`                           | Yes (migrations/schema)   | No     | Postgres connection string for cloud schema and migrations. Server-only.    |
+
+Loading behavior:
+
+1. Copy `apps/web/.env.example` to `apps/web/.env.local` when setting up a machine.
+2. Replace placeholder values with Clerk and Supabase **development** credentials. Do not use production secrets for local work.
+3. Next.js loads `.env.local` for the web app automatically. Restart `pnpm dev:web` after changing environment variables.
+4. Only variables intended for browser access use the `NEXT_PUBLIC_` prefix. `CLERK_SECRET_KEY`, `SUPABASE_SECRET_KEY`, and `DATABASE_URL` must remain server-only and must not be imported into client bundles.
+5. Keep `apps/web/.env.example` in Git with placeholders only. Never commit `apps/web/.env.local` or real credentials.
 
 ## Desktop Application
 
