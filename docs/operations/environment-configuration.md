@@ -25,6 +25,22 @@ Loading behavior:
 4. Only variables intended for browser access use the `NEXT_PUBLIC_` prefix. `CLERK_SECRET_KEY`, `SUPABASE_SECRET_KEY`, and `DATABASE_URL` must remain server-only and must not be imported into client bundles.
 5. Keep `apps/web/.env.example` in Git with placeholders only. Never commit `apps/web/.env.local` or real credentials.
 
+### Vercel staging / production (web only)
+
+Host only `@polivo/web` on Vercel. Do not select the Electron app or stall-service as the web project.
+
+| Setting | Value |
+| ------- | ----- |
+| Framework | Next.js |
+| Root Directory | `apps/web` |
+| Install Command | Prefer `apps/web/vercel.json` (`cd ../.. && pnpm install --frozen-lockfile`) so the monorepo lockfile and workspace packages install from the repository root |
+| Build Command | Prefer `apps/web/vercel.json` (`pnpm run build`). That script builds `@polivo/ui` then runs `next build` |
+| Node.js | Match repository `.node-version` / root `engines.node` (currently Node.js 26.x) |
+
+`@polivo/ui` publishes compiled exports from `packages/ui/dist/`, which is not committed. A bare `next build` on a clean Vercel checkout fails with `Can't resolve '@polivo/ui'` unless the UI package is built first.
+
+Keep staging and production as separate Vercel projects and separate Clerk / Supabase credentials. Do not put stall SQLite paths or desktop secrets into Vercel.
+
 ## Desktop Application
 
 - No application environment variables are required in phase 04.

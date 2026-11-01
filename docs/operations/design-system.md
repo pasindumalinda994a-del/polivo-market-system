@@ -14,7 +14,7 @@ pnpm --filter @polivo/ui build
 pnpm dev:ui
 ```
 
-Root `pnpm build` and `pnpm typecheck` build `@polivo/ui` before the applications.
+Root `pnpm build` and `pnpm typecheck` build `@polivo/ui` before the applications. `@polivo/web` `pnpm run build` also builds `@polivo/ui` first so clean checkouts (including Vercel with Root Directory `apps/web`) resolve package exports under `dist/`.
 
 ## Tokens
 
