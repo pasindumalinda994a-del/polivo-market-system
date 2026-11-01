@@ -175,7 +175,7 @@ pnpm --filter @polivo/ui build
 pnpm dev:ui
 ```
 
-Root `pnpm build` and `pnpm typecheck` build `@polivo/ui` before web and desktop. Keep `pnpm dev:ui` running while editing shared components so `dist/` stays current.
+Root `pnpm build` and `pnpm typecheck` build `@polivo/ui` before web and desktop. `@polivo/web` `build` also runs `@polivo/ui` first (required for clean CI/Vercel checkouts). Keep `pnpm dev:ui` running while editing shared components so `dist/` stays current during local `dev`.
 
 ## Build and start the compiled stall service
 
