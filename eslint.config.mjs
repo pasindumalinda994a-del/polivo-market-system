@@ -59,7 +59,10 @@ export default tseslint.config(
     },
   })),
   {
-    files: ["apps/desktop/src/renderer/**/*.{js,jsx,ts,tsx}"],
+    files: [
+      "apps/desktop/src/renderer/**/*.{js,jsx,ts,tsx}",
+      "packages/ui/src/**/*.{js,jsx,ts,tsx}",
+    ],
     plugins: {
       react: reactPlugin,
       "react-hooks": reactHooksPlugin,
@@ -83,6 +86,7 @@ export default tseslint.config(
       ...reactPlugin.configs.flat.recommended.rules,
       ...reactPlugin.configs.flat["jsx-runtime"].rules,
       ...reactHooksPlugin.configs.recommended.rules,
+      "react/prop-types": "off",
     },
   },
   {

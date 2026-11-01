@@ -9,6 +9,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "@polivo/contracts": resolve(repositoryRoot, "packages/contracts/src/index.ts"),
+      "@polivo/db-local": resolve(repositoryRoot, "packages/db-local/src/index.ts"),
     },
   },
   test: {

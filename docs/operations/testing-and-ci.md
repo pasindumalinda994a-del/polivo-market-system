@@ -1,28 +1,28 @@
 # Testing and Continuous Integration
 
-This guide describes how automated tests and GitHub Actions checks are organized for Polivo after phase 06.
+This guide describes how automated tests and GitHub Actions checks are organized for Polivo. It covers the suites added through phases 06–10 (contracts, domain, local database, stall-service integration, and app e2e smoke).
 
 ## Test ownership
 
-| Location                              | Owner                              | Purpose                                              |
-| ------------------------------------- | ---------------------------------- | ---------------------------------------------------- |
-| `packages/contracts/src/**/*.test.ts` | `@polivo/contracts`                | Unit tests for shared schemas and validation helpers |
-| `tests/integration/`                  | Stall-service application boundary | Fastify inject and configuration tests               |
-| `tests/e2e/web/`                      | Web application                    | Playwright Chromium end-to-end smoke                 |
-| `tests/e2e/desktop/`                  | Desktop application                | Playwright Electron startup and security smoke       |
-| `tests/fixtures/`                     | Shared synthetic data              | Deterministic non-production fixtures only           |
-| `tests/performance/`                  | Future (phase 43)                  | Reserved; no placeholder always-pass tests           |
-
-Future domain unit tests belong in `packages/domain` beside the implementation they verify.
+| Location                              | Owner                              | Purpose                                                               |
+| ------------------------------------- | ---------------------------------- | --------------------------------------------------------------------- |
+| `packages/contracts/src/**/*.test.ts` | `@polivo/contracts`                | Unit tests for shared schemas and validation helpers                  |
+| `packages/domain/src/**/*.test.ts`    | `@polivo/domain`                   | Unit tests for confirmed financial calculations                       |
+| `packages/db-local/src/**/*.test.ts`  | `@polivo/db-local`                 | Unit tests for SQLite connection, migrations, and repositories        |
+| `tests/integration/`                  | Stall-service application boundary | Fastify inject, configuration, and local data-access foundation tests |
+| `tests/e2e/web/`                      | Web application                    | Playwright Chromium end-to-end smoke                                  |
+| `tests/e2e/desktop/`                  | Desktop application                | Playwright Electron startup and security smoke                        |
+| `tests/fixtures/`                     | Shared synthetic data              | Deterministic non-production fixtures only                            |
+| `tests/performance/`                  | Future (phase 43)                  | Reserved; no placeholder always-pass tests                            |
 
 ## Tooling
 
-| Tool                  | Version  | Role                                              |
-| --------------------- | -------- | ------------------------------------------------- |
-| Vitest                | `5.0.5`  | Unit and service integration tests                |
-| `@vitest/coverage-v8` | `5.0.5`  | Coverage for contracts and exercised service code |
-| Playwright            | `1.64.1` | Web end-to-end and Electron desktop smoke         |
-| Electron              | `45.1.0` | Desktop runtime under test (package dependency)   |
+| Tool                  | Version  | Role                                                                       |
+| --------------------- | -------- | -------------------------------------------------------------------------- |
+| Vitest                | `5.0.5`  | Unit and service integration tests                                         |
+| `@vitest/coverage-v8` | `5.0.5`  | Coverage for contracts, domain, db-local, and exercised stall-service code |
+| Playwright            | `1.64.1` | Web end-to-end and Electron desktop smoke                                  |
+| Electron              | `45.1.0` | Desktop runtime under test (package dependency)                            |
 
 Node.js and pnpm must match `.node-version` and `package.json` (`>=26.13.0 <27`, pnpm `12.16.1`).
 
@@ -30,16 +30,16 @@ Node.js and pnpm must match `.node-version` and `package.json` (`>=26.13.0 <27`,
 
 Run from the repository root.
 
-| Command                 | Purpose                                                 |
-| ----------------------- | ------------------------------------------------------- |
-| `pnpm test:unit`        | Run contracts unit tests once                           |
-| `pnpm test:integration` | Run stall-service integration tests once                |
-| `pnpm test`             | Run unit and integration suites                         |
-| `pnpm test:watch`       | Watch the Vitest unit and integration suites            |
-| `pnpm test:coverage`    | Run unit and integration suites with coverage           |
-| `pnpm test:e2e:web`     | Build the web app, then run Playwright web tests        |
-| `pnpm test:e2e:desktop` | Build the desktop app, then run the Electron smoke test |
-| `pnpm check`            | Doctor, lint, format check, typecheck, then `pnpm test` |
+| Command                 | Purpose                                                          |
+| ----------------------- | ---------------------------------------------------------------- |
+| `pnpm test:unit`        | Run contracts, domain, and db-local unit tests once              |
+| `pnpm test:integration` | Run stall-service integration tests once                         |
+| `pnpm test`             | Run unit and integration suites                                  |
+| `pnpm test:watch`       | Watch the Vitest unit and integration suites                     |
+| `pnpm test:coverage`    | Run unit and integration suites with coverage                    |
+| `pnpm test:e2e:web`     | Build web and workspace deps (`@polivo/web...`), then Playwright |
+| `pnpm test:e2e:desktop` | Build desktop and workspace deps, then Electron smoke            |
+| `pnpm check`            | Doctor, lint, format check, typecheck, then `pnpm test`          |
 
 Existing build, lint, and formatting commands remain unchanged. `pnpm check` includes unit and integration tests. `pnpm typecheck` builds `@polivo/contracts` first (so stall-service can resolve package declarations), type-checks each application package, then type-checks Vitest unit and integration sources via root `tsconfig.test.json`.
 
@@ -126,9 +126,11 @@ These generated reports are gitignored.
 
 ## Coverage expectations
 
-Coverage currently targets:
+Coverage currently targets (configured per Vitest project):
 
 - `packages/contracts/src/**/*.ts` (excluding colocated tests and the barrel file)
+- `packages/domain/src/**/*.ts` (excluding colocated tests)
+- `packages/db-local/src/**/*.ts` (excluding colocated tests, barrel, and CLI)
 - `apps/stall-service/src/app.ts`
 - `apps/stall-service/src/config.ts`
 
@@ -160,15 +162,16 @@ Do not mark checks required before their first successful observed run.
 
 ## What remains for later phases
 
-- Financial calculation, payment, and commission tests after those rules are approved
-- Offline credential, authorization, and synchronization suites
+- Offline credential, authorization, and synchronization suites (phases 14–15 and sync workers)
 - Broader security and recovery scenarios
 - Performance tests under `tests/performance/` (phase 43)
 - Installer packaging and printer hardware certification
-- Design-system and authenticated dashboard end-to-end flows
+- Authenticated dashboard and full billing end-to-end flows
 
 ## Related guides
 
 - `local-development.md` — day-to-day application commands
 - `environment-configuration.md` — local environment variables
 - `contracts-and-validation.md` — shared contract package usage
+- `local-data-access-and-transactions.md` — transaction, idempotency, and repository foundations
+- `local-database-and-migrations.md` — SQLite ownership and migrations

@@ -36,18 +36,20 @@ test.afterAll(async () => {
   }
 });
 
-test("launches Electron with Polivo foundation content and secure boundaries", async () => {
+test("launches Electron with Polivo desktop shell and secure boundaries", async () => {
   expect(electronApp).toBeDefined();
   expect(window).toBeDefined();
   if (electronApp === undefined || window === undefined) {
     return;
   }
 
-  await expect(window.getByRole("heading", { name: "Polivo", level: 1 })).toBeVisible();
   await expect(
-    window.getByRole("heading", { name: "Desktop application foundation", level: 2 }),
+    window.getByRole("heading", { name: "Desktop application shell", level: 1 }),
   ).toBeVisible();
-  await expect(window.getByText("The desktop renderer is running.")).toBeVisible();
+  await expect(window.getByText("Billing workspace reserved")).toBeVisible();
+  await expect(window.getByText("Service connection not configured")).toBeVisible();
+  await expect(window.getByText("Connected", { exact: true })).toHaveCount(0);
+  await expect(window.getByText("Synced", { exact: true })).toHaveCount(0);
 
   const rendererExposure = await window.evaluate(() => {
     const scopedWindow = window as Window &

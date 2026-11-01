@@ -1,5 +1,28 @@
 {
   "name": "@polivo/db-local",
   "version": "0.0.0",
-  "private": true
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json && node ./scripts/copy-migrations.mjs",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "dev": "node ./scripts/copy-migrations.mjs && tsc -p tsconfig.json --watch",
+    "watch": "node ./scripts/copy-migrations.mjs && tsc -p tsconfig.json --watch",
+    "db:init": "node ./dist/cli.js init",
+    "db:migrate": "node ./dist/cli.js migrate",
+    "db:status": "node ./dist/cli.js status"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.6",
+    "typescript": "5.9.3"
+  }
 }

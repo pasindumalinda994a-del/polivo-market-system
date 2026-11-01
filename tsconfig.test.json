@@ -11,11 +11,13 @@
     "declaration": false,
     "declarationMap": false,
     "paths": {
-      "@polivo/contracts": ["./packages/contracts/src/index.ts"]
+      "@polivo/contracts": ["./packages/contracts/src/index.ts"],
+      "@polivo/db-local": ["./packages/db-local/src/index.ts"]
     }
   },
   "include": [
     "packages/contracts/src/**/*.ts",
+    "packages/db-local/src/**/*.ts",
     "tests/integration/**/*.ts",
     "apps/stall-service/src/**/*.ts"
   ],

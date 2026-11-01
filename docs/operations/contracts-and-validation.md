@@ -182,4 +182,16 @@ Do not rely on stale local build output.
 4. Rebuild the package and consume it through `@polivo/contracts`.
 5. Validate at receiving boundaries; keep authorization in the service.
 
-Money, weight, commission boundaries, and payment rules will be defined from approved requirements in phase 08. Do not choose financial precision, rounding, or monetary transport formats in this package until those requirements are accepted.
+## Money, weight, and payment transport
+
+Phase 08 added transport schemas for confirmed financial representations (see `docs/decisions/0003-confirmed-financial-rules.md`):
+
+| Concept        | Schema                                                                   | Representation                               |
+| -------------- | ------------------------------------------------------------------------ | -------------------------------------------- |
+| Money          | `moneyMinorSchema` / `nonNegativeMoneyMinorSchema`                       | Integer paisa (Rs. 1.00 → `100`)             |
+| Weight         | `weightHundredthsSchema`                                                 | Integer hundredths-kg (25.50 kg → `2550`)    |
+| Payment method | `paymentMethodSchema`                                                    | `cash` \| `bank_transfer` \| `cheque`        |
+| Payment status | `paymentStatusSchema`                                                    | `unpaid` \| `partially_paid` \| `fully_paid` |
+| Bill numbers   | `farmerBillNumberSchema` / `traderBillNumberSchema` / `billNumberSchema` | `F-{digits}` / `T-{digits}`                  |
+
+Commission rates, rounding, net-weight math, and payment allocation belong in `@polivo/domain`, not in this package. Full bill/payment API command schemas remain for later phases.
