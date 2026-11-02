@@ -6,6 +6,7 @@ export default defineConfig({
       "packages/contracts/vitest.config.ts",
       "packages/domain/vitest.config.ts",
       "packages/db-local/vitest.config.ts",
+      "packages/db-cloud/vitest.config.ts",
       "tests/integration/vitest.config.ts",
     ],
     coverage: {
@@ -16,6 +17,7 @@ export default defineConfig({
         "packages/contracts/src/**/*.ts",
         "packages/domain/src/**/*.ts",
         "packages/db-local/src/**/*.ts",
+        "packages/db-cloud/src/**/*.ts",
         "apps/stall-service/src/app.ts",
         "apps/stall-service/src/config.ts",
       ],
@@ -28,6 +30,9 @@ export default defineConfig({
         "packages/domain/src/index.ts",
         "packages/db-local/src/index.ts",
         "packages/db-local/src/cli.ts",
+        "packages/db-cloud/src/index.ts",
+        "packages/db-cloud/src/types.ts",
+        "packages/db-cloud/src/test/**",
         "apps/stall-service/src/server.ts",
       ],
       // Report files even when a project records paths relative to a package root.

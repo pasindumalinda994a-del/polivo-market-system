@@ -6,16 +6,18 @@ Document each new variable when its integration is implemented. Sanitized `.env.
 
 ## Web Application
 
-Placeholder Clerk and Supabase development variables are defined ahead of phase 11. SDKs and runtime validation are not wired yet; fill local values before integrations that require them.
+Placeholder Clerk and Supabase development variables are defined for phases 11–12. Phase 11 validates cloud URL/publishable-key names in `@polivo/db-cloud` user-context clients. Clerk SDK sign-in wiring belongs to phase 12. Fill local values before integrations that require them.
 
-| Variable                               | Required for integrations | Public | Description                                                              |
-| -------------------------------------- | ------------------------- | ------ | ------------------------------------------------------------------------ |
-| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`    | Yes (Clerk)               | Yes    | Clerk development publishable key. Browser-safe.                         |
-| `CLERK_SECRET_KEY`                     | Yes (Clerk)               | No     | Clerk development secret key. Server-only.                               |
-| `NEXT_PUBLIC_SUPABASE_URL`             | Yes (Supabase)            | Yes    | Supabase project URL. Browser-safe.                                      |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Yes (Supabase)            | Yes    | Supabase development publishable key. Browser-safe.                      |
-| `SUPABASE_SECRET_KEY`                  | Yes (Supabase)            | No     | Supabase privileged secret / service-role key. Server-only.              |
-| `DATABASE_URL`                         | Yes (migrations/schema)   | No     | Postgres connection string for cloud schema and migrations. Server-only. |
+| Variable                               | Required for integrations | Public | Description                                                                                                 |
+| -------------------------------------- | ------------------------- | ------ | ----------------------------------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`    | Yes (Clerk)               | Yes    | Clerk development publishable key. Browser-safe.                                                            |
+| `CLERK_SECRET_KEY`                     | Yes (Clerk)               | No     | Clerk development secret key. Server-only.                                                                  |
+| `NEXT_PUBLIC_SUPABASE_URL`             | Yes (Supabase)            | Yes    | Supabase project URL. Browser-safe. Used by `@polivo/db-cloud` user-context factory.                        |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Yes (Supabase)            | Yes    | Supabase publishable key. Browser-safe. Used by user-context factory.                                       |
+| `SUPABASE_SECRET_KEY`                  | Yes (privileged server)   | No     | Supabase privileged secret / service-role key. Server-only. Not used by the phase 11 public client factory. |
+| `DATABASE_URL`                         | Yes (migrations/schema)   | No     | Postgres connection string for cloud schema and migrations. Server-only.                                    |
+
+Cloud schema, RLS, and migration operations are documented in [cloud-database-and-tenant-isolation.md](./cloud-database-and-tenant-isolation.md). Canonical SQL lives under `supabase/migrations` only.
 
 Loading behavior:
 

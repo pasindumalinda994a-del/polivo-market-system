@@ -81,13 +81,14 @@ Run each development command in a separate terminal:
 pnpm dev:contracts
 pnpm dev:domain
 pnpm dev:db-local
+pnpm dev:db-cloud
 pnpm dev:ui
 pnpm dev:web
 pnpm dev:desktop
 pnpm dev:service
 ```
 
-Shared packages `@polivo/contracts`, `@polivo/domain`, `@polivo/db-local`, and `@polivo/ui` must be built (or watched) before dependent applications resolve their compiled exports. See `contracts-and-validation.md`, `local-database-and-migrations.md`, `local-data-access-and-transactions.md`, and `design-system.md`.
+Shared packages `@polivo/contracts`, `@polivo/domain`, `@polivo/db-local`, `@polivo/db-cloud`, and `@polivo/ui` must be built (or watched) before dependent applications resolve their compiled exports. See `contracts-and-validation.md`, `local-database-and-migrations.md`, `cloud-database-and-tenant-isolation.md`, `local-data-access-and-transactions.md`, and `design-system.md`. Cloud sync is not connected yet; `pnpm test:db-cloud` verifies cloud schema/RLS only.
 
 ### Web application
 

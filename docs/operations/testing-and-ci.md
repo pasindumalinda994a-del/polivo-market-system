@@ -1,19 +1,21 @@
 # Testing and Continuous Integration
 
-This guide describes how automated tests and GitHub Actions checks are organized for Polivo. It covers the suites added through phases 06–10 (contracts, domain, local database, stall-service integration, and app e2e smoke).
+This guide describes how automated tests and GitHub Actions checks are organized for Polivo. It covers the suites added through phases 06–11 (contracts, domain, local database, cloud isolation, stall-service integration, and app e2e smoke).
 
 ## Test ownership
 
-| Location                              | Owner                              | Purpose                                                               |
-| ------------------------------------- | ---------------------------------- | --------------------------------------------------------------------- |
-| `packages/contracts/src/**/*.test.ts` | `@polivo/contracts`                | Unit tests for shared schemas and validation helpers                  |
-| `packages/domain/src/**/*.test.ts`    | `@polivo/domain`                   | Unit tests for confirmed financial calculations                       |
-| `packages/db-local/src/**/*.test.ts`  | `@polivo/db-local`                 | Unit tests for SQLite connection, migrations, and repositories        |
-| `tests/integration/`                  | Stall-service application boundary | Fastify inject, configuration, and local data-access foundation tests |
-| `tests/e2e/web/`                      | Web application                    | Playwright Chromium end-to-end smoke                                  |
-| `tests/e2e/desktop/`                  | Desktop application                | Playwright Electron startup and security smoke                        |
-| `tests/fixtures/`                     | Shared synthetic data              | Deterministic non-production fixtures only                            |
-| `tests/performance/`                  | Future (phase 43)                  | Reserved; no placeholder always-pass tests                            |
+| Location                                | Owner                              | Purpose                                                               |
+| --------------------------------------- | ---------------------------------- | --------------------------------------------------------------------- |
+| `packages/contracts/src/**/*.test.ts`   | `@polivo/contracts`                | Unit tests for shared schemas and validation helpers                  |
+| `packages/domain/src/**/*.test.ts`      | `@polivo/domain`                   | Unit tests for confirmed financial calculations                       |
+| `packages/db-local/src/**/*.test.ts`    | `@polivo/db-local`                 | Unit tests for SQLite connection, migrations, and repositories        |
+| `packages/db-cloud/src/**/*.test.ts`    | `@polivo/db-cloud`                 | Unit tests for config, client factory, and exact numeric adapters     |
+| `packages/db-cloud/src/test/isolation/` | `@polivo/db-cloud`                 | Postgres RLS isolation suite (`pnpm test:db-cloud`)                   |
+| `tests/integration/`                    | Stall-service application boundary | Fastify inject, configuration, and local data-access foundation tests |
+| `tests/e2e/web/`                        | Web application                    | Playwright Chromium end-to-end smoke                                  |
+| `tests/e2e/desktop/`                    | Desktop application                | Playwright Electron startup and security smoke                        |
+| `tests/fixtures/`                       | Shared synthetic data              | Deterministic non-production fixtures only                            |
+| `tests/performance/`                    | Future (phase 43)                  | Reserved; no placeholder always-pass tests                            |
 
 ## Tooling
 
@@ -30,24 +32,26 @@ Node.js and pnpm must match `.node-version` and `package.json` (`>=26.13.0 <27`,
 
 Run from the repository root.
 
-| Command                 | Purpose                                                          |
-| ----------------------- | ---------------------------------------------------------------- |
-| `pnpm test:unit`        | Run contracts, domain, and db-local unit tests once              |
-| `pnpm test:integration` | Run stall-service integration tests once                         |
-| `pnpm test`             | Run unit and integration suites                                  |
-| `pnpm test:watch`       | Watch the Vitest unit and integration suites                     |
-| `pnpm test:coverage`    | Run unit and integration suites with coverage                    |
-| `pnpm test:e2e:web`     | Build web and workspace deps (`@polivo/web...`), then Playwright |
-| `pnpm test:e2e:desktop` | Build desktop and workspace deps, then Electron smoke            |
-| `pnpm check`            | Doctor, lint, format check, typecheck, then `pnpm test`          |
+| Command                 | Purpose                                                           |
+| ----------------------- | ----------------------------------------------------------------- |
+| `pnpm test:unit`        | Run contracts, domain, db-local, and db-cloud unit tests once     |
+| `pnpm test:integration` | Run stall-service integration tests once                          |
+| `pnpm test`             | Run unit and integration suites                                   |
+| `pnpm test:watch`       | Watch the Vitest unit and integration suites                      |
+| `pnpm test:coverage`    | Run unit and integration suites with coverage                     |
+| `pnpm test:db-cloud`    | Apply `supabase/migrations` on disposable Postgres; run RLS suite |
+| `pnpm test:e2e:web`     | Build web and workspace deps (`@polivo/web...`), then Playwright  |
+| `pnpm test:e2e:desktop` | Build desktop and workspace deps, then Electron smoke             |
+| `pnpm check`            | Doctor, lint, format check, typecheck, then `pnpm test`           |
 
-Existing build, lint, and formatting commands remain unchanged. `pnpm check` includes unit and integration tests. `pnpm typecheck` builds `@polivo/contracts` first (so stall-service can resolve package declarations), type-checks each application package, then type-checks Vitest unit and integration sources via root `tsconfig.test.json`.
+Existing build, lint, and formatting commands remain unchanged. `pnpm check` includes unit and integration tests (not `test:db-cloud`). `pnpm typecheck` builds shared packages first (including `@polivo/db-cloud`), type-checks each application package, then type-checks Vitest unit and integration sources via root `tsconfig.test.json`.
 
-Browser and desktop suites stay explicit because they need Playwright browsers and built application output.
+Browser, desktop, and cloud isolation suites stay explicit because they need Playwright browsers, built application output, or a disposable Postgres.
 
 ### Prerequisites
 
 - Unit and integration tests do not require network access, cloud credentials, or a listening server.
+- `pnpm test:db-cloud` uses local Supabase when Docker is available, otherwise embedded Postgres. It never uses production credentials. See [cloud-database-and-tenant-isolation.md](./cloud-database-and-tenant-isolation.md).
 - `pnpm test:e2e:web` builds `@polivo/web` and starts a production Next.js server on dedicated port **3100**.
 - `pnpm test:e2e:desktop` builds `@polivo/desktop` and launches Electron against `apps/desktop/out/main/index.js`.
 - Contracts consumers that resolve package exports still need `pnpm --filter @polivo/contracts build` before compiled application runs; Vitest and `tsconfig.test.json` alias contracts source for integration tests.
@@ -131,6 +135,7 @@ Coverage currently targets (configured per Vitest project):
 - `packages/contracts/src/**/*.ts` (excluding colocated tests and the barrel file)
 - `packages/domain/src/**/*.ts` (excluding colocated tests)
 - `packages/db-local/src/**/*.ts` (excluding colocated tests, barrel, and CLI)
+- `packages/db-cloud/src/**/*.ts` (excluding colocated tests, barrel, types entry, and isolation helpers)
 - `apps/stall-service/src/app.ts`
 - `apps/stall-service/src/config.ts`
 
@@ -145,6 +150,7 @@ Triggers: pull requests, pushes to `main`, and `workflow_dispatch`.
 | Job name            | Runner           | What it runs                                                                      |
 | ------------------- | ---------------- | --------------------------------------------------------------------------------- |
 | `quality-and-build` | `ubuntu-latest`  | Doctor, format check, lint, typecheck, unit/integration with coverage, full build |
+| `db-cloud`          | `ubuntu-latest`  | Cloud migration + RLS isolation suite (`pnpm test:db-cloud`)                      |
 | `web-e2e`           | `ubuntu-latest`  | Playwright Chromium against the production web build                              |
 | `desktop-smoke`     | `windows-latest` | Electron smoke against built desktop output                                       |
 
@@ -155,8 +161,9 @@ Permissions are `contents: read`. Jobs do not use production secrets, do not dep
 After these jobs have succeeded at least once on the default branch, mark the following GitHub required status checks:
 
 1. `quality-and-build`
-2. `web-e2e`
-3. `desktop-smoke`
+2. `db-cloud`
+3. `web-e2e`
+4. `desktop-smoke`
 
 Do not mark checks required before their first successful observed run.
 
@@ -175,3 +182,4 @@ Do not mark checks required before their first successful observed run.
 - `contracts-and-validation.md` — shared contract package usage
 - `local-data-access-and-transactions.md` — transaction, idempotency, and repository foundations
 - `local-database-and-migrations.md` — SQLite ownership and migrations
+- `cloud-database-and-tenant-isolation.md` — Supabase migrations, RLS, and `test:db-cloud`

@@ -69,6 +69,37 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
+  db-cloud:
+    name: db-cloud
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 12.16.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Cloud database isolation tests
+        run: pnpm test:db-cloud
+        env:
+          # Disposable embedded Postgres applies canonical supabase/migrations.
+          # Avoids Docker-in-CI flakiness while still exercising restricted-role RLS.
+          POLIVO_CLOUD_TEST_FORCE_EMBEDDED: "1"
+
   web-e2e:
     name: web-e2e
     runs-on: ubuntu-latest

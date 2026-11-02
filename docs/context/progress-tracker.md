@@ -4,6 +4,7 @@ Update this file after every meaningful implementation change. Record completed 
 
 ## Current Phase
 
+- Phase 11 complete: Supabase schema and tenant isolation (`@polivo/db-cloud`, `supabase/migrations`, RLS isolation tests) implemented and locally verified.
 - Phase 10 complete: Fastify local data access and transactions (`@polivo/db-local` repos/tx + stall-service command/HTTP foundations) implemented and locally verified on migration 001 only.
 - Phase 09 complete: local SQLite schema and migrations (`@polivo/db-local`, stall-service open/verify/close) implemented and locally verified.
 - Phase 08 complete: business domain and confirmed financial rules (`@polivo/domain` foundations + contracts money/weight/payment transport) implemented and locally verified.
@@ -17,8 +18,8 @@ Update this file after every meaningful implementation change. Record completed 
 
 ## Current Goal
 
-- Begin phase 11 (`11-supabase-schema-and-tenant-isolation.md`) on top of the verified local data-access foundations.
-- Continue subsequent implementation units only after each prior unit is verified.
+- Finish remaining pre–phase 12 verification (remote migrations, local Supabase/Docker confirmation, Playwright Chromium + web e2e, GitHub Actions, Vercel staging env, optional dev tenant membership), then implement phase 12 (`12-clerk-web-authentication.md`) once that guide is on disk.
+- Continue subsequent implementation units only after each prior unit is verified. Do not mark synchronization complete until its dedicated phases.
 
 ## Completed
 
@@ -120,14 +121,25 @@ Update this file after every meaningful implementation change. Record completed 
   - Authorization/device/permission enforcement still awaits phases 14–15; no billing/payment/sync-delivery APIs; no arrivals/inventory/permissions schema expansion; bill-number seed policy still open (sequences not seeded with 111111/444444).
   - Verification on Windows: `pnpm lint`, `pnpm typecheck`, `pnpm test` (133 tests: contracts + domain + db-local + integration), `pnpm build` passed. Phase-touched Prettier formatting applied. Compiled service `/health` returned expected JSON; fixture route absent (HTTP 404). Migration `001` checksum unchanged (`b518df58515339e1b90fbc3be4456dc58feb5908798fe75aef0204b96995f286`). Full-repo `pnpm format:check` may still fail on pre-existing UI/web drift outside this phase.
   - Phase 11 can begin for Supabase schema and tenant isolation; real auth and business APIs remain later.
+- Applied step `11-supabase-schema-and-tenant-isolation.md`:
+  - Canonical cloud migrations under `supabase/migrations` only (`config.toml` + four forward SQL migrations). Documented in [cloud-database-and-tenant-isolation.md](../operations/cloud-database-and-tenant-isolation.md); ADR [0008](../decisions/0008-cloud-schema-and-tenant-isolation.md).
+  - Tables: `tenants`, `tenant_memberships`, reporting copies of farmers/traders/vegetables/commission bands/sales/lines/packages/allocations/bills/payments/audit_events, plus `sync_received_events` receipt metadata (not a cloud outbox).
+  - Identity: Clerk `auth.jwt()->>'sub'` as opaque TEXT; membership `(tenant_id, identity_provider, external_subject)` unique; `reporting_reader` + active status required for reporting SELECT via `has_active_reporting_access`.
+  - Grants/RLS: authenticated SELECT-only on reporting tables; own-row membership SELECT; no authenticated financial INSERT/UPDATE/DELETE; FORCE RLS enabled.
+  - Numerics: Postgres `BIGINT` paisa/hundredths-kg; `@polivo/db-cloud` string transport adapters.
+  - `@polivo/db-cloud`: user-context client factory (access token required; no privileged fallback), types entry, unit tests; root `build`/`typecheck`/`test` wired; `pnpm test:db-cloud` + CI job `db-cloud`.
+  - Isolation suite (13 tests) against disposable embedded Postgres applying canonical migrations (Docker Supabase preferred when available). Simulated JWT claims labeled as policy tests.
+  - Storage buckets deferred. Remote migration to a shared Supabase project **not applied** in this phase (pending explicit target verification).
+  - Verification on Windows: `pnpm lint`, `pnpm typecheck`, `pnpm test` (147 tests), `pnpm test:db-cloud` (13), `pnpm build` passed. Phase-touched Prettier formatting applied. Full-repo `pnpm format:check` may still fail on pre-existing UI/web drift outside this phase.
+  - Phase 12 can begin for Clerk web authentication. Synchronization ingestion remains phases 31–34.
 
 ## In Progress
 
-- None.
+- Pre–phase 12 setup (2026-11-02): Clerk/Supabase development projects, native third-party auth integration, Clerk domain in `supabase/config.toml`, env review, local CLI/Docker attempt, remote link/migration work, formatting/build checks, and GitHub/CI push stage. Items without terminal or dashboard confirmation remain open below.
 
 ## Next Up
 
-- Apply phase 11 (`11-supabase-schema-and-tenant-isolation.md`).
+- Complete remaining pre–phase 12 verification listed in Session Notes, then apply phase 12 (`12-clerk-web-authentication.md`) after that guide is present on disk.
 - Later phases: billing UI, permission enforcement, arrivals/inventory migrations (consume domain helpers; do not re-implement rules).
 
 ## Open Questions
@@ -139,6 +151,7 @@ These are unresolved in the context files. Record accepted resolutions under `do
 - Backup retention and recovery expectations (including RTO/RPO).
 - Missing brand guidance: approved logo masters (including reverse/dark-surface and monochrome thermal variants) are not in the repository; text wordmark is temporary until assets are supplied.
 - Reconcile desktop billing chrome: familiar Seller Bill wireframe uses top module nav + paid/unpaid side lists + dense center workspace (`docs/context/desktop-billing-layout.md`), while Phase 07 shipped a left-rail `AppShell`. Decide the application-wide desktop chrome when billing UI is implemented and record it under `docs/decisions/` if needed.
+- Cloud reporting access vs tenant lifecycle status: should inactive or suspended `tenants.status` deny reporting SELECT even when the caller has an active `reporting_reader` membership? Current `has_active_reporting_access` checks membership only (CodeRabbit CR-03 on PR #4). Do not change the SQL helper until this is decided and recorded under `docs/decisions/`.
 
 Resolved for phase 08 (see [0003 — Confirmed financial rules](../decisions/0003-confirmed-financial-rules.md)):
 
@@ -168,6 +181,7 @@ Resolved ahead of phase 09:
 - [0005 — Commission configuration v1](../decisions/0005-commission-configuration-v1.md): stall default bands only; snapshot applied commission on finalize.
 - [0006 — Trader cheque immediate-paid](../decisions/0006-trader-cheque-immediate-paid-proposed.md): **Proposed** only; awaiting confirmation.
 - [0007 — Local SQLite driver (`node:sqlite`)](../decisions/0007-local-sqlite-driver-node-sqlite.md): built-in Node 26 driver; WAL + FK + durable pragmas; no ORM.
+- [0008 — Cloud schema and tenant isolation](../decisions/0008-cloud-schema-and-tenant-isolation.md): canonical `supabase/migrations`, Clerk `sub` TEXT membership, BIGINT+string numerics, reporting-read-only RLS.
 
 ## Session Notes
 
@@ -190,3 +204,12 @@ Resolved ahead of phase 09:
 - Phase 10 completed 2026-11-01: local data-access/transaction foundations on migration 001 only. Production remains health-only; fixture harness is test composition only. Auth integration points remain for phases 14–15.
 - Pre–phase 11 env prep (2026-11-01): added `apps/web/.env.example` (placeholders only) and local `apps/web/.env.local` for Clerk + Supabase development credentials. Documented in `docs/operations/environment-configuration.md`. Gitignore verified: `.env` / `.env.*` ignored, `!.env.example` kept trackable; `.env.local` does not appear in `git status`. No Clerk/Supabase SDK or schema integration yet — fill real keys before those phases need them.
 - Pre–phase 11 Vercel staging build fix (2026-11-01): clean Vercel builds failed with `Can't resolve '@polivo/ui'` because `packages/ui/dist/` is not committed and Root Directory `apps/web` only ran `next build`. `@polivo/web` `build` now runs `pnpm --filter @polivo/ui build && next build`; added `apps/web/vercel.json` install/build commands; documented Vercel settings in `docs/operations/environment-configuration.md` (and design-system / local-development notes). Local verification: deleted `packages/ui/dist`, then `pnpm --filter @polivo/web build` succeeded. Redeploy staging after this change is on the branch Vercel builds.
+- Phase 11 completed 2026-11-01: cloud schema/RLS foundations only. Isolation tests originally used embedded Postgres with a Supabase-compatible roles/`auth.jwt()` stub when Docker was unavailable on the verifying Windows host.
+- Pre–phase 12 setup progress (2026-11-02), recorded from operator setup notes (only mark complete when supported by confirmation):
+  - **Done / in progress as reported:** reviewed Clerk and Supabase development projects and API credentials; followed native Clerk ↔ Supabase third-party auth setup (no legacy JWT templates); updated Clerk Frontend API domain in `supabase/config.toml` (resolves prior invalid-domain error; current local value is the development Clerk accounts host); reviewed `apps/web/.env.local` Clerk/Supabase development keys (secrets stay out of Git); Supabase CLI available; Next.js production build and TypeScript compilation passed; web e2e failures attributed to missing Playwright Chromium executable rather than an application build failure; reached commit/push/GitHub Actions verification stage (`development` branch includes commit `before phase 12`).
+  - **Not yet confirmed:** Docker/local Supabase stack starts successfully; all four cloud migrations applied on the linked Supabase development project; full formatting + unit/integration + e2e suites green after Chromium install/rerun; remote GitHub Actions jobs (`quality-and-build`, `db-cloud`, `web-e2e`, `desktop-smoke`) observed green; Vercel staging env mirrors development Clerk/Supabase vars (Step 9); development tenant + `tenant_memberships` row for a real Clerk `sub` (Step 10).
+  - Phase 12 implementation guide `docs/implementation/12-clerk-web-authentication.md` still to be added before coding Clerk web authentication.
+- PR #4 CodeRabbit triage (2026-11-02): captured in [docs/coderabbitissues/2026-11-02-pr-4-phase-11-cloud-schema.md](../coderabbitissues/2026-11-02-pr-4-phase-11-cloud-schema.md). Fixed CR-01 (loopback test DB guard), CR-02 (embedded Postgres cleanup on schema failure), CR-04 (forward migration `20251102140000_sale_farmer_allocation_sale_line_fk.sql` + isolation test). Deferred CR-03 (tenant status gating — open question), CR-05 (RLS perf), CR-06 (payment string reads). Wontfix CR-07 (docstring coverage bot).
+- PR #4 CodeRabbit follow-up (2026-11-02, review 5734130351): fixed CR-08 (IPv6 `[::1]`), CR-09 (Postgres `?host=` override), CR-10 (`initialise()` cleanup), CR-11 (embedded default; `POLIVO_CLOUD_TEST_USE_LOCAL_SUPABASE=1` opt-in), CR-12 (allocation FK assertion).
+- PR #4 CodeRabbit CR-13 (2026-11-02, discussion r4440630702): reject duplicate Postgres `host` query params so loopback-first / remote-last URLs cannot bypass the isolation-test guard.
+- PR #4 CodeRabbit three-thread follow-up (2026-11-02): CR-04 composite allocation FK folded into `20251101120100` with idempotent `20251102140000`; CR-13 hardened to reject empty duplicate `host` keys before trim; CR-14 ops doc clarifies `POLIVO_CLOUD_TEST_DATABASE_URL` is ignored by `pnpm test:db-cloud`.

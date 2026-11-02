@@ -31,6 +31,12 @@ playwright-report/
 blob-report/
 playwright/.cache/
 
+# Local Supabase CLI state (migrations under supabase/migrations remain tracked)
+.branches/
+.temp/
+supabase/.temp/
+supabase/.branches/
+
 # Local environment files (keep sanitized examples)
 .env
 .env.*
