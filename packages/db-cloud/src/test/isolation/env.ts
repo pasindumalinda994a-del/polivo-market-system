@@ -51,12 +51,23 @@ function authorityHostname(raw: string, label: string): string {
 /**
  * Effective Postgres connect host: query `host` overrides authority when present
  * (libpq / node-pg behavior). Strip IPv6 brackets from the query value.
+ * Duplicate `host` query params are rejected — `URLSearchParams.get` returns the
+ * first value while libpq uses the last, which would bypass a loopback-first guard.
  */
 export function effectivePostgresHostname(raw: string): string {
   const url = parseUrl(raw, "POLIVO_CLOUD_TEST_DATABASE_URL");
-  const queryHost = url.searchParams.get("host");
-  if (queryHost !== null && queryHost.trim() !== "") {
-    return normalizeHostname(queryHost.trim());
+  const queryHosts = url.searchParams
+    .getAll("host")
+    .map((value) => value.trim())
+    .filter((value) => value !== "");
+  if (queryHosts.length > 1) {
+    throw new Error(
+      "Cloud isolation tests refuse POLIVO_CLOUD_TEST_DATABASE_URL with duplicate host query parameters. Use a single unambiguous host.",
+    );
+  }
+  const queryHost = queryHosts[0];
+  if (queryHost !== undefined) {
+    return normalizeHostname(queryHost);
   }
   return normalizeHostname(url.hostname);
 }
@@ -82,12 +93,12 @@ export function resolveCloudTestEnv(
   const publishableKey =
     source.POLIVO_CLOUD_TEST_PUBLISHABLE_KEY?.trim() || LOCAL_DEFAULTS.publishableKey;
 
+  // Always resolve DB host (rejects duplicate host query params even when allow-remote).
+  const effectiveDbHost = effectivePostgresHostname(databaseUrl);
+
   const allowRemote = source.POLIVO_CLOUD_TEST_ALLOW_REMOTE === "1";
   if (!allowRemote) {
-    assertLoopbackHostname(
-      effectivePostgresHostname(databaseUrl),
-      "POLIVO_CLOUD_TEST_DATABASE_URL",
-    );
+    assertLoopbackHostname(effectiveDbHost, "POLIVO_CLOUD_TEST_DATABASE_URL");
     assertLoopbackHostname(
       authorityHostname(supabaseUrl, "POLIVO_CLOUD_TEST_SUPABASE_URL"),
       "POLIVO_CLOUD_TEST_SUPABASE_URL",

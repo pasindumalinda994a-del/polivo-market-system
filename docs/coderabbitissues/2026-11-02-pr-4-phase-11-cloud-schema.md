@@ -9,7 +9,7 @@
 | Phase          | Phase 11 — Supabase schema and tenant isolation                                                                                                                                                                                                     |
 | PR             | [#4](https://github.com/pasindumalinda994a-del/polivo-market-system/pull/4)                                                                                                                                                                         |
 | Source         | [Review 5733764677](https://github.com/pasindumalinda994a-del/polivo-market-system/pull/4#pullrequestreview-5733764677), follow-up [5734130351](https://github.com/pasindumalinda994a-del/polivo-market-system/pull/4#pullrequestreview-5734130351) |
-| Overall status | `partially-resolved` (CR-01–04 and CR-08–12 fixed; CR-03/05/06 deferred; CR-07 wontfix)                                                                                                                                                             |
+| Overall status | `partially-resolved` (CR-01–04, CR-08–13 fixed; CR-03/05/06 deferred; CR-07 wontfix)                                                                                                                                                                |
 
 ## Summary
 
@@ -27,6 +27,7 @@
 | CR-10 | Minor    | Stability & Availability     | `scripts/test-db-cloud.mjs` (`initialise`)                       | `fix`       |
 | CR-11 | Major    | Stability & Availability     | `scripts/test-db-cloud.mjs` (default embedded)                   | `fix`       |
 | CR-12 | Trivial  | Functional Correctness       | `packages/db-cloud/src/test/isolation/isolation.test.ts`         | `fix`       |
+| CR-13 | Major    | Data Integrity & Integration | `packages/db-cloud/src/test/isolation/env.ts` (duplicate `host`) | `fix`       |
 
 ## Findings
 
@@ -149,6 +150,16 @@
 - **Recommendation:** Assert Postgres FK violation code/constraint.
 - **Disposition:** `fix`
 - **Resolution:** Expect `code: "23503"` and constraint `sale_farmer_allocations_sale_line_fk`.
+
+### CR-13 — Duplicate Postgres `host` query bypass (follow-up)
+
+- **Severity:** Major
+- **Category:** Data Integrity & Integration
+- **Location:** `packages/db-cloud/src/test/isolation/env.ts` ([discussion r4440630702](https://github.com/pasindumalinda994a-del/polivo-market-system/pull/4#discussion_r4440630702))
+- **Summary:** `searchParams.get("host")` returns the first value; libpq uses the last. `?host=127.0.0.1&host=db.example.com` could pass the loopback guard then connect remotely.
+- **Recommendation:** Reject duplicate `host` parameters or validate the last value.
+- **Disposition:** `fix`
+- **Resolution:** `effectivePostgresHostname` rejects duplicate `host` query params (always, including allow-remote). Unit tests cover loopback-first / remote-last URLs.
 
 ## Follow-ups
 

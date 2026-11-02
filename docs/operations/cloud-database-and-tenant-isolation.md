@@ -97,7 +97,7 @@ Test-only overrides (never required for app builds):
 
 | Variable                                 | Purpose                                                                                                                                                                   |
 | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `POLIVO_CLOUD_TEST_DATABASE_URL`         | Isolation test Postgres URL (must be loopback unless allow-remote; `?host=` overrides authority for the guard)                                                            |
+| `POLIVO_CLOUD_TEST_DATABASE_URL`         | Isolation test Postgres URL (must be loopback unless allow-remote; a single `?host=` overrides authority; duplicate `host` query params are rejected)                     |
 | `POLIVO_CLOUD_TEST_SUPABASE_URL`         | Optional Supabase API URL override (must be loopback unless allow-remote)                                                                                                 |
 | `POLIVO_CLOUD_TEST_FORCE_EMBEDDED=1`     | Force embedded Postgres (CI default)                                                                                                                                      |
 | `POLIVO_CLOUD_TEST_USE_LOCAL_SUPABASE=1` | Opt-in local Supabase (`start` + `db reset`). Default runner uses embedded Postgres to avoid wiping a local project.                                                      |
