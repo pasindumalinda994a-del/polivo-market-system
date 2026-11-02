@@ -56,17 +56,15 @@ function authorityHostname(raw: string, label: string): string {
  */
 export function effectivePostgresHostname(raw: string): string {
   const url = parseUrl(raw, "POLIVO_CLOUD_TEST_DATABASE_URL");
-  const queryHosts = url.searchParams
-    .getAll("host")
-    .map((value) => value.trim())
-    .filter((value) => value !== "");
-  if (queryHosts.length > 1) {
+  // Count raw keys first — empty duplicates must not be stripped before this check.
+  const rawHosts = url.searchParams.getAll("host");
+  if (rawHosts.length > 1) {
     throw new Error(
       "Cloud isolation tests refuse POLIVO_CLOUD_TEST_DATABASE_URL with duplicate host query parameters. Use a single unambiguous host.",
     );
   }
-  const queryHost = queryHosts[0];
-  if (queryHost !== undefined) {
+  const queryHost = rawHosts[0]?.trim();
+  if (queryHost !== undefined && queryHost !== "") {
     return normalizeHostname(queryHost);
   }
   return normalizeHostname(url.hostname);

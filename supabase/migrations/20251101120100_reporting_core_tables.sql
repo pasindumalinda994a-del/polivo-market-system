@@ -104,6 +104,7 @@ CREATE TABLE public.sale_lines (
   applied_commission_amount_minor BIGINT,
   PRIMARY KEY (tenant_id, id),
   UNIQUE (tenant_id, sale_id, line_order),
+  CONSTRAINT sale_lines_tenant_sale_id_unique UNIQUE (tenant_id, sale_id, id),
   FOREIGN KEY (tenant_id, sale_id)
     REFERENCES public.sales (tenant_id, id) ON DELETE RESTRICT,
   FOREIGN KEY (tenant_id, vegetable_id)
@@ -132,10 +133,9 @@ CREATE TABLE public.sale_farmer_allocations (
   farmer_id TEXT NOT NULL,
   allocated_net_weight_hundredths BIGINT NOT NULL CHECK (allocated_net_weight_hundredths >= 0),
   PRIMARY KEY (tenant_id, id),
-  FOREIGN KEY (tenant_id, sale_id)
-    REFERENCES public.sales (tenant_id, id) ON DELETE RESTRICT,
-  FOREIGN KEY (tenant_id, sale_line_id)
-    REFERENCES public.sale_lines (tenant_id, id) ON DELETE RESTRICT,
+  CONSTRAINT sale_farmer_allocations_sale_line_fk
+    FOREIGN KEY (tenant_id, sale_id, sale_line_id)
+    REFERENCES public.sale_lines (tenant_id, sale_id, id) ON DELETE RESTRICT,
   FOREIGN KEY (tenant_id, farmer_id)
     REFERENCES public.farmers (tenant_id, id) ON DELETE RESTRICT
 );

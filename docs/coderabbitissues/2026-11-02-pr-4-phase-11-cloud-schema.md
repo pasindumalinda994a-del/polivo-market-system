@@ -9,7 +9,7 @@
 | Phase          | Phase 11 — Supabase schema and tenant isolation                                                                                                                                                                                                     |
 | PR             | [#4](https://github.com/pasindumalinda994a-del/polivo-market-system/pull/4)                                                                                                                                                                         |
 | Source         | [Review 5733764677](https://github.com/pasindumalinda994a-del/polivo-market-system/pull/4#pullrequestreview-5733764677), follow-up [5734130351](https://github.com/pasindumalinda994a-del/polivo-market-system/pull/4#pullrequestreview-5734130351) |
-| Overall status | `partially-resolved` (CR-01–04, CR-08–13 fixed; CR-03/05/06 deferred; CR-07 wontfix)                                                                                                                                                                |
+| Overall status | `partially-resolved` (CR-01–04, CR-08–14 fixed; CR-03/05/06 deferred; CR-07 wontfix)                                                                                                                                                                |
 
 ## Summary
 
@@ -28,6 +28,7 @@
 | CR-11 | Major    | Stability & Availability     | `scripts/test-db-cloud.mjs` (default embedded)                   | `fix`       |
 | CR-12 | Trivial  | Functional Correctness       | `packages/db-cloud/src/test/isolation/isolation.test.ts`         | `fix`       |
 | CR-13 | Major    | Data Integrity & Integration | `packages/db-cloud/src/test/isolation/env.ts` (duplicate `host`) | `fix`       |
+| CR-14 | Trivial  | Documentation Accuracy       | `docs/operations/cloud-database-and-tenant-isolation.md`         | `fix`       |
 
 ## Findings
 
@@ -69,7 +70,7 @@
 - **Summary:** Separate FKs on `(tenant_id, sale_id)` and `(tenant_id, sale_line_id)` do not ensure the line belongs to that sale.
 - **Recommendation:** Add `UNIQUE (tenant_id, sale_id, id)` on `sale_lines` and reference it from allocations.
 - **Disposition:** `fix`
-- **Resolution:** Forward migration `supabase/migrations/20251102140000_sale_farmer_allocation_sale_line_fk.sql`. Isolation test asserts FK constraint (CR-12). GitHub inline thread may still look open until manually resolved.
+- **Resolution:** Composite FK folded into `20251101120100_reporting_core_tables.sql` (`UNIQUE (tenant_id, sale_id, id)` on `sale_lines`; named `sale_farmer_allocations_sale_line_fk`). Forward migration `20251102140000_sale_farmer_allocation_sale_line_fk.sql` is idempotent for DBs that already applied the earlier upgrade. Isolation test asserts FK constraint (CR-12). Thread [r4440221486](https://github.com/pasindumalinda994a-del/polivo-market-system/pull/4#discussion_r4440221486).
 
 ### CR-05 — RLS helper performance
 
@@ -159,11 +160,21 @@
 - **Summary:** `searchParams.get("host")` returns the first value; libpq uses the last. `?host=127.0.0.1&host=db.example.com` could pass the loopback guard then connect remotely.
 - **Recommendation:** Reject duplicate `host` parameters or validate the last value.
 - **Disposition:** `fix`
-- **Resolution:** `effectivePostgresHostname` rejects duplicate `host` query params (always, including allow-remote). Unit tests cover loopback-first / remote-last URLs.
+- **Resolution:** `effectivePostgresHostname` rejects duplicate `host` query params (always, including allow-remote). Counts raw `getAll("host")` before trimming empties so `?host=127.0.0.1&host=` cannot collapse to a single loopback. Unit tests cover non-empty and empty duplicates. Thread [r4440843776](https://github.com/pasindumalinda994a-del/polivo-market-system/pull/4#discussion_r4440843776).
+
+### CR-14 — `POLIVO_CLOUD_TEST_DATABASE_URL` vs `pnpm test:db-cloud`
+
+- **Severity:** Trivial
+- **Category:** Documentation Accuracy
+- **Location:** `docs/operations/cloud-database-and-tenant-isolation.md` ([discussion r4440843765](https://github.com/pasindumalinda994a-del/polivo-market-system/pull/4#discussion_r4440843765))
+- **Summary:** Ops table implied the env var drives managed isolation runs; the runner always overwrites it with the selected stack URL.
+- **Recommendation:** Document that the variable applies only to direct Vitest / isolation-helper runs.
+- **Disposition:** `fix`
+- **Resolution:** Ops doc clarifies `pnpm test:db-cloud` ignores a pre-set `POLIVO_CLOUD_TEST_DATABASE_URL`.
 
 ## Follow-ups
 
 - Decide whether inactive/suspended `tenants.status` must deny reporting reads (CR-03) and record under `docs/decisions/` when accepted.
 - When implementing cloud payment reads, add exact-string transport (CR-06); do not retype as `number` alone.
 - Benchmark RLS helper under realistic reporting load before changing policies (CR-05).
-- Manually resolve the CR-04 GitHub review thread after the forward migration is on the PR head.
+- Manually resolve open GitHub review threads (CR-04 / CR-13 empty-dup / CR-14) after this push lands on the PR head.

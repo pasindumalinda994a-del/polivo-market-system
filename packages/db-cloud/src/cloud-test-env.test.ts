@@ -67,6 +67,17 @@ describe("resolveCloudTestEnv", () => {
     expect(() => effectivePostgresHostname(ambiguous)).toThrow(/duplicate host/);
   });
 
+  it("rejects loopback host followed by an empty host query param", () => {
+    const ambiguous =
+      "postgresql://postgres:secret@db.example.com:5432/postgres?host=127.0.0.1&host=";
+    expect(() =>
+      resolveCloudTestEnv({
+        POLIVO_CLOUD_TEST_DATABASE_URL: ambiguous,
+      }),
+    ).toThrow(/duplicate host/);
+    expect(() => effectivePostgresHostname(ambiguous)).toThrow(/duplicate host/);
+  });
+
   it("allows remote targets when POLIVO_CLOUD_TEST_ALLOW_REMOTE=1", () => {
     const env = resolveCloudTestEnv({
       POLIVO_CLOUD_TEST_ALLOW_REMOTE: "1",
