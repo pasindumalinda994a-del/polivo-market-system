@@ -2,9 +2,16 @@ packages:
   - "apps/*"
   - "packages/*"
 allowBuilds:
+  "@embedded-postgres/darwin-arm64": true
+  "@embedded-postgres/darwin-x64": true
+  "@embedded-postgres/linux-arm64": true
+  "@embedded-postgres/linux-x64": true
+  "@embedded-postgres/windows-x64": true
   electron: true
+  embedded-postgres: true
   esbuild: true
   sharp: true
+  supabase: true
   unrs-resolver: true
 minimumReleaseAgeExclude:
   - "@types/node@26.6.6"

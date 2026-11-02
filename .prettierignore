@@ -15,3 +15,6 @@ release
 AGENTS.md
 docs/context/**
 docs/implementation/**
+
+# Supabase CLI TOML is not formatted by Prettier.
+supabase/**/*.toml

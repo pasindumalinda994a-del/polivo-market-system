@@ -1,0 +1,50 @@
+# Canonical Supabase CLI configuration for Polivo Market System.
+# Migrations live only under supabase/migrations — do not duplicate them elsewhere.
+# See docs/operations/cloud-database-and-tenant-isolation.md.
+
+project_id = "polivo-local"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 15
+
+[db.pooler]
+enabled = false
+
+[realtime]
+enabled = false
+
+[studio]
+enabled = true
+port = 54323
+api_url = "http://127.0.0.1"
+
+[inbucket]
+enabled = false
+
+[storage]
+enabled = false
+
+[auth]
+enabled = true
+site_url = "http://127.0.0.1:3000"
+additional_redirect_urls = ["http://127.0.0.1:3000"]
+enable_signup = false
+
+# Clerk third-party auth for local policy testing / phase 12 wiring.
+# Replace domain with the Clerk Frontend API host before enabling real tokens.
+# JWT signature verification against Clerk is completed in phase 12.
+[auth.third_party.clerk]
+enabled = true
+domain = "helping-snail-7458.clerk.accounts.dev"
+
+[analytics]
+enabled = false

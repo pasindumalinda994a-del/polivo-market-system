@@ -1,5 +1,37 @@
 {
   "name": "@polivo/db-cloud",
   "version": "0.0.0",
-  "private": true
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./types": {
+      "types": "./dist/types.d.ts",
+      "import": "./dist/types.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch",
+    "watch": "tsc -p tsconfig.json --watch",
+    "test": "vitest run --config vitest.config.ts",
+    "test:db": "vitest run --config vitest.db.config.ts"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "2.81.1"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.6",
+    "@types/pg": "8.15.6",
+    "pg": "8.16.3",
+    "typescript": "5.9.3",
+    "vitest": "5.0.5"
+  }
 }
