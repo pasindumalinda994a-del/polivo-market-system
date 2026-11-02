@@ -170,11 +170,11 @@
 - **Summary:** Ops table implied the env var drives managed isolation runs; the runner always overwrites it with the selected stack URL.
 - **Recommendation:** Document that the variable applies only to direct Vitest / isolation-helper runs.
 - **Disposition:** `fix`
-- **Resolution:** Ops doc clarifies `pnpm test:db-cloud` ignores a pre-set `POLIVO_CLOUD_TEST_DATABASE_URL`.
+- **Resolution:** Ops doc clarifies `pnpm test:db-cloud` ignores a pre-set `POLIVO_CLOUD_TEST_DATABASE_URL`. Prettier table padding applied for CI / [r4441183489](https://github.com/pasindumalinda994a-del/polivo-market-system/pull/4#discussion_r4441183489).
 
 ## Follow-ups
 
 - Decide whether inactive/suspended `tenants.status` must deny reporting reads (CR-03) and record under `docs/decisions/` when accepted.
 - When implementing cloud payment reads, add exact-string transport (CR-06); do not retype as `number` alone.
 - Benchmark RLS helper under realistic reporting load before changing policies (CR-05).
-- Manually resolve open GitHub review threads (CR-04 / CR-13 empty-dup / CR-14) after this push lands on the PR head.
+- Manually resolve open GitHub review threads after this push lands on the PR head.

@@ -95,13 +95,13 @@ Phase 12 adds Clerk SDK wiring. Desktop builds must not receive Supabase adminis
 
 Test-only overrides (never required for app builds):
 
-| Variable                                 | Purpose                                                                                                                                                                   |
-| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Variable                                 | Purpose                                                                                                                                                                                                                                              |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `POLIVO_CLOUD_TEST_DATABASE_URL`         | Direct Vitest / isolation-helper runs only (must be loopback unless allow-remote; a single `?host=` overrides authority; duplicate `host` query params are rejected). Ignored by `pnpm test:db-cloud`, which always supplies its selected stack URL. |
-| `POLIVO_CLOUD_TEST_SUPABASE_URL`         | Optional Supabase API URL override (must be loopback unless allow-remote)                                                                                                 |
-| `POLIVO_CLOUD_TEST_FORCE_EMBEDDED=1`     | Force embedded Postgres (CI default)                                                                                                                                      |
-| `POLIVO_CLOUD_TEST_USE_LOCAL_SUPABASE=1` | Opt-in local Supabase (`start` + `db reset`). Default runner uses embedded Postgres to avoid wiping a local project.                                                      |
-| `POLIVO_CLOUD_TEST_ALLOW_REMOTE=1`       | Lab only. Required before any non-loopback test database/API URL (including `supabase.co`). Destructive fixtures must never target shared staging/production by accident. |
+| `POLIVO_CLOUD_TEST_SUPABASE_URL`         | Optional Supabase API URL override (must be loopback unless allow-remote)                                                                                                                                                                            |
+| `POLIVO_CLOUD_TEST_FORCE_EMBEDDED=1`     | Force embedded Postgres (CI default)                                                                                                                                                                                                                 |
+| `POLIVO_CLOUD_TEST_USE_LOCAL_SUPABASE=1` | Opt-in local Supabase (`start` + `db reset`). Default runner uses embedded Postgres to avoid wiping a local project.                                                                                                                                 |
+| `POLIVO_CLOUD_TEST_ALLOW_REMOTE=1`       | Lab only. Required before any non-loopback test database/API URL (including `supabase.co`). Destructive fixtures must never target shared staging/production by accident.                                                                            |
 
 ## Local test setup and commands
 
