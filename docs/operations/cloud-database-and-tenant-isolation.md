@@ -95,11 +95,12 @@ Phase 12 adds Clerk SDK wiring. Desktop builds must not receive Supabase adminis
 
 Test-only overrides (never required for app builds):
 
-| Variable                             | Purpose                                                       |
-| ------------------------------------ | ------------------------------------------------------------- |
-| `POLIVO_CLOUD_TEST_DATABASE_URL`     | Isolation test Postgres URL                                   |
-| `POLIVO_CLOUD_TEST_FORCE_EMBEDDED=1` | Skip Docker Supabase; use embedded Postgres                   |
-| `POLIVO_CLOUD_TEST_ALLOW_REMOTE=1`   | Required if pointing tests at a `supabase.co` host (lab only) |
+| Variable                             | Purpose                                                                                                                                                                   |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `POLIVO_CLOUD_TEST_DATABASE_URL`     | Isolation test Postgres URL (must be loopback unless `POLIVO_CLOUD_TEST_ALLOW_REMOTE=1`)                                                                                  |
+| `POLIVO_CLOUD_TEST_SUPABASE_URL`     | Optional Supabase API URL override (must be loopback unless allow-remote)                                                                                                 |
+| `POLIVO_CLOUD_TEST_FORCE_EMBEDDED=1` | Skip Docker Supabase; use embedded Postgres                                                                                                                               |
+| `POLIVO_CLOUD_TEST_ALLOW_REMOTE=1`   | Lab only. Required before any non-loopback test database/API URL (including `supabase.co`). Destructive fixtures must never target shared staging/production by accident. |
 
 ## Local test setup and commands
 

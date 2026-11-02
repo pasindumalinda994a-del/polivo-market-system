@@ -18,7 +18,7 @@ Update this file after every meaningful implementation change. Record completed 
 
 ## Current Goal
 
-- Begin phase 12 (`12-clerk-web-authentication.md`) on top of the verified cloud schema and tenant-isolation foundations.
+- Finish remaining pre–phase 12 verification (remote migrations, local Supabase/Docker confirmation, Playwright Chromium + web e2e, GitHub Actions, Vercel staging env, optional dev tenant membership), then implement phase 12 (`12-clerk-web-authentication.md`) once that guide is on disk.
 - Continue subsequent implementation units only after each prior unit is verified. Do not mark synchronization complete until its dedicated phases.
 
 ## Completed
@@ -135,11 +135,11 @@ Update this file after every meaningful implementation change. Record completed 
 
 ## In Progress
 
-- None.
+- Pre–phase 12 setup (2026-11-02): Clerk/Supabase development projects, native third-party auth integration, Clerk domain in `supabase/config.toml`, env review, local CLI/Docker attempt, remote link/migration work, formatting/build checks, and GitHub/CI push stage. Items without terminal or dashboard confirmation remain open below.
 
 ## Next Up
 
-- Apply phase 12 (`12-clerk-web-authentication.md`).
+- Complete remaining pre–phase 12 verification listed in Session Notes, then apply phase 12 (`12-clerk-web-authentication.md`) after that guide is present on disk.
 - Later phases: billing UI, permission enforcement, arrivals/inventory migrations (consume domain helpers; do not re-implement rules).
 
 ## Open Questions
@@ -151,6 +151,7 @@ These are unresolved in the context files. Record accepted resolutions under `do
 - Backup retention and recovery expectations (including RTO/RPO).
 - Missing brand guidance: approved logo masters (including reverse/dark-surface and monochrome thermal variants) are not in the repository; text wordmark is temporary until assets are supplied.
 - Reconcile desktop billing chrome: familiar Seller Bill wireframe uses top module nav + paid/unpaid side lists + dense center workspace (`docs/context/desktop-billing-layout.md`), while Phase 07 shipped a left-rail `AppShell`. Decide the application-wide desktop chrome when billing UI is implemented and record it under `docs/decisions/` if needed.
+- Cloud reporting access vs tenant lifecycle status: should inactive or suspended `tenants.status` deny reporting SELECT even when the caller has an active `reporting_reader` membership? Current `has_active_reporting_access` checks membership only (CodeRabbit CR-03 on PR #4). Do not change the SQL helper until this is decided and recorded under `docs/decisions/`.
 
 Resolved for phase 08 (see [0003 — Confirmed financial rules](../decisions/0003-confirmed-financial-rules.md)):
 
@@ -203,4 +204,9 @@ Resolved ahead of phase 09:
 - Phase 10 completed 2026-11-01: local data-access/transaction foundations on migration 001 only. Production remains health-only; fixture harness is test composition only. Auth integration points remain for phases 14–15.
 - Pre–phase 11 env prep (2026-11-01): added `apps/web/.env.example` (placeholders only) and local `apps/web/.env.local` for Clerk + Supabase development credentials. Documented in `docs/operations/environment-configuration.md`. Gitignore verified: `.env` / `.env.*` ignored, `!.env.example` kept trackable; `.env.local` does not appear in `git status`. No Clerk/Supabase SDK or schema integration yet — fill real keys before those phases need them.
 - Pre–phase 11 Vercel staging build fix (2026-11-01): clean Vercel builds failed with `Can't resolve '@polivo/ui'` because `packages/ui/dist/` is not committed and Root Directory `apps/web` only ran `next build`. `@polivo/web` `build` now runs `pnpm --filter @polivo/ui build && next build`; added `apps/web/vercel.json` install/build commands; documented Vercel settings in `docs/operations/environment-configuration.md` (and design-system / local-development notes). Local verification: deleted `packages/ui/dist`, then `pnpm --filter @polivo/web build` succeeded. Redeploy staging after this change is on the branch Vercel builds.
-- Phase 11 completed 2026-11-01: cloud schema/RLS foundations only. Outstanding manual steps: configure real Clerk Frontend API domain in `supabase/config.toml` / hosted Supabase third-party auth; verify remote project target before `supabase db push`; fill web `.env.local` for phase 12 SDK wiring. Docker Desktop was not available on the verifying Windows host; isolation tests used embedded Postgres with Supabase-compatible roles/`auth.jwt()` stub while still applying canonical migrations.
+- Phase 11 completed 2026-11-01: cloud schema/RLS foundations only. Isolation tests originally used embedded Postgres with a Supabase-compatible roles/`auth.jwt()` stub when Docker was unavailable on the verifying Windows host.
+- Pre–phase 12 setup progress (2026-11-02), recorded from operator setup notes (only mark complete when supported by confirmation):
+  - **Done / in progress as reported:** reviewed Clerk and Supabase development projects and API credentials; followed native Clerk ↔ Supabase third-party auth setup (no legacy JWT templates); updated Clerk Frontend API domain in `supabase/config.toml` (resolves prior invalid-domain error; current local value is the development Clerk accounts host); reviewed `apps/web/.env.local` Clerk/Supabase development keys (secrets stay out of Git); Supabase CLI available; Next.js production build and TypeScript compilation passed; web e2e failures attributed to missing Playwright Chromium executable rather than an application build failure; reached commit/push/GitHub Actions verification stage (`development` branch includes commit `before phase 12`).
+  - **Not yet confirmed:** Docker/local Supabase stack starts successfully; all four cloud migrations applied on the linked Supabase development project; full formatting + unit/integration + e2e suites green after Chromium install/rerun; remote GitHub Actions jobs (`quality-and-build`, `db-cloud`, `web-e2e`, `desktop-smoke`) observed green; Vercel staging env mirrors development Clerk/Supabase vars (Step 9); development tenant + `tenant_memberships` row for a real Clerk `sub` (Step 10).
+  - Phase 12 implementation guide `docs/implementation/12-clerk-web-authentication.md` still to be added before coding Clerk web authentication.
+- PR #4 CodeRabbit triage (2026-11-02): captured in [docs/coderabbitissues/2026-11-02-pr-4-phase-11-cloud-schema.md](../coderabbitissues/2026-11-02-pr-4-phase-11-cloud-schema.md). Fixed CR-01 (loopback test DB guard), CR-02 (embedded Postgres cleanup on schema failure), CR-04 (forward migration `20251102140000_sale_farmer_allocation_sale_line_fk.sql` + isolation test). Deferred CR-03 (tenant status gating — open question), CR-05 (RLS perf), CR-06 (payment string reads). Wontfix CR-07 (docstring coverage bot).

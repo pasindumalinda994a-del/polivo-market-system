@@ -187,6 +187,45 @@ describe("cloud tenant isolation (policy tests)", () => {
     expect(failed).toBe(true);
   });
 
+  it("rejects sale_farmer_allocations that pair a line with a different sale", async () => {
+    const now = new Date().toISOString();
+    await admin.query(
+      `INSERT INTO public.vegetables
+        (tenant_id, id, stall_id, short_code, display_name, is_active, created_at, updated_at)
+       VALUES ($1, 'veg-a', $2, 'V1', 'Veg A', true, $3, $3)`,
+      [FIXTURES.tenantA, FIXTURES.stallA, now],
+    );
+    await admin.query(
+      `INSERT INTO public.sales
+        (tenant_id, id, stall_id, trader_id, business_date, status, revision, created_at, updated_at)
+       VALUES
+        ($1, 'sale-1', $2, 'trader-a', '2026-11-01', 'draft', 1, $3, $3),
+        ($1, 'sale-2', $2, 'trader-a', '2026-11-01', 'draft', 1, $3, $3)`,
+      [FIXTURES.tenantA, FIXTURES.stallA, now],
+    );
+    await admin.query(
+      `INSERT INTO public.sale_lines
+        (tenant_id, id, stall_id, sale_id, vegetable_id, line_order, unit_price_per_kg_minor, packaging_weight_hundredths)
+       VALUES
+        ($1, 'line-1', $2, 'sale-1', 'veg-a', 1, 10000, 0),
+        ($1, 'line-2', $2, 'sale-2', 'veg-a', 1, 10000, 0)`,
+      [FIXTURES.tenantA, FIXTURES.stallA],
+    );
+
+    let failed = false;
+    try {
+      await admin.query(
+        `INSERT INTO public.sale_farmer_allocations
+          (tenant_id, id, stall_id, sale_id, sale_line_id, farmer_id, allocated_net_weight_hundredths)
+         VALUES ($1, 'alloc-cross', $2, 'sale-1', 'line-2', $3, 100)`,
+        [FIXTURES.tenantA, FIXTURES.stallA, FIXTURES.farmerA],
+      );
+    } catch {
+      failed = true;
+    }
+    expect(failed).toBe(true);
+  });
+
   it("preserves exact money values through Postgres BIGINT round trip", async () => {
     const { rows } = await admin.query<{ amount_minor: string }>(
       "SELECT amount_minor::text AS amount_minor FROM public.payments WHERE id = 'pay-a'",

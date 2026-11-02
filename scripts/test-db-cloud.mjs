@@ -121,6 +121,19 @@ async function trySupabaseStack(supabaseBin) {
   };
 }
 
+async function cleanupEmbedded(pgServer, databaseDir) {
+  try {
+    await pgServer.stop();
+  } catch {
+    // ignore stop errors during teardown
+  }
+  try {
+    rmSync(databaseDir, { recursive: true, force: true });
+  } catch {
+    // ignore cleanup errors
+  }
+}
+
 async function startEmbeddedStack() {
   const databaseDir = mkdtempSync(join(tmpdir(), "polivo-cloud-pg-"));
   const port = 55432;
@@ -136,27 +149,34 @@ async function startEmbeddedStack() {
 
   console.log(`Starting embedded Postgres on port ${port}...`);
   await pgServer.initialise();
-  await pgServer.start();
 
-  const databaseUrl = `postgresql://postgres:${password}@127.0.0.1:${port}/postgres`;
-  await applyCanonicalSchema(databaseUrl);
+  let started = false;
+  try {
+    await pgServer.start();
+    started = true;
 
-  return {
-    mode: "embedded",
-    databaseUrl,
-    cleanup: async () => {
-      try {
-        await pgServer.stop();
-      } catch {
-        // ignore stop errors during teardown
-      }
+    const databaseUrl = `postgresql://postgres:${password}@127.0.0.1:${port}/postgres`;
+    await applyCanonicalSchema(databaseUrl);
+
+    return {
+      mode: "embedded",
+      databaseUrl,
+      cleanup: async () => {
+        await cleanupEmbedded(pgServer, databaseDir);
+      },
+    };
+  } catch (error) {
+    if (started) {
+      await cleanupEmbedded(pgServer, databaseDir);
+    } else {
       try {
         rmSync(databaseDir, { recursive: true, force: true });
       } catch {
         // ignore cleanup errors
       }
-    },
-  };
+    }
+    throw error;
+  }
 }
 
 function resolveVitestEntry() {
