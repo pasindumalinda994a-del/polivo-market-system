@@ -2,9 +2,9 @@
 /**
  * Run cloud database isolation tests against a disposable Postgres environment.
  *
- * Preference order:
- * 1. Local Supabase stack when Docker is available (`supabase start`).
- * 2. Embedded Postgres with Supabase-compatible roles/auth.jwt() stub (no Docker).
+ * Default: embedded Postgres (safe; does not `supabase db reset` a developer project).
+ * Opt-in local Supabase: POLIVO_CLOUD_TEST_USE_LOCAL_SUPABASE=1 (still loopback-only).
+ * Force embedded: POLIVO_CLOUD_TEST_FORCE_EMBEDDED=1.
  *
  * Always applies canonical migrations from supabase/migrations.
  * Does not use shared staging/production credentials.
@@ -148,10 +148,10 @@ async function startEmbeddedStack() {
   });
 
   console.log(`Starting embedded Postgres on port ${port}...`);
-  await pgServer.initialise();
 
   let started = false;
   try {
+    await pgServer.initialise();
     await pgServer.start();
     started = true;
 
@@ -199,18 +199,24 @@ async function main() {
   }
 
   let stack = null;
+  const forceEmbedded = process.env.POLIVO_CLOUD_TEST_FORCE_EMBEDDED === "1";
+  const useLocalSupabase =
+    !forceEmbedded && process.env.POLIVO_CLOUD_TEST_USE_LOCAL_SUPABASE === "1";
   const supabaseBin = resolveSupabaseBin();
-  if (supabaseBin && process.env.POLIVO_CLOUD_TEST_FORCE_EMBEDDED !== "1") {
+
+  if (useLocalSupabase && supabaseBin) {
     stack = await trySupabaseStack(supabaseBin);
   }
 
   if (!stack) {
     console.log(
-      "Using embedded Postgres disposable environment (Supabase Docker unavailable or forced).",
+      useLocalSupabase
+        ? "Local Supabase unavailable; falling back to embedded Postgres."
+        : "Using embedded Postgres disposable environment (default).",
     );
     stack = await startEmbeddedStack();
   } else {
-    console.log("Using local Supabase stack.");
+    console.log("Using local Supabase stack (POLIVO_CLOUD_TEST_USE_LOCAL_SUPABASE=1).");
   }
 
   const vitestEntry = resolveVitestEntry();

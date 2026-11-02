@@ -212,18 +212,17 @@ describe("cloud tenant isolation (policy tests)", () => {
       [FIXTURES.tenantA, FIXTURES.stallA],
     );
 
-    let failed = false;
-    try {
-      await admin.query(
+    await expect(
+      admin.query(
         `INSERT INTO public.sale_farmer_allocations
           (tenant_id, id, stall_id, sale_id, sale_line_id, farmer_id, allocated_net_weight_hundredths)
          VALUES ($1, 'alloc-cross', $2, 'sale-1', 'line-2', $3, 100)`,
         [FIXTURES.tenantA, FIXTURES.stallA, FIXTURES.farmerA],
-      );
-    } catch {
-      failed = true;
-    }
-    expect(failed).toBe(true);
+      ),
+    ).rejects.toMatchObject({
+      code: "23503",
+      constraint: "sale_farmer_allocations_sale_line_fk",
+    });
   });
 
   it("preserves exact money values through Postgres BIGINT round trip", async () => {

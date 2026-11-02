@@ -95,12 +95,13 @@ Phase 12 adds Clerk SDK wiring. Desktop builds must not receive Supabase adminis
 
 Test-only overrides (never required for app builds):
 
-| Variable                             | Purpose                                                                                                                                                                   |
-| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `POLIVO_CLOUD_TEST_DATABASE_URL`     | Isolation test Postgres URL (must be loopback unless `POLIVO_CLOUD_TEST_ALLOW_REMOTE=1`)                                                                                  |
-| `POLIVO_CLOUD_TEST_SUPABASE_URL`     | Optional Supabase API URL override (must be loopback unless allow-remote)                                                                                                 |
-| `POLIVO_CLOUD_TEST_FORCE_EMBEDDED=1` | Skip Docker Supabase; use embedded Postgres                                                                                                                               |
-| `POLIVO_CLOUD_TEST_ALLOW_REMOTE=1`   | Lab only. Required before any non-loopback test database/API URL (including `supabase.co`). Destructive fixtures must never target shared staging/production by accident. |
+| Variable                                 | Purpose                                                                                                                                                                   |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `POLIVO_CLOUD_TEST_DATABASE_URL`         | Isolation test Postgres URL (must be loopback unless allow-remote; `?host=` overrides authority for the guard)                                                            |
+| `POLIVO_CLOUD_TEST_SUPABASE_URL`         | Optional Supabase API URL override (must be loopback unless allow-remote)                                                                                                 |
+| `POLIVO_CLOUD_TEST_FORCE_EMBEDDED=1`     | Force embedded Postgres (CI default)                                                                                                                                      |
+| `POLIVO_CLOUD_TEST_USE_LOCAL_SUPABASE=1` | Opt-in local Supabase (`start` + `db reset`). Default runner uses embedded Postgres to avoid wiping a local project.                                                      |
+| `POLIVO_CLOUD_TEST_ALLOW_REMOTE=1`       | Lab only. Required before any non-loopback test database/API URL (including `supabase.co`). Destructive fixtures must never target shared staging/production by accident. |
 
 ## Local test setup and commands
 
@@ -120,8 +121,8 @@ pnpm test:db-cloud         # applies supabase/migrations; runs RLS isolation sui
 
 `pnpm test:db-cloud` (`scripts/test-db-cloud.mjs`):
 
-1. Prefers local Supabase when Docker works (`supabase start` + `db reset`).
-2. Otherwise starts embedded Postgres, applies `packages/db-cloud/src/test/isolation/supabase-compat.sql` (roles + `auth.jwt()`), then applies all `supabase/migrations`.
+1. **Default:** starts embedded Postgres, applies `packages/db-cloud/src/test/isolation/supabase-compat.sql` (roles + `auth.jwt()`), then applies all `supabase/migrations`.
+2. **Opt-in:** with `POLIVO_CLOUD_TEST_USE_LOCAL_SUPABASE=1` (and without `FORCE_EMBEDDED`), may use local Supabase (`supabase start` + `db reset`). That reset is destructive to the linked local project — prefer embedded for ordinary work.
 3. Runs Vitest project `db-cloud-isolation` as restricted roles with **labeled simulated JWT claims** (policy tests). Real Clerk signature/issuer checks are phase 12.
 
 CI job `db-cloud` runs `pnpm test:db-cloud` on Ubuntu without production credentials. The suite fails if zero tests run (`passWithNoTests: false`).
