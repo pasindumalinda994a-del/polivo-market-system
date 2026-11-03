@@ -129,7 +129,7 @@ export function mapTenantRpcError(error: unknown): WebAuthError {
     message.includes("PERMISSION DENIED FOR TABLE")
   ) {
     return serviceUnavailableError(
-      "Stall onboarding is not available on the cloud database yet. Confirm phase 13 migrations are applied.",
+      "Required cloud database functions are missing on the linked Supabase project. Confirm forward migrations are applied (including device enrollment) and that the CLI project matches NEXT_PUBLIC_SUPABASE_URL.",
     );
   }
 

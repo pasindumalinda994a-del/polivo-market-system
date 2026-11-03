@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 
+import { WebAuthError } from "@/lib/auth/errors";
 import { resolveTenantAccess } from "@/lib/auth/memberships";
 import { requirePageUser } from "@/lib/auth/require-user";
 import { listTenantDevices } from "@/lib/device/enrollment";
@@ -35,13 +36,23 @@ export default async function DevicesPage({ params }: DevicesPageProps) {
     );
   }
 
-  const { devices } = await listTenantDevices(tenantId);
-
-  return (
-    <DevicesAdmin
-      tenantId={tenantId}
-      displayName={access.membership.displayName}
-      devices={devices}
-    />
-  );
+  try {
+    const { devices } = await listTenantDevices(tenantId);
+    return (
+      <DevicesAdmin
+        tenantId={tenantId}
+        displayName={access.membership.displayName}
+        devices={devices}
+      />
+    );
+  } catch (error) {
+    if (error instanceof WebAuthError && error.code === "SERVICE_UNAVAILABLE") {
+      return (
+        <Suspense>
+          <TenantShell state="unavailable" message={error.message} />
+        </Suspense>
+      );
+    }
+    throw error;
+  }
 }
