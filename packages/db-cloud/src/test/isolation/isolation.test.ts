@@ -96,11 +96,20 @@ describe("cloud tenant isolation (policy tests)", () => {
     expect(farmers).toEqual([]);
   });
 
-  it("restricts membership select to the authenticated subject only", async () => {
+  it("lets owners select peer memberships for their tenant only", async () => {
     await beginAs(admin, { kind: "authenticated", sub: FIXTURES.userA });
+    const { rows } = await admin.query<{ id: string }>(
+      "SELECT id FROM public.tenant_memberships ORDER BY id",
+    );
+    await rollback(admin);
+    expect(rows.map((r) => r.id)).toEqual(["mem-a", "mem-inactive"]);
+  });
+
+  it("restricts non-owner membership select to the authenticated subject only", async () => {
+    await beginAs(admin, { kind: "authenticated", sub: FIXTURES.userB });
     const { rows } = await admin.query<{ id: string }>("SELECT id FROM public.tenant_memberships");
     await rollback(admin);
-    expect(rows.map((r) => r.id)).toEqual(["mem-a"]);
+    expect(rows.map((r) => r.id)).toEqual(["mem-b"]);
   });
 
   it("prevents authenticated users from inserting membership", async () => {
@@ -110,7 +119,7 @@ describe("cloud tenant isolation (policy tests)", () => {
       await admin.query(
         `INSERT INTO public.tenant_memberships
           (id, tenant_id, identity_provider, external_subject, status, access_role)
-         VALUES ('mem-evil', $1, 'clerk', $2, 'active', 'reporting_reader')`,
+         VALUES ('mem-evil', $1, 'clerk', $2, 'active', 'billing_staff')`,
         [FIXTURES.tenantB, FIXTURES.userA],
       );
     } catch {
@@ -248,5 +257,80 @@ describe("cloud tenant isolation (policy tests)", () => {
       failed = true;
     }
     expect(failed).toBe(true);
+  });
+
+  it("blocks direct authenticated reads and writes on device enrollment tables", async () => {
+    await beginAs(admin, { kind: "authenticated", sub: FIXTURES.userA });
+    let devices: unknown[];
+    try {
+      const result = await admin.query("SELECT device_id FROM public.tenant_devices");
+      devices = result.rows;
+    } catch {
+      // No SELECT grant — permission denied is an acceptable denial.
+      devices = [];
+    }
+    let insertFailed = false;
+    try {
+      await admin.query(
+        `INSERT INTO public.tenant_devices (
+           id, tenant_id, device_id, role, installation_id, public_key, credential_version,
+           enrollment_state, deployment_environment, authorized_by_subject
+         ) VALUES (
+           'tdv-evil', $1, 'dev-evil', 'host', 'inst-evil', 'pk', 1,
+           'reserved', 'development', $2
+         )`,
+        [FIXTURES.tenantA, FIXTURES.userA],
+      );
+    } catch {
+      insertFailed = true;
+    }
+    await rollback(admin);
+    expect(devices).toEqual([]);
+    expect(insertFailed).toBe(true);
+  });
+
+  it("lets owner authorize a host and denies non-owner", async () => {
+    await beginAs(admin, { kind: "authenticated", sub: FIXTURES.userA });
+    const authorized = await admin.query<{
+      grant_id: string;
+      reserved_device_id: string;
+    }>(`SELECT * FROM public.authorize_host_enrollment($1, $2, 'development', 'Host A', 900)`, [
+      FIXTURES.tenantA,
+      "a".repeat(64),
+    ]);
+    await rollback(admin);
+    expect(authorized.rows[0]?.reserved_device_id).toMatch(/^dev_/);
+
+    await beginAs(admin, { kind: "authenticated", sub: FIXTURES.userB });
+    let denied = false;
+    try {
+      await admin.query(
+        `SELECT * FROM public.authorize_host_enrollment($1, $2, 'development', NULL, 900)`,
+        [FIXTURES.tenantA, "b".repeat(64)],
+      );
+    } catch {
+      denied = true;
+    }
+    await rollback(admin);
+    expect(denied).toBe(true);
+  });
+
+  it("allows at most one concurrent host reservation per tenant", async () => {
+    await beginAs(admin, { kind: "authenticated", sub: FIXTURES.userA });
+    await admin.query(
+      `SELECT * FROM public.authorize_host_enrollment($1, $2, 'development', NULL, 900)`,
+      [FIXTURES.tenantA, "c".repeat(64)],
+    );
+    let secondFailed = false;
+    try {
+      await admin.query(
+        `SELECT * FROM public.authorize_host_enrollment($1, $2, 'development', NULL, 900)`,
+        [FIXTURES.tenantA, "d".repeat(64)],
+      );
+    } catch {
+      secondFailed = true;
+    }
+    await rollback(admin);
+    expect(secondFailed).toBe(true);
   });
 });

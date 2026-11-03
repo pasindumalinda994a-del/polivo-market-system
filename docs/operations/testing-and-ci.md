@@ -52,7 +52,7 @@ Browser, desktop, and cloud isolation suites stay explicit because they need Pla
 
 - Unit and integration tests do not require network access, cloud credentials, or a listening server.
 - `pnpm test:db-cloud` uses local Supabase when Docker is available, otherwise embedded Postgres. It never uses production credentials. See [cloud-database-and-tenant-isolation.md](./cloud-database-and-tenant-isolation.md).
-- `pnpm test:e2e:web` builds `@polivo/web` and starts a production Next.js server on dedicated port **3100**.
+- `pnpm test:e2e:web` builds `@polivo/web` and starts a production Next.js server on dedicated port **3100** at `http://localhost:3100` (use hostname `localhost`, not `127.0.0.1`, with Clerk + Next.js 16 `proxy.ts`).
 - `pnpm test:e2e:desktop` builds `@polivo/desktop` and launches Electron against `apps/desktop/out/main/index.js`.
 - Contracts consumers that resolve package exports still need `pnpm --filter @polivo/contracts build` before compiled application runs; Vitest and `tsconfig.test.json` alias contracts source for integration tests.
 
@@ -173,7 +173,8 @@ Do not mark checks required before their first successful observed run.
 - Broader security and recovery scenarios
 - Performance tests under `tests/performance/` (phase 43)
 - Installer packaging and printer hardware certification
-- Authenticated dashboard and full billing end-to-end flows
+- Signed-in Clerk dashboard membership flows that require dedicated testing tokens or live fixtures (unauthenticated redirect/API checks are covered; see `web-authentication.md`)
+- Full billing end-to-end flows
 
 ## Related guides
 

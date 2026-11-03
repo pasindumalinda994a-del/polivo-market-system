@@ -47,7 +47,7 @@ describe("migration runner", () => {
     try {
       const bundled = loadBundledMigrations();
       const failing = createSyntheticMigration({
-        id: "002",
+        id: "003",
         name: "failing_migration",
         sql: `CREATE TABLE demo_ok (id TEXT PRIMARY KEY NOT NULL);
               INSERT INTO demo_ok (id) VALUES ('a');
@@ -64,7 +64,7 @@ describe("migration runner", () => {
       expect(tables).toEqual([]);
 
       const status = getMigrationStatus(local.db, bundled);
-      expect(status.applied.map((row) => row.id)).toEqual(["001"]);
+      expect(status.applied.map((row) => row.id)).toEqual(["001", "002"]);
       expect(status.pending).toHaveLength(0);
     } finally {
       local.close();
@@ -85,8 +85,9 @@ describe("migration runner", () => {
         sql: `${first.sql}\n-- tampered`,
         checksum: createHash("sha256").update(`${first.sql}\n-- tampered`, "utf8").digest("hex"),
       };
+      const rest = bundled.slice(1);
 
-      expect(() => getMigrationStatus(local.db, [tampered])).toThrow(/checksum/i);
+      expect(() => getMigrationStatus(local.db, [tampered, ...rest])).toThrow(/checksum/i);
     } finally {
       local.close();
     }

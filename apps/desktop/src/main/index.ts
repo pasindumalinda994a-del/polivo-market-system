@@ -1,5 +1,7 @@
-import { app, BrowserWindow, session } from "electron";
+import { app, BrowserWindow, ipcMain, session } from "electron";
 import { join } from "node:path";
+
+import { enrollTerminal, getTerminalEnrollmentStatus } from "./enrollment.js";
 
 const isDevelopment = !app.isPackaged;
 
@@ -82,6 +84,21 @@ function createWindow(): void {
 
 app.whenReady().then(() => {
   applyContentSecurityPolicy();
+
+  ipcMain.handle("enrollment:getStatus", () => getTerminalEnrollmentStatus());
+  ipcMain.handle(
+    "enrollment:enrollTerminal",
+    async (
+      _event,
+      input: {
+        enrollmentSecret: string;
+        enrollmentBaseUrl: string;
+        deploymentEnvironment: "development" | "staging" | "production";
+        hostServiceBaseUrl: string;
+      },
+    ) => enrollTerminal(input),
+  );
+
   createWindow();
 
   app.on("activate", () => {

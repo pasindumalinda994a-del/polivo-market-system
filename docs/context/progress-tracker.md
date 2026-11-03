@@ -4,6 +4,9 @@ Update this file after every meaningful implementation change. Record completed 
 
 ## Current Phase
 
+- Phase 14 in progress: stall provisioning and device enrollment (`14-stall-provisioning-and-device-enrollment.md`). Local staff login and permission synchronization remain deferred (phase 15+).
+- Phase 13 complete: tenant onboarding and role management (`@polivo/web` onboarding/members/permissions UI, SECURITY DEFINER RPCs, invitations, permission profile revisions, ADR 0009, ops guide) implemented and locally verified.
+- Phase 12 complete: Clerk web authentication (`@polivo/web` Clerk SDK, `proxy.ts`, sign-in/up, server identity + membership helpers, user-context Supabase client, protected dashboard/tenant states, auth tests, `docs/operations/web-authentication.md`) implemented and locally verified for deterministic + web e2e checks. Real Clerk→Supabase RLS live verification remains environment-dependent (see Session Notes).
 - Phase 11 complete: Supabase schema and tenant isolation (`@polivo/db-cloud`, `supabase/migrations`, RLS isolation tests) implemented and locally verified.
 - Phase 10 complete: Fastify local data access and transactions (`@polivo/db-local` repos/tx + stall-service command/HTTP foundations) implemented and locally verified on migration 001 only.
 - Phase 09 complete: local SQLite schema and migrations (`@polivo/db-local`, stall-service open/verify/close) implemented and locally verified.
@@ -18,7 +21,8 @@ Update this file after every meaningful implementation change. Record completed 
 
 ## Current Goal
 
-- Finish remaining pre–phase 12 verification (remote migrations, local Supabase/Docker confirmation, Playwright Chromium + web e2e, GitHub Actions, Vercel staging env, optional dev tenant membership), then implement phase 12 (`12-clerk-web-authentication.md`) once that guide is on disk.
+- Implement phase 14 (`14-stall-provisioning-and-device-enrollment.md`): owner-authorized host/terminal enrollment, local SQLite binding via focused migration `002`, OS-protected device credentials, and interruption-safe activation. Do not mark phase 14 complete until acceptance criteria pass. Do not mark local staff offline access or permission synchronization complete until their dedicated phases.
+- Complete remaining real Clerk–Supabase integration verification and pre–phase 12 environment items listed in Session Notes as capacity allows.
 - Continue subsequent implementation units only after each prior unit is verified. Do not mark synchronization complete until its dedicated phases.
 
 ## Completed
@@ -132,14 +136,38 @@ Update this file after every meaningful implementation change. Record completed 
   - Storage buckets deferred. Remote migration to a shared Supabase project **not applied** in this phase (pending explicit target verification).
   - Verification on Windows: `pnpm lint`, `pnpm typecheck`, `pnpm test` (147 tests), `pnpm test:db-cloud` (13), `pnpm build` passed. Phase-touched Prettier formatting applied. Full-repo `pnpm format:check` may still fail on pre-existing UI/web drift outside this phase.
   - Phase 12 can begin for Clerk web authentication. Synchronization ingestion remains phases 31–34.
+- Applied step `12-clerk-web-authentication.md`:
+  - Installed `@clerk/nextjs` `7.9.23` in `@polivo/web`; wired `ClerkProvider`, Next.js 16 `src/proxy.ts` (`clerkMiddleware`), `/sign-in` and `/sign-up` Clerk components with Polivo appearance, env example URLs.
+  - Server helpers under `apps/web/src/lib/auth/`: safe redirects, require-user (page redirect / API 401), request-scoped `createRequestUserSupabaseClient` via `(await auth()).getToken()` into `@polivo/db-cloud` (no JWT template, no privileged fallback), membership list/tenant access resolution.
+  - Protected `GET /api/auth/session` (no tokens returned); authenticated `/dashboard` membership states (none / active / unavailable) and `/tenants/[tenantId]` access-denied without Create-stall or auto tenant pick.
+  - Deterministic Vitest project `web` (22 tests); web e2e updated for public home, dashboard→sign-in redirect, sign-in theme, untrusted redirect rejection, API 401, `/dev/ui` 404 (6 passed). Signed-in Playwright + live RLS integration not claimed complete.
+  - Docs: `docs/operations/web-authentication.md`; env/local-dev/testing-and-ci links updated. Webhooks/onboarding deferred.
+  - Verification on Windows: `pnpm lint`, `pnpm format:check`, `pnpm typecheck`, `pnpm test` (177), `pnpm test:db-cloud` (14), `pnpm build`, `pnpm test:e2e:web` (6), `pnpm check` passed. Web e2e host must be `localhost` (not `127.0.0.1`) with Clerk + Next 16 proxy.
+  - Phase 13 can begin for tenant onboarding/roles. Do not mark onboarding, local auth, or permission sync complete.
+- Applied step `13-tenant-onboarding-and-role-management.md`:
+  - ADR [0009](../decisions/0009-tenant-onboarding-and-roles.md): create-stall→owner, roles `owner|billing_staff|cashier`, capability catalog, hashed invitations, no ownership transfer, cloud≠local enforcement.
+  - Forward migration `supabase/migrations/20261102180000_tenant_onboarding_and_roles.sql`: tenant profile fields, membership roles/capabilities, permission profiles, invitations, onboarding idempotency, admin audit, SECURITY DEFINER RPCs, owner RLS for admin reads; `has_active_reporting_access` accepts active operational roles.
+  - Contracts tenant-access schemas; domain capability validation/groups; `@polivo/db-cloud` types updated.
+  - Web APIs: `POST /api/tenants`, invitations create/revoke/accept, membership patch, permission-profile put (owner-gated, user JWT RPCs, SHA-256 invitation tokens).
+  - UI: `/onboarding`, dashboard create-stall entry, stall selector by display name (no auto-pick), owner `/members` + `/permissions`, `/invitations/[token]` accept; truthful “Saved to cloud / Local application status unavailable”.
+  - Docs: `docs/operations/tenant-onboarding-and-access-management.md`; web-auth + cloud-isolation links updated.
+  - Verification on Windows: `pnpm lint`, `pnpm format:check`, `pnpm typecheck`, `pnpm test` (188), `pnpm test:db-cloud` (25), `pnpm build`, `pnpm test:e2e:web` (7) passed. Remote migration apply and real Clerk→Supabase live onboarding not claimed complete.
+  - Deferred: device enrollment, local staff credentials, permission sync/acks, ownership transfer, tenant deletion. Phase 14 can begin.
 
 ## In Progress
 
-- Pre–phase 12 setup (2026-11-02): Clerk/Supabase development projects, native third-party auth integration, Clerk domain in `supabase/config.toml`, env review, local CLI/Docker attempt, remote link/migration work, formatting/build checks, and GitHub/CI push stage. Items without terminal or dashboard confirmation remain open below.
+- Phase 14 — Stall provisioning and device enrollment (implementation largely in place; **not marked complete** until remaining acceptance/hosted checks below):
+  - Local SQLite `002_host_and_terminal_enrollment` (`host_enrollment`, `accepted_terminals`); migration `001` checksum unchanged (`b518df58515339e1b90fbc3be4456dc58feb5908798fe75aef0204b96995f286`).
+  - Cloud migration `20261103180000_device_enrollment.sql` (devices, grants, owner + redeem/confirm/rotate RPCs, deny-direct RLS).
+  - Owner Devices UI/APIs; machine redeem/confirm/rotate via privileged server client; stall-service `activate-host` + DPAPI/simulated secure storage; desktop `safeStorage` terminal enroll + loopback pairing accept.
+  - ADR [0010](../decisions/0010-device-credential-storage.md); ops [stall-provisioning-and-device-enrollment.md](../operations/stall-provisioning-and-device-enrollment.md).
+  - Local verification: `pnpm lint`, `pnpm test` (218), `pnpm test:db-cloud` (28), stall-service/desktop builds passed on this Windows host. Simulated secure-storage used in automated tests; real Windows DPAPI reopen smoke and hosted apply of `20261103180000` remain outstanding.
+  - Outstanding before Complete: apply enrollment migration on polivo-dev; live owner authorize → host activate → terminal pair smoke; report real DPAPI/`safeStorage` reopen separately from simulated tests; optional web e2e for Devices page.
+- Pre–phase 12 / phase 12 live-environment follow-ups remain open where not terminal-confirmed (Docker local Supabase stack, GitHub Actions green observation, Vercel staging env mirroring, optional dedicated Clerk testing-token signed-in e2e, invitation-accept live smoke after Clerk session email claims are added). Remote cloud migrations through `20261102193000` confirmed applied on **polivo-dev** (`jvwjhvouhuvqujuinuoc`, matches `NEXT_PUBLIC_SUPABASE_URL`) and previously on polivo-staging (2026-11-02). Phase 14 cloud enrollment migration **`20261103180000` not yet applied** to hosted projects.
 
 ## Next Up
 
-- Complete remaining pre–phase 12 verification listed in Session Notes, then apply phase 12 (`12-clerk-web-authentication.md`) after that guide is present on disk.
+- Finish phase 14 acceptance criteria, then begin `15-local-staff-authentication-and-offline-access.md`.
 - Later phases: billing UI, permission enforcement, arrivals/inventory migrations (consume domain helpers; do not re-implement rules).
 
 ## Open Questions
@@ -151,7 +179,7 @@ These are unresolved in the context files. Record accepted resolutions under `do
 - Backup retention and recovery expectations (including RTO/RPO).
 - Missing brand guidance: approved logo masters (including reverse/dark-surface and monochrome thermal variants) are not in the repository; text wordmark is temporary until assets are supplied.
 - Reconcile desktop billing chrome: familiar Seller Bill wireframe uses top module nav + paid/unpaid side lists + dense center workspace (`docs/context/desktop-billing-layout.md`), while Phase 07 shipped a left-rail `AppShell`. Decide the application-wide desktop chrome when billing UI is implemented and record it under `docs/decisions/` if needed.
-- Cloud reporting access vs tenant lifecycle status: should inactive or suspended `tenants.status` deny reporting SELECT even when the caller has an active `reporting_reader` membership? Current `has_active_reporting_access` checks membership only (CodeRabbit CR-03 on PR #4). Do not change the SQL helper until this is decided and recorded under `docs/decisions/`.
+- Cloud reporting access vs tenant lifecycle status: should inactive or suspended `tenants.status` deny reporting SELECT even when the caller has an active membership? Current `has_active_reporting_access` checks membership role/status only (CodeRabbit CR-03 on PR #4; roles are now `owner|billing_staff|cashier`). Do not change the SQL helper until this is decided and recorded under `docs/decisions/`.
 
 Resolved for phase 08 (see [0003 — Confirmed financial rules](../decisions/0003-confirmed-financial-rules.md)):
 
@@ -182,9 +210,19 @@ Resolved ahead of phase 09:
 - [0006 — Trader cheque immediate-paid](../decisions/0006-trader-cheque-immediate-paid-proposed.md): **Proposed** only; awaiting confirmation.
 - [0007 — Local SQLite driver (`node:sqlite`)](../decisions/0007-local-sqlite-driver-node-sqlite.md): built-in Node 26 driver; WAL + FK + durable pragmas; no ORM.
 - [0008 — Cloud schema and tenant isolation](../decisions/0008-cloud-schema-and-tenant-isolation.md): canonical `supabase/migrations`, Clerk `sub` TEXT membership, BIGINT+string numerics, reporting-read-only RLS.
+- [0009 — Tenant onboarding and roles](../decisions/0009-tenant-onboarding-and-roles.md): stall creation→owner, operational roles/capabilities, hashed invitations, owner-only admin, no ownership transfer, cloud configuration vs local enforcement.
+- [0010 — Device credential storage](../decisions/0010-device-credential-storage.md): Ed25519 possession proofs; host Windows DPAPI; terminal Electron `safeStorage`; opaque `credential_ref` in SQLite; offline expiry deferred to phase 15.
 
 ## Session Notes
 
+- Phase 14 implementation (2026-11-03): enrollment path Owner Devices → one-time secret → `activate-host` / Electron enroll → cloud redeem/confirm → local `stall_binding` + `host_enrollment` / `accepted_terminals`. Recovery: same installation resumes consumed grants; different installation cannot claim; no second host auto-promotion. Ready for phase 15 staff auth after hosted migration apply + live smoke. Offline credential expiry still open.
+- Invitation accept non-canonical email_verified (2026-11-03): Clerk `currentUser` verified but session claim was a non-true string; preflight now trusts verified currentUser (unless claim explicitly false); migration `20261103120000` softens `polivo_jwt_verified_email`. See `docs/context/current-issues.md`.
+- Invitation accept email_verified false (2026-11-03): after shortcode fix, claims present but `email_verified` false (unverified invitee email). Split preflight messages; `currentUser()` cross-check. See `docs/context/current-issues.md`.
+- Invitation accept EMAIL_NOT_VERIFIED shortcode (2026-11-03): invalid `primary_email_address_verified` corrected to `{{user.email_verified}}`. See `docs/context/current-issues.md`.
+- Invitation visibility (2026-11-03): invitees do not see pending invites on dashboard by design (copyable link only, no inbox). Clarified dashboard empty state, Members invite helper, and ops/current-issues. See `docs/context/current-issues.md`.
+- Hydration mismatch (2026-11-03): Next.js overlay showed `<body cz-shortcut-listen>` mismatch — ColorZilla extension, not stall/account logic. Added `suppressHydrationWarning` on `html`/`body` in `apps/web/src/app/layout.tsx`. See `docs/context/current-issues.md`.
+- Invitation accept 400 (2026-11-02): create-stall/invite worked; accept failed because Clerk default session JWT lacks `email` / `email_verified` required by `polivo_jwt_verified_email`. Documented required Clerk session claims; improved invitation RPC logging and `EMAIL_NOT_VERIFIED` / `INVALID_TOKEN` mapping. Operator must add claims in Clerk Dashboard, sign out/in, and accept a **new** invite to the exact primary email. See `docs/context/current-issues.md`.
+- Create-stall 503 fix (2026-11-02): live PGRST202 was CLI linked to **polivo-staging** while `.env.local` targeted **polivo-dev**. Relinked to `jvwjhvouhuvqujuinuoc` and pushed through `20261102193000`. Keep CLI link matched to `NEXT_PUBLIC_SUPABASE_URL`.
 - Phase 02 consistency review: the six context files align with Next.js web, Electron + React + Vite desktop, Fastify stall service, one SQLite authority per stall, multi-terminal LAN access, Supabase PostgreSQL sync/reporting, Clerk online auth, local staff/device offline access, transactional outbox, local retention after sync, initially read-only web financial access, and light keyboard-first UI.
 - No material architecture conflicts found between the six files.
 - Non-blocking note: `code-standards.md` still says follow `ui-context.md` “once defined”; `ui-context.md` is already present.
@@ -208,7 +246,7 @@ Resolved ahead of phase 09:
 - Pre–phase 12 setup progress (2026-11-02), recorded from operator setup notes (only mark complete when supported by confirmation):
   - **Done / in progress as reported:** reviewed Clerk and Supabase development projects and API credentials; followed native Clerk ↔ Supabase third-party auth setup (no legacy JWT templates); updated Clerk Frontend API domain in `supabase/config.toml` (resolves prior invalid-domain error; current local value is the development Clerk accounts host); reviewed `apps/web/.env.local` Clerk/Supabase development keys (secrets stay out of Git); Supabase CLI available; Next.js production build and TypeScript compilation passed; web e2e failures attributed to missing Playwright Chromium executable rather than an application build failure; reached commit/push/GitHub Actions verification stage (`development` branch includes commit `before phase 12`).
   - **Not yet confirmed:** Docker/local Supabase stack starts successfully; all four cloud migrations applied on the linked Supabase development project; full formatting + unit/integration + e2e suites green after Chromium install/rerun; remote GitHub Actions jobs (`quality-and-build`, `db-cloud`, `web-e2e`, `desktop-smoke`) observed green; Vercel staging env mirrors development Clerk/Supabase vars (Step 9); development tenant + `tenant_memberships` row for a real Clerk `sub` (Step 10).
-  - Phase 12 implementation guide `docs/implementation/12-clerk-web-authentication.md` still to be added before coding Clerk web authentication.
+  - Phase 12 implementation guide is on disk; phase 12 coding completed 2026-11-02 (see Completed). Real Clerk↔Supabase third-party acceptance and remote migration application still require operator confirmation before claiming live integration verified.
 - PR #4 CodeRabbit triage (2026-11-02): captured in [docs/coderabbitissues/2026-11-02-pr-4-phase-11-cloud-schema.md](../coderabbitissues/2026-11-02-pr-4-phase-11-cloud-schema.md). Fixed CR-01 (loopback test DB guard), CR-02 (embedded Postgres cleanup on schema failure), CR-04 (forward migration `20251102140000_sale_farmer_allocation_sale_line_fk.sql` + isolation test). Deferred CR-03 (tenant status gating — open question), CR-05 (RLS perf), CR-06 (payment string reads). Wontfix CR-07 (docstring coverage bot).
 - PR #4 CodeRabbit follow-up (2026-11-02, review 5734130351): fixed CR-08 (IPv6 `[::1]`), CR-09 (Postgres `?host=` override), CR-10 (`initialise()` cleanup), CR-11 (embedded default; `POLIVO_CLOUD_TEST_USE_LOCAL_SUPABASE=1` opt-in), CR-12 (allocation FK assertion).
 - PR #4 CodeRabbit CR-13 (2026-11-02, discussion r4440630702): reject duplicate Postgres `host` query params so loopback-first / remote-last URLs cannot bypass the isolation-test guard.

@@ -10,7 +10,14 @@ import type { CloudTestEnv } from "./env.js";
 const { Client } = pg;
 
 export type PolicySubject =
-  { kind: "authenticated"; sub: string } | { kind: "anon" } | { kind: "none" };
+  | {
+      kind: "authenticated";
+      sub: string;
+      email?: string;
+      emailVerified?: boolean;
+    }
+  | { kind: "anon" }
+  | { kind: "none" };
 
 export async function connectAdmin(env: CloudTestEnv): Promise<pg.Client> {
   const client = new Client({ connectionString: env.databaseUrl });
@@ -32,13 +39,18 @@ export async function beginAs(client: pg.Client, subject: PolicySubject): Promis
     return;
   }
   // POLICY TEST: simulated JWT claims — not cryptographically verified here.
-  await client.query("SELECT set_config('request.jwt.claims', $1, true)", [
-    JSON.stringify({
-      sub: subject.sub,
-      role: "authenticated",
-      aud: "authenticated",
-    }),
-  ]);
+  const claims: Record<string, unknown> = {
+    sub: subject.sub,
+    role: "authenticated",
+    aud: "authenticated",
+  };
+  if (subject.email !== undefined) {
+    claims.email = subject.email;
+  }
+  if (subject.emailVerified !== undefined) {
+    claims.email_verified = subject.emailVerified;
+  }
+  await client.query("SELECT set_config('request.jwt.claims', $1, true)", [JSON.stringify(claims)]);
   await client.query("SET LOCAL ROLE authenticated");
 }
 
@@ -61,6 +73,12 @@ export async function resetFixtures(client: pg.Client): Promise<void> {
       public.commission_bands,
       public.commission_band_sets,
       public.audit_events,
+      public.admin_audit_events,
+      public.device_enrollment_grants,
+      public.tenant_devices,
+      public.tenant_invitations,
+      public.tenant_onboarding_requests,
+      public.tenant_permission_profiles,
       public.farmers,
       public.traders,
       public.vegetables,
@@ -87,20 +105,31 @@ export async function seedIsolationFixtures(client: pg.Client): Promise<void> {
   await resetFixtures(client);
 
   await client.query(
-    `INSERT INTO public.tenants (id, status) VALUES
-      ($1, 'active'),
-      ($2, 'active')`,
+    `INSERT INTO public.tenants (id, status, display_name, timezone) VALUES
+      ($1, 'active', 'Stall A', 'Asia/Colombo'),
+      ($2, 'active', 'Stall B', 'Asia/Colombo')`,
     [FIXTURES.tenantA, FIXTURES.tenantB],
   );
 
   await client.query(
     `INSERT INTO public.tenant_memberships
-      (id, tenant_id, identity_provider, external_subject, status, access_role)
+      (id, tenant_id, identity_provider, external_subject, status, access_role, capabilities)
      VALUES
-      ('mem-a', $1, 'clerk', $2, 'active', 'reporting_reader'),
-      ('mem-b', $3, 'clerk', $4, 'active', 'reporting_reader'),
-      ('mem-inactive', $1, 'clerk', $5, 'inactive', 'reporting_reader')`,
+      ('mem-a', $1, 'clerk', $2, 'active', 'owner', '[]'::jsonb),
+      ('mem-b', $3, 'clerk', $4, 'active', 'billing_staff', '["reports.view_financial"]'::jsonb),
+      ('mem-inactive', $1, 'clerk', $5, 'inactive', 'cashier', '[]'::jsonb)`,
     [FIXTURES.tenantA, FIXTURES.userA, FIXTURES.tenantB, FIXTURES.userB, FIXTURES.userInactive],
+  );
+
+  await client.query(
+    `INSERT INTO public.tenant_permission_profiles
+      (tenant_id, profile_role, capabilities, revision, updated_by_subject)
+     VALUES
+      ($1, 'billing_staff', '["bills.create","bills.edit_draft"]'::jsonb, 1, $2),
+      ($1, 'cashier', '["payments.receive_trader"]'::jsonb, 1, $2),
+      ($3, 'billing_staff', '["bills.create"]'::jsonb, 1, $4),
+      ($3, 'cashier', '["payments.receive_trader"]'::jsonb, 1, $4)`,
+    [FIXTURES.tenantA, FIXTURES.userA, FIXTURES.tenantB, FIXTURES.userB],
   );
 
   const now = new Date().toISOString();

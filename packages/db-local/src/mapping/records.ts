@@ -20,6 +20,36 @@ export type LocalInstallationRecord = {
   createdAt: string;
 };
 
+export type HostActivationState =
+  "pending_credential" | "redeeming" | "bound" | "confirming" | "activated" | "failed";
+
+export type HostEnrollmentRecord = {
+  hostDeviceId: string;
+  installationId: string;
+  credentialRef: string;
+  credentialVersion: number;
+  activationState: HostActivationState;
+  pendingOperationId: string | null;
+  cloudDeviceId: string | null;
+  cloudStateRevision: number | null;
+  activatedAt: string | null;
+  updatedAt: string;
+};
+
+export type TerminalPairingState = "pending_host_confirm" | "accepted" | "revoked";
+
+export type AcceptedTerminalRecord = {
+  terminalDeviceId: string;
+  publicKey: string;
+  credentialVersion: number;
+  label: string | null;
+  pairingState: TerminalPairingState;
+  cloudStateRevision: number | null;
+  acceptedAt: string | null;
+  revokedAt: string | null;
+  updatedAt: string;
+};
+
 export type PartyRecord = {
   id: string;
   stallId: string;
@@ -94,6 +124,38 @@ export type BillType = "farmer" | "trader";
 const BILL_STATUSES = new Set<string>(["draft", "finalized", "cancelled"]);
 const PAYMENT_STATUSES = new Set<string>(["unpaid", "partially_paid", "fully_paid"]);
 const ACK_STATES = new Set<string>(["pending", "acknowledged", "failed"]);
+const HOST_ACTIVATION_STATES = new Set<string>([
+  "pending_credential",
+  "redeeming",
+  "bound",
+  "confirming",
+  "activated",
+  "failed",
+]);
+const TERMINAL_PAIRING_STATES = new Set<string>(["pending_host_confirm", "accepted", "revoked"]);
+
+function requireHostActivationState(value: unknown, field: string): HostActivationState {
+  const text = requireString(value, field);
+  if (!HOST_ACTIVATION_STATES.has(text)) {
+    throw new RowMappingError(`Invalid host activation state for ${field}.`);
+  }
+  return text as HostActivationState;
+}
+
+function requireTerminalPairingState(value: unknown, field: string): TerminalPairingState {
+  const text = requireString(value, field);
+  if (!TERMINAL_PAIRING_STATES.has(text)) {
+    throw new RowMappingError(`Invalid terminal pairing state for ${field}.`);
+  }
+  return text as TerminalPairingState;
+}
+
+function optionalInteger(value: unknown, field: string): number | null {
+  if (value === null || value === undefined) {
+    return null;
+  }
+  return requireInteger(value, field);
+}
 
 function requireBillStatus(value: unknown, field: string): BillStatus {
   const text = requireString(value, field);
@@ -140,6 +202,68 @@ export function mapLocalInstallationRow(row: Record<string, unknown>): LocalInst
   return {
     id: requireString(row["id"], "local_installation.id"),
     createdAt: requireAbsoluteTimestamp(row["created_at"], "local_installation.created_at"),
+  };
+}
+
+export function mapHostEnrollmentRow(row: Record<string, unknown>): HostEnrollmentRecord {
+  return {
+    hostDeviceId: requireString(row["host_device_id"], "host_enrollment.host_device_id"),
+    installationId: requireString(row["installation_id"], "host_enrollment.installation_id"),
+    credentialRef: requireString(row["credential_ref"], "host_enrollment.credential_ref"),
+    credentialVersion: requireInteger(
+      row["credential_version"],
+      "host_enrollment.credential_version",
+    ),
+    activationState: requireHostActivationState(
+      row["activation_state"],
+      "host_enrollment.activation_state",
+    ),
+    pendingOperationId: optionalString(
+      row["pending_operation_id"],
+      "host_enrollment.pending_operation_id",
+    ),
+    cloudDeviceId: optionalString(row["cloud_device_id"], "host_enrollment.cloud_device_id"),
+    cloudStateRevision: optionalInteger(
+      row["cloud_state_revision"],
+      "host_enrollment.cloud_state_revision",
+    ),
+    activatedAt:
+      row["activated_at"] === null || row["activated_at"] === undefined
+        ? null
+        : requireAbsoluteTimestamp(row["activated_at"], "host_enrollment.activated_at"),
+    updatedAt: requireAbsoluteTimestamp(row["updated_at"], "host_enrollment.updated_at"),
+  };
+}
+
+export function mapAcceptedTerminalRow(row: Record<string, unknown>): AcceptedTerminalRecord {
+  return {
+    terminalDeviceId: requireString(
+      row["terminal_device_id"],
+      "accepted_terminals.terminal_device_id",
+    ),
+    publicKey: requireString(row["public_key"], "accepted_terminals.public_key"),
+    credentialVersion: requireInteger(
+      row["credential_version"],
+      "accepted_terminals.credential_version",
+    ),
+    label: optionalString(row["label"], "accepted_terminals.label"),
+    pairingState: requireTerminalPairingState(
+      row["pairing_state"],
+      "accepted_terminals.pairing_state",
+    ),
+    cloudStateRevision: optionalInteger(
+      row["cloud_state_revision"],
+      "accepted_terminals.cloud_state_revision",
+    ),
+    acceptedAt:
+      row["accepted_at"] === null || row["accepted_at"] === undefined
+        ? null
+        : requireAbsoluteTimestamp(row["accepted_at"], "accepted_terminals.accepted_at"),
+    revokedAt:
+      row["revoked_at"] === null || row["revoked_at"] === undefined
+        ? null
+        : requireAbsoluteTimestamp(row["revoked_at"], "accepted_terminals.revoked_at"),
+    updatedAt: requireAbsoluteTimestamp(row["updated_at"], "accepted_terminals.updated_at"),
   };
 }
 

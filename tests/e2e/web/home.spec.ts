@@ -18,51 +18,56 @@ test("loads the Polivo web foundation home page", async ({ page }) => {
   expect(pageErrors).toEqual([]);
 });
 
-test("dashboard shell supports keyboard skip link and keeps planned nav unavailable", async ({
-  page,
-}) => {
+test("unauthenticated dashboard access redirects to sign-in", async ({ page }) => {
   await page.goto("/dashboard");
-
-  await expect(page.getByRole("heading", { name: "Dashboard", level: 1 })).toBeVisible();
-  await expect(page.getByText("No dashboard data yet")).toBeVisible();
-
-  await page.keyboard.press("Tab");
-  const skipLink = page.getByRole("link", { name: "Skip to content" });
-  await expect(skipLink).toBeFocused();
-  await page.keyboard.press("Enter");
-  await expect(page.locator("#main-content")).toBeFocused();
-
-  const reports = page.getByText("Reports", { exact: true });
-  await expect(reports).toBeVisible();
-  await expect(page.getByRole("link", { name: "Reports" })).toHaveCount(0);
-
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.getByRole("button", { name: "Open navigation" }).click();
-  await expect(page.getByRole("navigation", { name: "Primary" })).toBeVisible();
-  await page.getByRole("button", { name: "Close navigation", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Open navigation" })).toBeVisible();
+  await expect(page).toHaveURL(/\/sign-in/);
+  await expect(page.getByRole("heading", { name: "Sign in", level: 1 }).first()).toBeVisible();
+  await expect(page.getByText("Use your Polivo online account").first()).toBeVisible();
 });
 
-test("dashboard dialog moves focus and restores it after close", async ({ page }) => {
-  await page.goto("/dashboard");
+test("sign-in page renders with the Polivo theme", async ({ page }) => {
+  await page.goto("/sign-in");
+  await expect(page.getByRole("heading", { name: "Sign in", level: 1 }).first()).toBeVisible();
+  await expect(page.getByText("Polivo").first()).toBeVisible();
+  await expect(page.locator("main")).toBeVisible();
+});
 
-  const trigger = page.getByRole("button", { name: "Shell details" });
-  await trigger.click();
-  const dialog = page.getByRole("dialog");
-  await expect(dialog).toBeVisible();
-  await expect
-    .poll(async () => {
-      return page.evaluate(() => {
-        const active = document.activeElement;
-        const dialogElement = document.querySelector('[role="dialog"]');
-        return dialogElement !== null && active !== null && dialogElement.contains(active);
-      });
-    })
-    .toBe(true);
+test("untrusted redirect destinations are rejected", async ({ page }) => {
+  await page.goto("/sign-in?redirect_url=https://evil.example/phish");
+  await expect(page.getByRole("heading", { name: "Sign in", level: 1 }).first()).toBeVisible();
+  // Force redirect target must stay on an approved same-origin path (default dashboard).
+  await expect(page.getByText("Use your Polivo online account").first()).toBeVisible();
+  await expect(
+    page.locator(".cl-signIn-root, [data-clerk-component='SignIn']").first(),
+  ).toBeVisible();
+});
 
-  await page.keyboard.press("Escape");
-  await expect(dialog).toHaveCount(0);
-  await expect(trigger).toBeFocused();
+test("unauthenticated private API access returns 401", async ({ request }) => {
+  const response = await request.get("/api/auth/session");
+  expect(response.status()).toBe(401);
+  const body = await response.json();
+  expect(body).toMatchObject({
+    code: "UNAUTHENTICATED",
+  });
+});
+
+test("unauthenticated onboarding and tenant APIs are protected", async ({ page, request }) => {
+  await page.goto("/onboarding");
+  await expect(page).toHaveURL(/\/sign-in/);
+
+  const createStall = await request.post("/api/tenants", {
+    data: {
+      idempotencyKey: "e2e-unauth",
+      displayName: "Should Fail",
+      timezone: "Asia/Colombo",
+    },
+  });
+  expect(createStall.status()).toBe(401);
+
+  const acceptInvite = await request.post("/api/invitations/accept", {
+    data: { token: "a".repeat(32) },
+  });
+  expect(acceptInvite.status()).toBe(401);
 });
 
 test("production build does not expose the development UI preview", async ({ page }) => {

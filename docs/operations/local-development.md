@@ -88,7 +88,7 @@ pnpm dev:desktop
 pnpm dev:service
 ```
 
-Shared packages `@polivo/contracts`, `@polivo/domain`, `@polivo/db-local`, `@polivo/db-cloud`, and `@polivo/ui` must be built (or watched) before dependent applications resolve their compiled exports. See `contracts-and-validation.md`, `local-database-and-migrations.md`, `cloud-database-and-tenant-isolation.md`, `local-data-access-and-transactions.md`, and `design-system.md`. Cloud sync is not connected yet; `pnpm test:db-cloud` verifies cloud schema/RLS only.
+Shared packages `@polivo/contracts`, `@polivo/domain`, `@polivo/db-local`, `@polivo/db-cloud`, and `@polivo/ui` must be built (or watched) before dependent applications resolve their compiled exports. See `contracts-and-validation.md`, `local-database-and-migrations.md`, `cloud-database-and-tenant-isolation.md`, `local-data-access-and-transactions.md`, `design-system.md`, `web-authentication.md`, and `stall-provisioning-and-device-enrollment.md`. Cloud sync is not connected yet; `pnpm test:db-cloud` verifies cloud schema/RLS only. Clerk web sign-in requires `apps/web/.env.local` values documented in `environment-configuration.md`. Host activation uses `pnpm --filter @polivo/stall-service activate-host`.
 
 ### Web application
 

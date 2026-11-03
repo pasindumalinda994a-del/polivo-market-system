@@ -49,9 +49,16 @@ export {
 } from "./public-prices.js";
 
 export {
+  areKnownCapabilities,
   BILLING_STAFF_DEFAULT_CAPABILITIES,
+  CAPABILITY_GROUPS,
   CASHIER_DEFAULT_CAPABILITIES,
+  normalizeCapabilitySet,
   PERMISSION_CAPABILITIES,
+  recommendedCapabilitiesForProfile,
+  unknownCapabilities,
+  type CapabilityGroup,
+  type CapabilityGroupId,
   type PermissionCapability,
 } from "./permissions.js";
 

@@ -55,6 +55,10 @@ export { RowMappingError } from "./mapping/errors.js";
 export type {
   StallBindingRecord,
   LocalInstallationRecord,
+  HostActivationState,
+  HostEnrollmentRecord,
+  TerminalPairingState,
+  AcceptedTerminalRecord,
   PartyRecord,
   BillRecord,
   BillStatus,
@@ -67,6 +71,8 @@ export type {
 export {
   mapStallBindingRow,
   mapLocalInstallationRow,
+  mapHostEnrollmentRow,
+  mapAcceptedTerminalRow,
   mapPartyRow,
   mapBillRow,
   mapIdempotencyRow,
@@ -85,7 +91,21 @@ export {
   getLocalInstallation,
   getStallBinding,
   tryGetStallBinding,
+  insertStallBinding,
+  type InsertStallBindingInput,
 } from "./repositories/binding.js";
+export {
+  tryGetHostEnrollment,
+  getHostEnrollment,
+  upsertHostEnrollment,
+  updateHostActivationState,
+  listAcceptedTerminals,
+  tryGetAcceptedTerminal,
+  upsertAcceptedTerminal,
+  revokeAcceptedTerminal,
+  type UpsertHostEnrollmentInput,
+  type UpsertAcceptedTerminalInput,
+} from "./repositories/enrollment.js";
 export { getFarmerById, getTraderById } from "./repositories/parties.js";
 export {
   getBillById,
