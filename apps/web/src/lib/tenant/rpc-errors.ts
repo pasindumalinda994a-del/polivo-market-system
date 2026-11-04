@@ -86,6 +86,20 @@ export function mapTenantRpcError(error: unknown): WebAuthError {
   if (message.includes("INVALID_TOKEN")) {
     return notFoundError("This invitation is not available.");
   }
+  // GRANT_NOT_FOUND must precede the broad NOT_FOUND token match.
+  if (message.includes("GRANT_EXPIRED")) {
+    return validationError(
+      "Enrollment secret expired. Authorize the host again and use the new secret within 15 minutes.",
+    );
+  }
+  if (message.includes("GRANT_NOT_REDEEMABLE")) {
+    return validationError(
+      "Enrollment secret is no longer valid (revoked, cancelled, or already used).",
+    );
+  }
+  if (message.includes("GRANT_NOT_FOUND")) {
+    return validationError("Enrollment secret was not recognized.");
+  }
   if (message.includes("NOT_FOUND")) {
     return notFoundError();
   }
@@ -99,8 +113,6 @@ export function mapTenantRpcError(error: unknown): WebAuthError {
     return validationError("Authorize a terminal only after the stall host is activated.");
   }
   if (
-    message.includes("GRANT_NOT_REDEEMABLE") ||
-    message.includes("GRANT_EXPIRED") ||
     message.includes("GRANT_ATTEMPTS_EXCEEDED") ||
     message.includes("GRANT_NOT_CANCELLABLE") ||
     message.includes("AUTHORIZING_OWNER_INACTIVE") ||

@@ -8,7 +8,7 @@ Phase 14 operations guide for authorizing one Windows host per stall, binding it
 | -------------------- | --------------------------------------------------------------------------------------------------------------------- |
 | Stall host           | One Windows installation runs `@polivo/stall-service` and owns the authoritative SQLite file for one Phase 13 tenant. |
 | Terminal             | An Electron installation paired to a specific activated host. It never opens SQLite.                                  |
-| Enrollment secret    | Short-lived, single-use secret shown once in the owner Devices UI. Digests only are stored in Postgres.               |
+| Enrollment secret    | Single-use secret shown once in the owner Devices UI. Default TTL is **15 minutes** (900s). Digests only are stored in Postgres. |
 | Credential           | Ed25519 keypair. Private key in OS-protected storage (host: Windows DPAPI; terminal: Electron `safeStorage`).         |
 | Cloud revoke         | Owner revoke commits in Postgres; subsequent cloud device operations fail.                                            |
 | Host acknowledgement | Local host must persist terminal revocation / pairing state. Cloud revoke and host ack are displayed separately.      |
@@ -24,29 +24,41 @@ Run these on the computers indicated. Keep secrets out of shell history when pos
 1. Sign in to `@polivo/web` as the stall owner.
 2. Open **Devices** for the stall (`/tenants/{tenantId}/devices`).
 3. Choose deployment environment (`development` / `staging` / `production`).
-4. **Authorize host** (first host only). Copy the one-time secret immediately.
-5. After the host is **Activated**, **Authorize terminal** for that host and copy its secret.
+4. **Authorize host** (first host only). Copy the one-time secret immediately and run `activate-host` **within 15 minutes**.
+5. After the host is **Activated**, **Authorize terminal** for that host and copy its secret (same 15-minute TTL).
 
 ### Host computer (Windows service account)
 
-```bash
-# Absolute path outside the repo
-set POLIVO_LOCAL_DB_PATH=C:\PolivoData\stall.sqlite
+Use **PowerShell** (Cursor / Windows Terminal). Environment variables must use `$env:...` — `set VAR=...` is cmd.exe and will not satisfy `db:init`.
+
+```powershell
+# Absolute path outside the git repository (required)
+New-Item -ItemType Directory -Force -Path C:\PolivoData | Out-Null
+$env:POLIVO_LOCAL_DB_PATH = "C:\PolivoData\stall.sqlite"
+
+# Build db-local if dist/ is missing or stale
+pnpm --filter @polivo/db-local build
 pnpm --filter @polivo/db-local db:init
 pnpm --filter @polivo/db-local db:migrate
 
-set POLIVO_ENROLLMENT_BASE_URL=http://localhost:3000
-set POLIVO_DEPLOYMENT_ENVIRONMENT=development
-# Optional non-interactive secret:
-set POLIVO_ENROLLMENT_SECRET=paste-secret-here
+$env:POLIVO_ENROLLMENT_BASE_URL = "http://localhost:3000"
+$env:POLIVO_DEPLOYMENT_ENVIRONMENT = "development"
+
+# Prefer interactive paste (omit POLIVO_ENROLLMENT_SECRET). If using env, clear any stale value first:
+Remove-Item Env:POLIVO_ENROLLMENT_SECRET -ErrorAction SilentlyContinue
+# $env:POLIVO_ENROLLMENT_SECRET = "paste-secret-from-latest-Authorize-host-only"
 
 pnpm --filter @polivo/stall-service activate-host
 pnpm --filter @polivo/stall-service start
 ```
 
-Use the same Windows account for `activate-host` and the running service so DPAPI CurrentUser blobs reopen after restart.
+In cmd.exe instead of PowerShell, use `set POLIVO_LOCAL_DB_PATH=C:\PolivoData\stall.sqlite` (no spaces around `=`). Prefer PowerShell for this guide.
 
-Set `POLIVO_SECURE_STORAGE=simulated` only for non-production local experiments. Report simulated results separately from real DPAPI checks.
+Use the same Windows account for `activate-host` and the running service so DPAPI CurrentUser blobs reopen after restart. Do not place the SQLite file inside the repository tree.
+
+Set `$env:POLIVO_SECURE_STORAGE = "simulated"` only for non-production local experiments. Report simulated results separately from real DPAPI checks.
+
+A cloud device status of **Pending activation** after Authorize host is expected until `activate-host` succeeds on this machine. After every **Authorize host**, replace any shell `POLIVO_ENROLLMENT_SECRET` with the secret shown in that UI response — a stale env value past the 15-minute TTL yields `GRANT_EXPIRED`.
 
 ### Terminal computer (Electron)
 
@@ -71,6 +83,7 @@ Set `POLIVO_SECURE_STORAGE=simulated` only for non-production local experiments.
 2. **SQLite bound, confirm lost:** Re-run activation; confirm retries without issuing a new credential or rebinding.
 3. **Protected storage failed:** Activation stays incomplete. Do not fall back to plaintext. Fix storage under the service account, then resume.
 4. **Existing host present:** Do not authorize a second financial writer. Host replacement is Phase 39.
+5. **Enrollment secret expired (`GRANT_EXPIRED`):** The Pending host’s grant timed out (default 15 minutes) or the shell still holds an older secret. **Revoke** that Pending host or **Cancel unused enrollment**, then **Authorize host** once, clear `$env:POLIVO_ENROLLMENT_SECRET`, and run `activate-host` with the **new** secret within 15 minutes. Do not authorize a second host while a valid pending reservation still exists.
 
 ## Revocation
 

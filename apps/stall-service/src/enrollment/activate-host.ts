@@ -66,9 +66,21 @@ async function postJson<T>(fetchImpl: typeof fetch, url: string, body: unknown):
     headers: { "Content-Type": "application/json", Accept: "application/json" },
     body: JSON.stringify(body),
   });
-  const payload = (await response.json()) as T & { error?: { message?: string; code?: string } };
+  const payload = (await response.json()) as T & {
+    message?: string;
+    code?: string;
+    error?: { message?: string; code?: string };
+  };
   if (!response.ok) {
-    const message = payload.error?.message ?? `Enrollment request failed (${response.status}).`;
+    // Public ApiError is top-level { code, message }; tolerate nested error for older shapes.
+    const detail = payload.message ?? payload.error?.message;
+    const code = payload.code ?? payload.error?.code;
+    const message =
+      detail !== undefined && detail.trim().length > 0
+        ? code !== undefined && code.trim().length > 0
+          ? `${detail} (${code})`
+          : detail
+        : `Enrollment request failed (${response.status}).`;
     throw new Error(message);
   }
   return payload;

@@ -48,6 +48,19 @@ describe("mapTenantRpcError", () => {
     expect(error.code).toBe("NOT_FOUND");
     expect(error.message).toMatch(/invitation is not available/i);
   });
+
+  it("maps enrollment grant failures to specific guidance", () => {
+    const expired = mapTenantRpcError({ message: "GRANT_EXPIRED" });
+    expect(expired.code).toBe("VALIDATION_ERROR");
+    expect(expired.message).toMatch(/expired/i);
+    expect(expired.message).toMatch(/15 minutes/i);
+
+    const notRedeemable = mapTenantRpcError({ message: "GRANT_NOT_REDEEMABLE" });
+    expect(notRedeemable.message).toMatch(/no longer valid/i);
+
+    const notFound = mapTenantRpcError({ message: "GRANT_NOT_FOUND" });
+    expect(notFound.message).toMatch(/not recognized/i);
+  });
 });
 
 describe("summarizeRpcErrorForLog", () => {
