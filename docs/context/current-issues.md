@@ -121,3 +121,27 @@ Then `db:migrate` and `activate-host` with the one-time enrollment secret (do no
 **Fix:** Forward migration `20261104120000_fix_device_enrollment_state_revision_ambiguity.sql` — `CREATE OR REPLACE` redeem/confirm/rotate using local `v_rev` (same pattern as `revoke_tenant_device`). Pushed to polivo-dev (`jvwjhvouhuvqujuinuoc`).
 
 **Operator verify:** Re-run `activate-host` with the same secret if still within 15 minutes; otherwise Revoke Pending → Authorize host once → activate within 15 minutes. Reuse `C:\PolivoData\stall.sqlite`. Devices should show **Activated**.
+
+---
+
+## Terminal enrollment redeem failed / ECONNREFUSED :3040 (2026-11-04)
+
+**Symptom:** After host Activated, Authorize terminal + paste secret into desktop shows opaque `Terminal enrollment redeem failed.` Web log: `GRANT_NOT_REDEEMABLE`. Other Wi‑Fi PC also hits `ECONNREFUSED 127.0.0.1:3040`. `safeStorage` deprecation warnings only.
+
+**Root cause:**
+
+- Desktop read nested `error.message` while ApiError is top-level `{ code, message }`.
+- Each Enroll click minted a new Ed25519 keypair; retries after a consumed grant failed with `GRANT_NOT_REDEEMABLE` / installation mismatch.
+- Phase 14 hardcodes host accept to `http://127.0.0.1:3040` (this machine’s loopback). Another PC cannot reach the host stall-service that way.
+
+**Fix:**
+
+- Desktop surfaces top-level ApiError text; reuses stored keypair on mid-enrollment retry; clear message when accept cannot reach the host service.
+- Ops guide: first terminal pair on the **host PC** (web + stall-service + desktop); revoke stuck terminals and use a fresh secret.
+
+**Operator verify:**
+
+1. Devices: revoke stuck Waiting / Pending terminals.
+2. Host PC: stall-service + `pnpm dev:web` + `pnpm dev:desktop`.
+3. Authorize terminal (development) → paste new secret once within 15 minutes → Devices shows terminal Activated / paired.
+4. Defer other-PC pairing until LAN host bind exists.

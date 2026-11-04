@@ -62,10 +62,17 @@ A cloud device status of **Pending activation** after Authorize host is expected
 
 ### Terminal computer (Electron)
 
-1. Start the stall service on the host (`127.0.0.1:3040` loopback default in this phase).
-2. Start desktop: `pnpm dev:desktop`.
-3. Paste the terminal enrollment secret into **Terminal enrollment**.
-4. Desktop redeems against the web enroll API, then posts a pairing artifact to `POST http://127.0.0.1:3040/enrollment/terminals/accept`.
+Phase 14 pairs over **loopback**. Run these on the **same host PC** that already has an Activated host and stall-service:
+
+1. Keep stall-service listening (`127.0.0.1:3040`) and `pnpm dev:web` on that PC (`http://localhost:3000`).
+2. On Devices, set deployment environment to **development** (must match desktop).
+3. **Authorize terminal** for the activated host; copy the one-time secret and enroll **within 15 minutes**.
+4. Start desktop on the **host PC**: `pnpm dev:desktop`.
+5. Paste the **new** secret into **Terminal enrollment** once. Desktop redeems at `http://localhost:3000`, then posts to `http://127.0.0.1:3040/enrollment/terminals/accept`.
+
+Do **not** expect another Wi‑Fi PC to pair in this phase: desktop hardcodes `127.0.0.1:3040`, which is that PC’s loopback, not the host. LAN bind is a later phase.
+
+If enrollment fails: check Devices for **Waiting for host confirmation** or stuck Pending; **Revoke** that terminal; **Authorize terminal** again; paste the new secret on the host PC. Do not reuse an old secret after redeem already consumed the grant.
 
 ## Status meanings
 
@@ -84,6 +91,7 @@ A cloud device status of **Pending activation** after Authorize host is expected
 3. **Protected storage failed:** Activation stays incomplete. Do not fall back to plaintext. Fix storage under the service account, then resume.
 4. **Existing host present:** Do not authorize a second financial writer. Host replacement is Phase 39.
 5. **Enrollment secret expired (`GRANT_EXPIRED`):** The Pending host’s grant timed out (default 15 minutes) or the shell still holds an older secret. **Revoke** that Pending host or **Cancel unused enrollment**, then **Authorize host** once, clear `$env:POLIVO_ENROLLMENT_SECRET`, and run `activate-host` with the **new** secret within 15 minutes. Do not authorize a second host while a valid pending reservation still exists.
+6. **Terminal redeem failed / host unreachable:** On the host PC, ensure web + stall-service are running. Revoke stuck terminal rows, authorize a fresh terminal secret, and enroll again on the host PC. Retries reuse the stored keypair when cloud already redeemed this installation.
 
 ## Revocation
 
