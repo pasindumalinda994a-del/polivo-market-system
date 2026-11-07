@@ -19,6 +19,10 @@ $$;
 GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
 GRANT ALL ON SCHEMA public TO postgres;
 
+-- UUID helpers for phase 13+ RPCs (match hosted Supabase extensions schema).
+CREATE SCHEMA IF NOT EXISTS extensions;
+CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA extensions;
+
 CREATE SCHEMA IF NOT EXISTS auth;
 
 CREATE OR REPLACE FUNCTION auth.jwt()

@@ -10,7 +10,8 @@ import {
   type TxHandle,
 } from "@polivo/db-local";
 
-import type { AuthorizationAdapter } from "../auth/authorization.js";
+import type { AuthorizationAdapter, AuthorizationRequest } from "../auth/authorization.js";
+import type { DeviceProof } from "../auth/device-proof.js";
 import {
   buildExecutionContext,
   buildIdempotencyScope,
@@ -60,23 +61,50 @@ export type RunCommandRequest<TInput> = {
   input: TInput;
   requestId: string;
   idempotencyKey: string;
+  deviceProof?: DeviceProof;
+  sessionSecret?: string;
+  method?: string;
+  path?: string;
 };
 
-export function runIdempotentCommand<TInput, TResult>(
+function authorizeForCommand(
   deps: CommandDeps,
-  definition: CommandDefinition<TInput, TResult>,
-  request: RunCommandRequest<TInput>,
-): TResult {
-  const auth = deps.authorization.authorize({
+  definition: CommandDefinition<unknown, unknown>,
+  request: RunCommandRequest<unknown>,
+  touchActivity: boolean,
+) {
+  const authRequest: AuthorizationRequest = {
     requiredCapability: definition.requiredCapability,
     requestId: request.requestId,
-  });
+    deviceProof: request.deviceProof,
+    sessionSecret: request.sessionSecret,
+    method: request.method,
+    path: request.path,
+    touchActivity,
+  };
+  const auth = deps.authorization.authorize(authRequest);
   if (auth instanceof AppError) {
     throw auth;
   }
   if (!auth.capabilities.has(definition.requiredCapability)) {
     throw forbiddenError(`Missing capability: ${definition.requiredCapability}`);
   }
+  return auth;
+}
+
+export function runIdempotentCommand<TInput, TResult>(
+  deps: CommandDeps,
+  definition: CommandDefinition<TInput, TResult>,
+  request: RunCommandRequest<TInput>,
+): TResult {
+  // Initial auth (also used for execution context). Idle activity (ADR 0013) is touched only
+  // on the write-boundary recheck below — not on this probe, idempotent replay, or session GET.
+  const auth = authorizeForCommand(
+    deps,
+    definition as CommandDefinition<unknown, unknown>,
+    request as RunCommandRequest<unknown>,
+    false,
+  );
 
   const binding = resolveBoundStall(deps.database);
   if (binding instanceof AppError) {
@@ -119,8 +147,23 @@ export function runIdempotentCommand<TInput, TResult>(
         if (existing.completedAt === null || existing.resultRef === null) {
           throw conflictError("Idempotency key is already in use.");
         }
+        // Recheck mutable authorization before returning a stored idempotent result.
+        authorizeForCommand(
+          deps,
+          definition as CommandDefinition<unknown, unknown>,
+          request as RunCommandRequest<unknown>,
+          false,
+        );
         return definition.deserializeResult(existing.resultRef);
       }
+
+      // Recheck at the write boundary so concurrent deactivation cannot authorize a later write.
+      authorizeForCommand(
+        deps,
+        definition as CommandDefinition<unknown, unknown>,
+        request as RunCommandRequest<unknown>,
+        true,
+      );
 
       const result = definition.execute({ tx, context, input: request.input });
       definition.afterExecute?.({ tx, context, input: request.input, result });
@@ -152,7 +195,6 @@ export function runIdempotentCommand<TInput, TResult>(
       );
     }
     if (classified.kind === "unique_constraint") {
-      // Concurrent duplicate: re-read after the other transaction committed.
       const replay = getIdempotencyRecord(deps.database, scope, request.idempotencyKey);
       if (
         replay !== null &&
@@ -160,6 +202,12 @@ export function runIdempotentCommand<TInput, TResult>(
         replay.resultRef !== null &&
         replay.completedAt !== null
       ) {
+        authorizeForCommand(
+          deps,
+          definition as CommandDefinition<unknown, unknown>,
+          request as RunCommandRequest<unknown>,
+          false,
+        );
         return definition.deserializeResult(replay.resultRef);
       }
       if (replay !== null && replay.requestFingerprint !== fingerprint) {

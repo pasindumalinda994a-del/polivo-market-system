@@ -1,7 +1,9 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const WEB_E2E_PORT = 3100;
-const WEB_E2E_BASE_URL = `http://127.0.0.1:${WEB_E2E_PORT}`;
+// Use localhost (not 127.0.0.1): Clerk + Next.js 16 proxy mishandles 127.0.0.1 and
+// can self-proxy / hang. Keep hostname and Playwright baseURL aligned.
+const WEB_E2E_BASE_URL = `http://localhost:${WEB_E2E_PORT}`;
 
 /**
  * Web end-to-end configuration.
@@ -41,7 +43,7 @@ export default defineConfig({
   webServer: process.env.PW_TEST_BASE_URL
     ? undefined
     : {
-        command: `pnpm --filter @polivo/web exec next start --port ${WEB_E2E_PORT} --hostname 127.0.0.1`,
+        command: `pnpm --filter @polivo/web exec next start --port ${WEB_E2E_PORT} --hostname localhost`,
         url: WEB_E2E_BASE_URL,
         reuseExistingServer: !process.env.CI,
         timeout: 120_000,

@@ -9,29 +9,24 @@ const sampleDbPath = join(tmpdir(), "polivo-config-test", "stall.sqlite");
 
 describe("stall-service configuration", () => {
   it("loads host/port defaults when an absolute database path is provided", () => {
-    expect(
-      loadConfig({
-        POLIVO_LOCAL_DB_PATH: sampleDbPath,
-      }),
-    ).toEqual({
-      host: "127.0.0.1",
-      port: 3040,
-      databasePath: sampleDbPath,
+    const config = loadConfig({
+      POLIVO_LOCAL_DB_PATH: sampleDbPath,
     });
+    expect(config.host).toBe("127.0.0.1");
+    expect(config.port).toBe(3040);
+    expect(config.databasePath).toBe(sampleDbPath);
+    expect(config.listenMode).toBe("loopback");
   });
 
   it("accepts an explicit loopback host and port", () => {
-    expect(
-      loadConfig({
-        HOST: "localhost",
-        PORT: "3041",
-        POLIVO_LOCAL_DB_PATH: sampleDbPath,
-      }),
-    ).toEqual({
-      host: "localhost",
-      port: 3041,
-      databasePath: sampleDbPath,
+    const config = loadConfig({
+      HOST: "localhost",
+      PORT: "3041",
+      POLIVO_LOCAL_DB_PATH: sampleDbPath,
     });
+    expect(config.host).toBe("localhost");
+    expect(config.port).toBe(3041);
+    expect(config.listenMode).toBe("loopback");
   });
 
   it("requires POLIVO_LOCAL_DB_PATH", () => {
@@ -79,10 +74,39 @@ describe("stall-service configuration", () => {
     ).toThrow(/Invalid PORT/);
   });
 
-  it("rejects a non-loopback host", () => {
+  it("rejects a non-loopback host in loopback mode", () => {
     expect(() =>
       loadConfig({
         HOST: "0.0.0.0",
+        POLIVO_LOCAL_DB_PATH: sampleDbPath,
+      }),
+    ).toThrow(/Invalid HOST/);
+  });
+
+  it("accepts LAN mode with an explicit non-loopback host", () => {
+    const config = loadConfig({
+      POLIVO_LISTEN_MODE: "lan",
+      HOST: "192.168.1.10",
+      POLIVO_LOCAL_DB_PATH: sampleDbPath,
+    });
+    expect(config.listenMode).toBe("lan");
+    expect(config.host).toBe("192.168.1.10");
+  });
+
+  it("rejects LAN mode without HOST", () => {
+    expect(() =>
+      loadConfig({
+        POLIVO_LISTEN_MODE: "lan",
+        POLIVO_LOCAL_DB_PATH: sampleDbPath,
+      }),
+    ).toThrow(/LAN mode requires an explicit HOST/);
+  });
+
+  it("rejects LAN mode with a loopback HOST", () => {
+    expect(() =>
+      loadConfig({
+        POLIVO_LISTEN_MODE: "lan",
+        HOST: "127.0.0.1",
         POLIVO_LOCAL_DB_PATH: sampleDbPath,
       }),
     ).toThrow(/Invalid HOST/);

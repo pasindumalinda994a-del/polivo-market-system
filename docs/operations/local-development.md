@@ -67,7 +67,7 @@ Use `pnpm run doctor` for the repository check. Bare `pnpm doctor` runs pnpm’s
 | --------------------- | ------------------------------- | ---- |
 | Web (`@polivo/web`)   | `http://localhost:3000`         | 3000 |
 | Desktop Vite renderer | used by Electron in development | 5173 |
-| Stall service         | `http://127.0.0.1:3040`         | 3040 |
+| Stall service (HTTPS) | `https://127.0.0.1:3040`        | 3040 |
 
 The stall service binds to loopback only by default (`127.0.0.1`).
 
@@ -88,7 +88,7 @@ pnpm dev:desktop
 pnpm dev:service
 ```
 
-Shared packages `@polivo/contracts`, `@polivo/domain`, `@polivo/db-local`, `@polivo/db-cloud`, and `@polivo/ui` must be built (or watched) before dependent applications resolve their compiled exports. See `contracts-and-validation.md`, `local-database-and-migrations.md`, `cloud-database-and-tenant-isolation.md`, `local-data-access-and-transactions.md`, and `design-system.md`. Cloud sync is not connected yet; `pnpm test:db-cloud` verifies cloud schema/RLS only.
+Shared packages `@polivo/contracts`, `@polivo/domain`, `@polivo/db-local`, `@polivo/db-cloud`, and `@polivo/ui` must be built (or watched) before dependent applications resolve their compiled exports. See `contracts-and-validation.md`, `local-database-and-migrations.md`, `cloud-database-and-tenant-isolation.md`, `local-data-access-and-transactions.md`, `design-system.md`, `web-authentication.md`, and `stall-provisioning-and-device-enrollment.md`. Cloud sync is not connected yet; `pnpm test:db-cloud` verifies cloud schema/RLS only. Clerk web sign-in requires `apps/web/.env.local` values documented in `environment-configuration.md`. Host activation uses `pnpm --filter @polivo/stall-service activate-host`.
 
 ### Web application
 
@@ -104,7 +104,7 @@ Stop the process with `Ctrl+C` in that terminal.
 
 1. Run `pnpm dev:desktop`.
 2. Electron launches a window that loads the Vite renderer.
-3. Confirm the window shows the desktop shell, including **Service connection not configured**.
+3. Confirm the window shows the desktop shell. Unpaired terminals show **Service connection not configured** and **Terminal enrollment**. After pairing and host verify, status shows the verified stall. See [desktop-service-connection-and-lan-terminals.md](./desktop-service-connection-and-lan-terminals.md).
 
 Stop the process with `Ctrl+C` in that terminal. Closing the window on Windows also exits the Electron process.
 
@@ -129,7 +129,8 @@ pnpm --filter @polivo/db-local db:init
 4. Request the health endpoint:
 
 ```powershell
-Invoke-RestMethod http://127.0.0.1:3040/health
+# Self-signed TLS: use curl.exe -k or skip certificate validation for local health checks only.
+curl.exe -k https://127.0.0.1:3040/health
 ```
 
 Expected response:
@@ -186,7 +187,7 @@ pnpm --filter @polivo/stall-service build
 pnpm --filter @polivo/stall-service start
 ```
 
-Then request `http://127.0.0.1:3040/health` again. Stop with `Ctrl+C`.
+Then request `https://127.0.0.1:3040/health` again (use `curl.exe -k` for the self-signed cert). Stop with `Ctrl+C`.
 
 ## Quality commands
 

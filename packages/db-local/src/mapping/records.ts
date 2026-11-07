@@ -20,6 +20,36 @@ export type LocalInstallationRecord = {
   createdAt: string;
 };
 
+export type HostActivationState =
+  "pending_credential" | "redeeming" | "bound" | "confirming" | "activated" | "failed";
+
+export type HostEnrollmentRecord = {
+  hostDeviceId: string;
+  installationId: string;
+  credentialRef: string;
+  credentialVersion: number;
+  activationState: HostActivationState;
+  pendingOperationId: string | null;
+  cloudDeviceId: string | null;
+  cloudStateRevision: number | null;
+  activatedAt: string | null;
+  updatedAt: string;
+};
+
+export type TerminalPairingState = "pending_host_confirm" | "accepted" | "revoked";
+
+export type AcceptedTerminalRecord = {
+  terminalDeviceId: string;
+  publicKey: string;
+  credentialVersion: number;
+  label: string | null;
+  pairingState: TerminalPairingState;
+  cloudStateRevision: number | null;
+  acceptedAt: string | null;
+  revokedAt: string | null;
+  updatedAt: string;
+};
+
 export type PartyRecord = {
   id: string;
   stallId: string;
@@ -89,11 +119,114 @@ export type OutboxEventRecord = {
   acknowledgedAt: string | null;
 };
 
+export type LocalStaffStatus = "active" | "disabled";
+
+export type LocalStaffRecord = {
+  id: string;
+  tenantId: string;
+  staffCode: string;
+  displayName: string;
+  status: LocalStaffStatus;
+  isLocalOwner: boolean;
+  cloudMembershipId: string | null;
+  createdAt: string;
+  updatedAt: string;
+  disabledAt: string | null;
+};
+
+export type LocalStaffCredentialRecord = {
+  staffId: string;
+  tenantId: string;
+  verifier: string;
+  verifierFormat: "scrypt$v1";
+  credentialRevision: number;
+  updatedAt: string;
+};
+
+export type LocalStaffCapabilitySnapshotRecord = {
+  staffId: string;
+  tenantId: string;
+  stallId: string;
+  capabilitiesJson: string;
+  sourceRevision: number;
+  authorityVerifiedAt: string;
+  updatedAt: string;
+};
+
+export type LocalStaffSessionRecord = {
+  id: string;
+  tenantId: string;
+  staffId: string;
+  deviceId: string;
+  verifier: string;
+  credentialRevision: number;
+  issuedAt: string;
+  absoluteExpiresAt: string;
+  lastActivityAt: string;
+  revokedAt: string | null;
+};
+
+export type LocalStaffLoginAttemptRecord = {
+  deviceId: string;
+  staffCode: string;
+  windowStartedAt: string;
+  attemptCount: number;
+  lockedUntil: string | null;
+  updatedAt: string;
+};
+
+export type LocalSecurityAuditEventRecord = {
+  id: string;
+  tenantId: string | null;
+  stallId: string | null;
+  actorRef: string | null;
+  deviceRef: string | null;
+  action: string;
+  targetType: string | null;
+  targetId: string | null;
+  occurredAt: string;
+  correlationRef: string | null;
+  detailsJson: string | null;
+};
+
 export type BillType = "farmer" | "trader";
 
 const BILL_STATUSES = new Set<string>(["draft", "finalized", "cancelled"]);
 const PAYMENT_STATUSES = new Set<string>(["unpaid", "partially_paid", "fully_paid"]);
 const ACK_STATES = new Set<string>(["pending", "acknowledged", "failed"]);
+const HOST_ACTIVATION_STATES = new Set<string>([
+  "pending_credential",
+  "redeeming",
+  "bound",
+  "confirming",
+  "activated",
+  "failed",
+]);
+const TERMINAL_PAIRING_STATES = new Set<string>(["pending_host_confirm", "accepted", "revoked"]);
+const LOCAL_STAFF_STATUSES = new Set<string>(["active", "disabled"]);
+
+function requireHostActivationState(value: unknown, field: string): HostActivationState {
+  const text = requireString(value, field);
+  if (!HOST_ACTIVATION_STATES.has(text)) {
+    throw new RowMappingError(`Invalid host activation state for ${field}.`);
+  }
+  return text as HostActivationState;
+}
+
+function requireTerminalPairingState(value: unknown, field: string): TerminalPairingState {
+  const text = requireString(value, field);
+  if (!TERMINAL_PAIRING_STATES.has(text)) {
+    throw new RowMappingError(`Invalid terminal pairing state for ${field}.`);
+  }
+  return text as TerminalPairingState;
+}
+
+function optionalInteger(value: unknown, field: string): number | null {
+  if (value === null || value === undefined) {
+    return null;
+  }
+  return requireInteger(value, field);
+}
 
 function requireBillStatus(value: unknown, field: string): BillStatus {
   const text = requireString(value, field);
@@ -140,6 +273,68 @@ export function mapLocalInstallationRow(row: Record<string, unknown>): LocalInst
   return {
     id: requireString(row["id"], "local_installation.id"),
     createdAt: requireAbsoluteTimestamp(row["created_at"], "local_installation.created_at"),
+  };
+}
+
+export function mapHostEnrollmentRow(row: Record<string, unknown>): HostEnrollmentRecord {
+  return {
+    hostDeviceId: requireString(row["host_device_id"], "host_enrollment.host_device_id"),
+    installationId: requireString(row["installation_id"], "host_enrollment.installation_id"),
+    credentialRef: requireString(row["credential_ref"], "host_enrollment.credential_ref"),
+    credentialVersion: requireInteger(
+      row["credential_version"],
+      "host_enrollment.credential_version",
+    ),
+    activationState: requireHostActivationState(
+      row["activation_state"],
+      "host_enrollment.activation_state",
+    ),
+    pendingOperationId: optionalString(
+      row["pending_operation_id"],
+      "host_enrollment.pending_operation_id",
+    ),
+    cloudDeviceId: optionalString(row["cloud_device_id"], "host_enrollment.cloud_device_id"),
+    cloudStateRevision: optionalInteger(
+      row["cloud_state_revision"],
+      "host_enrollment.cloud_state_revision",
+    ),
+    activatedAt:
+      row["activated_at"] === null || row["activated_at"] === undefined
+        ? null
+        : requireAbsoluteTimestamp(row["activated_at"], "host_enrollment.activated_at"),
+    updatedAt: requireAbsoluteTimestamp(row["updated_at"], "host_enrollment.updated_at"),
+  };
+}
+
+export function mapAcceptedTerminalRow(row: Record<string, unknown>): AcceptedTerminalRecord {
+  return {
+    terminalDeviceId: requireString(
+      row["terminal_device_id"],
+      "accepted_terminals.terminal_device_id",
+    ),
+    publicKey: requireString(row["public_key"], "accepted_terminals.public_key"),
+    credentialVersion: requireInteger(
+      row["credential_version"],
+      "accepted_terminals.credential_version",
+    ),
+    label: optionalString(row["label"], "accepted_terminals.label"),
+    pairingState: requireTerminalPairingState(
+      row["pairing_state"],
+      "accepted_terminals.pairing_state",
+    ),
+    cloudStateRevision: optionalInteger(
+      row["cloud_state_revision"],
+      "accepted_terminals.cloud_state_revision",
+    ),
+    acceptedAt:
+      row["accepted_at"] === null || row["accepted_at"] === undefined
+        ? null
+        : requireAbsoluteTimestamp(row["accepted_at"], "accepted_terminals.accepted_at"),
+    revokedAt:
+      row["revoked_at"] === null || row["revoked_at"] === undefined
+        ? null
+        : requireAbsoluteTimestamp(row["revoked_at"], "accepted_terminals.revoked_at"),
+    updatedAt: requireAbsoluteTimestamp(row["updated_at"], "accepted_terminals.updated_at"),
   };
 }
 
@@ -246,5 +441,150 @@ export function mapOutboxEventRow(row: Record<string, unknown>): OutboxEventReco
       row["acknowledged_at"] === null || row["acknowledged_at"] === undefined
         ? null
         : requireAbsoluteTimestamp(row["acknowledged_at"], "sync_outbox.acknowledged_at"),
+  };
+}
+
+function requireLocalStaffStatus(value: unknown, field: string): LocalStaffStatus {
+  const text = requireString(value, field);
+  if (!LOCAL_STAFF_STATUSES.has(text)) {
+    throw new RowMappingError(`Invalid local staff status for ${field}.`);
+  }
+  return text as LocalStaffStatus;
+}
+
+export function mapLocalStaffRow(row: Record<string, unknown>): LocalStaffRecord {
+  return {
+    id: requireString(row["id"], "local_staff.id"),
+    tenantId: requireString(row["tenant_id"], "local_staff.tenant_id"),
+    staffCode: requireString(row["staff_code"], "local_staff.staff_code"),
+    displayName: requireString(row["display_name"], "local_staff.display_name"),
+    status: requireLocalStaffStatus(row["status"], "local_staff.status"),
+    isLocalOwner: requireBoolean01(row["is_local_owner"], "local_staff.is_local_owner"),
+    cloudMembershipId: optionalString(
+      row["cloud_membership_id"],
+      "local_staff.cloud_membership_id",
+    ),
+    createdAt: requireAbsoluteTimestamp(row["created_at"], "local_staff.created_at"),
+    updatedAt: requireAbsoluteTimestamp(row["updated_at"], "local_staff.updated_at"),
+    disabledAt:
+      row["disabled_at"] === null || row["disabled_at"] === undefined
+        ? null
+        : requireAbsoluteTimestamp(row["disabled_at"], "local_staff.disabled_at"),
+  };
+}
+
+export function mapLocalStaffCredentialRow(
+  row: Record<string, unknown>,
+): LocalStaffCredentialRecord {
+  const format = requireString(row["verifier_format"], "local_staff_credentials.verifier_format");
+  if (format !== "scrypt$v1") {
+    throw new RowMappingError("Unsupported credential verifier format.");
+  }
+  return {
+    staffId: requireString(row["staff_id"], "local_staff_credentials.staff_id"),
+    tenantId: requireString(row["tenant_id"], "local_staff_credentials.tenant_id"),
+    verifier: requireString(row["verifier"], "local_staff_credentials.verifier"),
+    verifierFormat: "scrypt$v1",
+    credentialRevision: requireInteger(
+      row["credential_revision"],
+      "local_staff_credentials.credential_revision",
+    ),
+    updatedAt: requireAbsoluteTimestamp(row["updated_at"], "local_staff_credentials.updated_at"),
+  };
+}
+
+export function mapLocalStaffCapabilitySnapshotRow(
+  row: Record<string, unknown>,
+): LocalStaffCapabilitySnapshotRecord {
+  return {
+    staffId: requireString(row["staff_id"], "local_staff_capability_snapshots.staff_id"),
+    tenantId: requireString(row["tenant_id"], "local_staff_capability_snapshots.tenant_id"),
+    stallId: requireString(row["stall_id"], "local_staff_capability_snapshots.stall_id"),
+    capabilitiesJson: requireString(
+      row["capabilities_json"],
+      "local_staff_capability_snapshots.capabilities_json",
+    ),
+    sourceRevision: requireInteger(
+      row["source_revision"],
+      "local_staff_capability_snapshots.source_revision",
+    ),
+    authorityVerifiedAt: requireAbsoluteTimestamp(
+      row["authority_verified_at"],
+      "local_staff_capability_snapshots.authority_verified_at",
+    ),
+    updatedAt: requireAbsoluteTimestamp(
+      row["updated_at"],
+      "local_staff_capability_snapshots.updated_at",
+    ),
+  };
+}
+
+export function mapLocalStaffSessionRow(row: Record<string, unknown>): LocalStaffSessionRecord {
+  return {
+    id: requireString(row["id"], "local_staff_sessions.id"),
+    tenantId: requireString(row["tenant_id"], "local_staff_sessions.tenant_id"),
+    staffId: requireString(row["staff_id"], "local_staff_sessions.staff_id"),
+    deviceId: requireString(row["device_id"], "local_staff_sessions.device_id"),
+    verifier: requireString(row["verifier"], "local_staff_sessions.verifier"),
+    credentialRevision: requireInteger(
+      row["credential_revision"],
+      "local_staff_sessions.credential_revision",
+    ),
+    issuedAt: requireAbsoluteTimestamp(row["issued_at"], "local_staff_sessions.issued_at"),
+    absoluteExpiresAt: requireAbsoluteTimestamp(
+      row["absolute_expires_at"],
+      "local_staff_sessions.absolute_expires_at",
+    ),
+    lastActivityAt: requireAbsoluteTimestamp(
+      row["last_activity_at"],
+      "local_staff_sessions.last_activity_at",
+    ),
+    revokedAt:
+      row["revoked_at"] === null || row["revoked_at"] === undefined
+        ? null
+        : requireAbsoluteTimestamp(row["revoked_at"], "local_staff_sessions.revoked_at"),
+  };
+}
+
+export function mapLocalStaffLoginAttemptRow(
+  row: Record<string, unknown>,
+): LocalStaffLoginAttemptRecord {
+  return {
+    deviceId: requireString(row["device_id"], "local_staff_login_attempts.device_id"),
+    staffCode: requireString(row["staff_code"], "local_staff_login_attempts.staff_code"),
+    windowStartedAt: requireAbsoluteTimestamp(
+      row["window_started_at"],
+      "local_staff_login_attempts.window_started_at",
+    ),
+    attemptCount: requireInteger(row["attempt_count"], "local_staff_login_attempts.attempt_count"),
+    lockedUntil:
+      row["locked_until"] === null || row["locked_until"] === undefined
+        ? null
+        : requireAbsoluteTimestamp(row["locked_until"], "local_staff_login_attempts.locked_until"),
+    updatedAt: requireAbsoluteTimestamp(row["updated_at"], "local_staff_login_attempts.updated_at"),
+  };
+}
+
+export function mapLocalSecurityAuditEventRow(
+  row: Record<string, unknown>,
+): LocalSecurityAuditEventRecord {
+  return {
+    id: requireString(row["id"], "local_security_audit_events.id"),
+    tenantId: optionalString(row["tenant_id"], "local_security_audit_events.tenant_id"),
+    stallId: optionalString(row["stall_id"], "local_security_audit_events.stall_id"),
+    actorRef: optionalString(row["actor_ref"], "local_security_audit_events.actor_ref"),
+    deviceRef: optionalString(row["device_ref"], "local_security_audit_events.device_ref"),
+    action: requireString(row["action"], "local_security_audit_events.action"),
+    targetType: optionalString(row["target_type"], "local_security_audit_events.target_type"),
+    targetId: optionalString(row["target_id"], "local_security_audit_events.target_id"),
+    occurredAt: requireAbsoluteTimestamp(
+      row["occurred_at"],
+      "local_security_audit_events.occurred_at",
+    ),
+    correlationRef: optionalString(
+      row["correlation_ref"],
+      "local_security_audit_events.correlation_ref",
+    ),
+    detailsJson: optionalString(row["details_json"], "local_security_audit_events.details_json"),
   };
 }

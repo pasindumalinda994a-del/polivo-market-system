@@ -6,16 +6,18 @@ Document each new variable when its integration is implemented. Sanitized `.env.
 
 ## Web Application
 
-Placeholder Clerk and Supabase development variables are defined for phases 11–12. Phase 11 validates cloud URL/publishable-key names in `@polivo/db-cloud` user-context clients. Clerk SDK sign-in wiring belongs to phase 12. Fill local values before integrations that require them.
+Clerk and Supabase development variables for phases 11–12. Phase 11 validates cloud URL/publishable-key names in `@polivo/db-cloud` user-context clients. Phase 12 wires Clerk sign-in and request-scoped Supabase access. Fill local values before running authenticated web flows. See [web-authentication.md](./web-authentication.md).
 
-| Variable                               | Required for integrations | Public | Description                                                                                                 |
-| -------------------------------------- | ------------------------- | ------ | ----------------------------------------------------------------------------------------------------------- |
-| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`    | Yes (Clerk)               | Yes    | Clerk development publishable key. Browser-safe.                                                            |
-| `CLERK_SECRET_KEY`                     | Yes (Clerk)               | No     | Clerk development secret key. Server-only.                                                                  |
-| `NEXT_PUBLIC_SUPABASE_URL`             | Yes (Supabase)            | Yes    | Supabase project URL. Browser-safe. Used by `@polivo/db-cloud` user-context factory.                        |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Yes (Supabase)            | Yes    | Supabase publishable key. Browser-safe. Used by user-context factory.                                       |
-| `SUPABASE_SECRET_KEY`                  | Yes (privileged server)   | No     | Supabase privileged secret / service-role key. Server-only. Not used by the phase 11 public client factory. |
-| `DATABASE_URL`                         | Yes (migrations/schema)   | No     | Postgres connection string for cloud schema and migrations. Server-only.                                    |
+| Variable                               | Required for integrations | Public | Description                                                                                            |
+| -------------------------------------- | ------------------------- | ------ | ------------------------------------------------------------------------------------------------------ |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`    | Yes (Clerk)               | Yes    | Clerk development publishable key. Browser-safe.                                                       |
+| `CLERK_SECRET_KEY`                     | Yes (Clerk)               | No     | Clerk development secret key. Server-only.                                                             |
+| `NEXT_PUBLIC_CLERK_SIGN_IN_URL`        | Yes (Clerk routes)        | Yes    | Application sign-in path. Use `/sign-in`.                                                              |
+| `NEXT_PUBLIC_CLERK_SIGN_UP_URL`        | Yes (Clerk routes)        | Yes    | Application sign-up path. Use `/sign-up`.                                                              |
+| `NEXT_PUBLIC_SUPABASE_URL`             | Yes (Supabase)            | Yes    | Supabase project URL. Browser-safe. Used by `@polivo/db-cloud` user-context factory.                   |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Yes (Supabase)            | Yes    | Supabase publishable key. Browser-safe. Used by user-context factory.                                  |
+| `SUPABASE_SECRET_KEY`                  | Yes (privileged server)   | No     | Supabase privileged secret / service-role key. Server-only. Not used by authenticated dashboard reads. |
+| `DATABASE_URL`                         | Yes (migrations/schema)   | No     | Postgres connection string for cloud schema and migrations. Server-only.                               |
 
 Cloud schema, RLS, and migration operations are documented in [cloud-database-and-tenant-isolation.md](./cloud-database-and-tenant-isolation.md). Canonical SQL lives under `supabase/migrations` only.
 
@@ -53,13 +55,20 @@ Keep staging and production as separate Vercel projects and separate Clerk / Sup
 
 ## Stall Service
 
-Phase 09 requires loopback host/port plus an absolute local SQLite path.
+Phase 09 requires host/port plus an absolute local SQLite path. Phase 16 adds listen mode and HTTPS TLS material for desktop connections. See [desktop-service-connection-and-lan-terminals.md](./desktop-service-connection-and-lan-terminals.md).
 
 | Variable               | Required | Default     | Description                                                                                                                                               |
 | ---------------------- | -------- | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `HOST`                 | No       | `127.0.0.1` | Bind address. Only loopback values are accepted in this phase: `127.0.0.1`, `localhost`, or `::1`.                                                        |
-| `PORT`                 | No       | `3040`      | TCP port. Must be an integer from 1 to 65535. The service does not silently switch ports when the selected port is occupied.                              |
+| `POLIVO_LISTEN_MODE`   | No       | `loopback`  | `loopback` (default) or `lan`. LAN mode requires an explicit non-loopback `HOST` and HTTPS.                                                              |
+| `HOST`                 | No\*     | `127.0.0.1` | Bind address. Loopback mode: `127.0.0.1`, `localhost`, or `::1`. LAN mode: stall host LAN IPv4 (or `0.0.0.0` only with intentional firewall scope). \*Required when `POLIVO_LISTEN_MODE=lan`. |
+| `PORT`                 | No       | `3040`      | HTTPS TCP port. Must be an integer from 1 to 65535. The service does not silently switch ports when the selected port is occupied.                        |
 | `POLIVO_LOCAL_DB_PATH` | Yes      | —           | Absolute filesystem path to the stall SQLite database file. Must be outside the repository. Relative paths, `:memory:`, and URL-style paths are rejected. |
+| `POLIVO_HOST_CREDENTIAL_ROOT` | No | `%USERPROFILE%\.polivo\host-credentials` | Absolute directory for host device secrets, TLS PEMs, and stall display meta. |
+| `POLIVO_TLS_KEY_PATH` / `POLIVO_TLS_CERT_PATH` | No | auto under credential root | Optional explicit PEM paths; both must be set together. |
+| `POLIVO_ENROLLMENT_BASE_URL` | For host activation | `http://localhost:3000` | Base URL of `@polivo/web` for device redeem/confirm (phase 14). |
+| `POLIVO_DEPLOYMENT_ENVIRONMENT` | For host activation | `development` | Must match the owner-issued grant: `development`, `staging`, or `production`. |
+| `POLIVO_ENROLLMENT_SECRET` | Optional | — | Non-interactive one-time host enrollment secret. Prefer interactive prompt. Never log. |
+| `POLIVO_SECURE_STORAGE` | Optional | — | Set to `simulated` to force non-DPAPI file storage for experiments. Production hosts must use Windows DPAPI. |
 
 Loading behavior:
 

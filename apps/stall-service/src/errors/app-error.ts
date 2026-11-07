@@ -67,6 +67,10 @@ export function serviceUnavailableError(message = "Service temporarily unavailab
   return new AppError({ code: "SERVICE_UNAVAILABLE", message });
 }
 
+export function rateLimitedError(message = "Too many requests. Try again later."): AppError {
+  return new AppError({ code: "RATE_LIMITED", message });
+}
+
 export function internalError(
   message = "An unexpected error occurred.",
   cause?: unknown,

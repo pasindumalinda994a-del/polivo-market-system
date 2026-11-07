@@ -1,5 +1,17 @@
-import { app, BrowserWindow, session } from "electron";
+import { app, BrowserWindow, ipcMain, session } from "electron";
 import { join } from "node:path";
+
+import {
+  configureOrTestHostAddress,
+  getConnectionStatus,
+  initializeConnectionFromDisk,
+  readCurrentSession,
+  retryConnection,
+  signIn,
+  signOutOrLock,
+  switchStaffPrepare,
+} from "./connection.js";
+import { enrollTerminal, getTerminalEnrollmentStatus } from "./enrollment.js";
 
 const isDevelopment = !app.isPackaged;
 
@@ -39,6 +51,18 @@ function applyContentSecurityPolicy(): void {
     responseHeaders["Content-Security-Policy"] = [contentSecurityPolicy()];
     callback({ responseHeaders });
   });
+}
+
+function isTrustedIpcSender(event: Electron.IpcMainInvokeEvent): boolean {
+  try {
+    const url = event.senderFrame?.url ?? "";
+    if (isDevelopment && process.env["ELECTRON_RENDERER_URL"]) {
+      return url.startsWith(process.env["ELECTRON_RENDERER_URL"]) || url.startsWith("file:");
+    }
+    return url.startsWith("file:");
+  } catch {
+    return false;
+  }
 }
 
 function createWindow(): void {
@@ -82,6 +106,90 @@ function createWindow(): void {
 
 app.whenReady().then(() => {
   applyContentSecurityPolicy();
+  initializeConnectionFromDisk();
+
+  ipcMain.handle("enrollment:getStatus", (event) => {
+    if (!isTrustedIpcSender(event)) {
+      throw new Error("Untrusted IPC sender.");
+    }
+    return getTerminalEnrollmentStatus();
+  });
+  ipcMain.handle(
+    "enrollment:enrollTerminal",
+    async (
+      event,
+      input: {
+        enrollmentSecret: string;
+        enrollmentBaseUrl: string;
+        deploymentEnvironment: "development" | "staging" | "production";
+        hostServiceBaseUrl: string;
+      },
+    ) => {
+      if (!isTrustedIpcSender(event)) {
+        throw new Error("Untrusted IPC sender.");
+      }
+      if (!input || typeof input !== "object") {
+        throw new Error("Invalid enrollment payload.");
+      }
+      return enrollTerminal(input);
+    },
+  );
+
+  ipcMain.handle("connection:getStatus", (event) => {
+    if (!isTrustedIpcSender(event)) {
+      throw new Error("Untrusted IPC sender.");
+    }
+    return getConnectionStatus();
+  });
+  ipcMain.handle("connection:configureOrTestHost", async (event, input: unknown) => {
+    if (!isTrustedIpcSender(event)) {
+      throw new Error("Untrusted IPC sender.");
+    }
+    return configureOrTestHostAddress(input);
+  });
+  ipcMain.handle(
+    "connection:signIn",
+    async (event, input: { staffCode?: unknown; secret?: unknown }) => {
+      if (!isTrustedIpcSender(event)) {
+        throw new Error("Untrusted IPC sender.");
+      }
+      if (
+        !input ||
+        typeof input.staffCode !== "string" ||
+        typeof input.secret !== "string" ||
+        input.staffCode.trim().length === 0 ||
+        input.secret.length === 0
+      ) {
+        throw new Error("Staff code and secret are required.");
+      }
+      return signIn({ staffCode: input.staffCode, secret: input.secret });
+    },
+  );
+  ipcMain.handle("connection:getSession", async (event) => {
+    if (!isTrustedIpcSender(event)) {
+      throw new Error("Untrusted IPC sender.");
+    }
+    return readCurrentSession();
+  });
+  ipcMain.handle("connection:signOut", async (event) => {
+    if (!isTrustedIpcSender(event)) {
+      throw new Error("Untrusted IPC sender.");
+    }
+    return signOutOrLock();
+  });
+  ipcMain.handle("connection:retry", async (event) => {
+    if (!isTrustedIpcSender(event)) {
+      throw new Error("Untrusted IPC sender.");
+    }
+    return retryConnection();
+  });
+  ipcMain.handle("connection:switchStaff", (event) => {
+    if (!isTrustedIpcSender(event)) {
+      throw new Error("Untrusted IPC sender.");
+    }
+    return switchStaffPrepare();
+  });
+
   createWindow();
 
   app.on("activate", () => {
