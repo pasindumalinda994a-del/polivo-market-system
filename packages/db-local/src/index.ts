@@ -67,6 +67,13 @@ export type {
   IdempotencyRecord,
   AuditEventRecord,
   OutboxEventRecord,
+  LocalStaffStatus,
+  LocalStaffRecord,
+  LocalStaffCredentialRecord,
+  LocalStaffCapabilitySnapshotRecord,
+  LocalStaffSessionRecord,
+  LocalStaffLoginAttemptRecord,
+  LocalSecurityAuditEventRecord,
 } from "./mapping/records.js";
 export {
   mapStallBindingRow,
@@ -78,6 +85,12 @@ export {
   mapIdempotencyRow,
   mapAuditEventRow,
   mapOutboxEventRow,
+  mapLocalStaffRow,
+  mapLocalStaffCredentialRow,
+  mapLocalStaffCapabilitySnapshotRow,
+  mapLocalStaffSessionRow,
+  mapLocalStaffLoginAttemptRow,
+  mapLocalSecurityAuditEventRow,
 } from "./mapping/records.js";
 
 export {
@@ -106,6 +119,36 @@ export {
   type UpsertHostEnrollmentInput,
   type UpsertAcceptedTerminalInput,
 } from "./repositories/enrollment.js";
+export {
+  countLocalStaff,
+  tryGetLocalStaffById,
+  getLocalStaffById,
+  tryGetLocalStaffByCode,
+  tryGetLocalOwner,
+  insertLocalStaff,
+  updateLocalStaffStatus,
+  tryGetStaffCredential,
+  upsertStaffCredential,
+  tryGetCapabilitySnapshot,
+  applyCapabilitySnapshot,
+  insertStaffSession,
+  getStaffSessionById,
+  tryGetStaffSessionByVerifier,
+  updateSessionActivity,
+  revokeStaffSession,
+  revokeSessionsForStaff,
+  revokeActiveSessionsForDevice,
+  tryGetLoginAttempt,
+  upsertLoginAttempt,
+  clearLoginAttempt,
+  appendSecurityAuditEvent,
+  type InsertLocalStaffInput,
+  type UpsertStaffCredentialInput,
+  type UpsertCapabilitySnapshotInput,
+  type InsertStaffSessionInput,
+  type UpsertLoginAttemptInput,
+  type AppendSecurityAuditInput,
+} from "./repositories/staff.js";
 export { getFarmerById, getTraderById } from "./repositories/parties.js";
 export {
   getBillById,

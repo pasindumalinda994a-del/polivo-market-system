@@ -64,7 +64,7 @@ describe("migration runner", () => {
       expect(tables).toEqual([]);
 
       const status = getMigrationStatus(local.db, bundled);
-      expect(status.applied.map((row) => row.id)).toEqual(["001", "002"]);
+      expect(status.applied.map((row) => row.id)).toEqual(["001", "002", "003"]);
       expect(status.pending).toHaveLength(0);
     } finally {
       local.close();

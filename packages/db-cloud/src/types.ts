@@ -30,6 +30,8 @@ export type TenantMembershipRow = {
   status: MembershipStatus;
   access_role: MembershipAccessRole;
   capabilities: string[];
+  /** Monotonic revision bumped when membership access/capabilities change (ADR 0013). */
+  capabilities_revision: number;
   created_at: string;
   updated_at: string;
 };
@@ -382,6 +384,51 @@ export type Database = {
           p_expected_revision: number;
         };
         Returns: { revision: number }[];
+      };
+      authorize_local_staff_setup_grant: {
+        Args: {
+          p_tenant_id: string;
+          p_secret_digest: string;
+          p_ttl_seconds?: number;
+        };
+        Returns: { grant_id: string; expires_at: string }[];
+      };
+      redeem_local_staff_setup_grant: {
+        Args: {
+          p_secret_digest: string;
+          p_tenant_id: string;
+        };
+        Returns: {
+          grant_id: string;
+          tenant_id: string;
+          cloud_membership_id: string;
+          owner_display_name: string;
+          capabilities: string[];
+          source_revision: number;
+        }[];
+      };
+      authorize_local_staff_permission_refresh: {
+        Args: {
+          p_tenant_id: string;
+          p_target_membership_id: string;
+          p_secret_digest: string;
+          p_ttl_seconds?: number;
+        };
+        Returns: { grant_id: string; expires_at: string }[];
+      };
+      redeem_local_staff_permission_refresh: {
+        Args: {
+          p_secret_digest: string;
+          p_tenant_id: string;
+          p_expected_membership_id?: string | null;
+        };
+        Returns: {
+          grant_id: string;
+          tenant_id: string;
+          cloud_membership_id: string;
+          capabilities: string[];
+          source_revision: number;
+        }[];
       };
       authorize_host_enrollment: {
         Args: {

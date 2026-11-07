@@ -86,6 +86,7 @@ describe("stall-service enrollment", () => {
       deploymentEnvironment: "development",
       enrollmentSecret: "s".repeat(43),
       secureStorage: storage,
+      secureStorageDirectory: root,
       fetchImpl,
     });
 
@@ -99,6 +100,7 @@ describe("stall-service enrollment", () => {
       deploymentEnvironment: "development",
       enrollmentSecret: "s".repeat(43),
       secureStorage: storage,
+      secureStorageDirectory: root,
       fetchImpl,
     });
     expect(resumed.resumed).toBe(true);

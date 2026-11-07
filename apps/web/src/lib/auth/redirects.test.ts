@@ -55,4 +55,16 @@ describe("isProtectedPath", () => {
     expect(isProtectedPath("/invitations/token")).toBe(true);
     expect(isProtectedPath("/api/auth/session")).toBe(true);
   });
+
+  it("allows machine enrollment and local-staff setup redeem without Clerk", () => {
+    expect(isProtectedPath("/api/device-enrollment/redeem")).toBe(false);
+    expect(isProtectedPath("/api/device-enrollment/confirm")).toBe(false);
+    expect(isProtectedPath("/api/local-staff/setup-grants/redeem")).toBe(false);
+    expect(isProtectedPath("/api/local-staff/permission-refresh/redeem")).toBe(false);
+  });
+
+  it("keeps owner local-staff setup authorize behind Clerk", () => {
+    expect(isProtectedPath("/api/tenants/ten_x/local-staff/setup-grant")).toBe(true);
+    expect(isProtectedPath("/api/tenants/ten_x/local-staff/permission-refresh")).toBe(true);
+  });
 });

@@ -2,6 +2,7 @@ import { openExistingDatabaseAndVerify, type LocalDatabase } from "@polivo/db-lo
 
 import { buildApp } from "./app.js";
 import { loadConfig } from "./config.js";
+import { loadOrCreateTlsMaterial, loadTlsMaterialFromPaths } from "./security/tls-material.js";
 
 async function start(): Promise<void> {
   let config;
@@ -15,6 +16,26 @@ async function start(): Promise<void> {
         level: "error",
         msg: "Invalid stall service configuration",
         error: message,
+      }),
+    );
+    process.exitCode = 1;
+    return;
+  }
+
+  let tlsMaterial;
+  try {
+    tlsMaterial =
+      config.tlsKeyPath && config.tlsCertPath
+        ? loadTlsMaterialFromPaths(config.tlsKeyPath, config.tlsCertPath)
+        : loadOrCreateTlsMaterial(config.credentialRoot);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(
+      JSON.stringify({
+        level: "error",
+        msg: "Failed to load or create TLS material required for desktop connections",
+        error: message,
+        listenMode: config.listenMode,
       }),
     );
     process.exitCode = 1;
@@ -38,7 +59,12 @@ async function start(): Promise<void> {
     return;
   }
 
-  const app = buildApp({ database });
+  const app = buildApp({
+    database,
+    credentialRoot: config.credentialRoot,
+    tlsMaterial,
+    https: tlsMaterial,
+  });
 
   const shutdown = async (signal: string): Promise<void> => {
     app.log.info({ signal }, "Shutting down stall service");
@@ -66,7 +92,16 @@ async function start(): Promise<void> {
 
   try {
     await app.listen({ host: config.host, port: config.port });
-    app.log.info({ host: config.host, port: config.port }, "Stall service listening");
+    app.log.info(
+      {
+        host: config.host,
+        port: config.port,
+        listenMode: config.listenMode,
+        tlsFingerprint: tlsMaterial.certificateSha256,
+        protocol: "https",
+      },
+      "Stall service listening (HTTPS)",
+    );
   } catch (error) {
     const err = error as NodeJS.ErrnoException;
     if (err.code === "EADDRINUSE") {

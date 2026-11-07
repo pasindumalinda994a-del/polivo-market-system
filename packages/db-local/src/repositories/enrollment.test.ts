@@ -54,7 +54,7 @@ afterEach(() => {
 describe("enrollment repositories", () => {
   it("keeps migration 001 checksum stable and applies 002", () => {
     const bundled = loadBundledMigrations();
-    expect(bundled.map((m) => m.id)).toEqual(["001", "002"]);
+    expect(bundled.map((m) => m.id)).toEqual(["001", "002", "003"]);
     expect(bundled[0]?.checksum).toBe(
       "b518df58515339e1b90fbc3be4456dc58feb5908798fe75aef0204b96995f286",
     );
@@ -63,11 +63,18 @@ describe("enrollment repositories", () => {
     const tables = local.db
       .prepare(
         `SELECT name FROM sqlite_master
-         WHERE type = 'table' AND name IN ('host_enrollment', 'accepted_terminals')
+         WHERE type = 'table' AND name IN (
+           'host_enrollment', 'accepted_terminals', 'local_staff', 'local_staff_sessions'
+         )
          ORDER BY name`,
       )
       .all() as Array<{ name: string }>;
-    expect(tables.map((t) => t.name)).toEqual(["accepted_terminals", "host_enrollment"]);
+    expect(tables.map((t) => t.name)).toEqual([
+      "accepted_terminals",
+      "host_enrollment",
+      "local_staff",
+      "local_staff_sessions",
+    ]);
   });
 
   it("binds stall once and refuses overwrite", () => {

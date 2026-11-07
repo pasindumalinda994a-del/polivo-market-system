@@ -8,16 +8,20 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "activate-host": "tsx src/enrollment/cli.ts"
+    "activate-host": "tsx src/enrollment/cli.ts",
+    "staff-cli": "tsx src/auth/staff-cli.ts"
   },
   "dependencies": {
     "@polivo/contracts": "workspace:*",
     "@polivo/db-local": "workspace:*",
+    "@polivo/domain": "workspace:*",
     "fastify": "5.12.7",
+    "selfsigned": "2.4.1",
     "zod": "4.6.7"
   },
   "devDependencies": {
     "@types/node": "26.6.6",
+    "@types/selfsigned": "2.0.4",
     "tsx": "4.23.15",
     "typescript": "5.9.3"
   }

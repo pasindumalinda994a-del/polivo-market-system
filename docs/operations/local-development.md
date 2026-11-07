@@ -67,7 +67,7 @@ Use `pnpm run doctor` for the repository check. Bare `pnpm doctor` runs pnpm’s
 | --------------------- | ------------------------------- | ---- |
 | Web (`@polivo/web`)   | `http://localhost:3000`         | 3000 |
 | Desktop Vite renderer | used by Electron in development | 5173 |
-| Stall service         | `http://127.0.0.1:3040`         | 3040 |
+| Stall service (HTTPS) | `https://127.0.0.1:3040`        | 3040 |
 
 The stall service binds to loopback only by default (`127.0.0.1`).
 
@@ -104,7 +104,7 @@ Stop the process with `Ctrl+C` in that terminal.
 
 1. Run `pnpm dev:desktop`.
 2. Electron launches a window that loads the Vite renderer.
-3. Confirm the window shows the desktop shell, including **Service connection not configured**.
+3. Confirm the window shows the desktop shell. Unpaired terminals show **Service connection not configured** and **Terminal enrollment**. After pairing and host verify, status shows the verified stall. See [desktop-service-connection-and-lan-terminals.md](./desktop-service-connection-and-lan-terminals.md).
 
 Stop the process with `Ctrl+C` in that terminal. Closing the window on Windows also exits the Electron process.
 
@@ -129,7 +129,8 @@ pnpm --filter @polivo/db-local db:init
 4. Request the health endpoint:
 
 ```powershell
-Invoke-RestMethod http://127.0.0.1:3040/health
+# Self-signed TLS: use curl.exe -k or skip certificate validation for local health checks only.
+curl.exe -k https://127.0.0.1:3040/health
 ```
 
 Expected response:
@@ -186,7 +187,7 @@ pnpm --filter @polivo/stall-service build
 pnpm --filter @polivo/stall-service start
 ```
 
-Then request `http://127.0.0.1:3040/health` again. Stop with `Ctrl+C`.
+Then request `https://127.0.0.1:3040/health` again (use `curl.exe -k` for the self-signed cert). Stop with `Ctrl+C`.
 
 ## Quality commands
 

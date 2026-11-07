@@ -135,6 +135,16 @@ export const hostAcceptTerminalRequestSchema = z.object({
 export const hostAcceptTerminalResponseSchema = z.object({
   pairingState: z.enum(["pending_host_confirm", "accepted", "revoked"]),
   cloudStateRevision: z.number().int().positive().nullable(),
+  /** Phase 16 transport trust pins — required for desktop HTTPS connection. */
+  hostDeviceId: deviceIdSchema,
+  hostPublicKey: z.string().min(16).max(512),
+  hostCredentialVersion: z.number().int().positive(),
+  stallDisplayName: z.string().min(1).max(128),
+  tlsCertificateSha256: z
+    .string()
+    .regex(/^[a-f0-9]{64}$/, "Expected lowercase hex SHA-256 certificate fingerprint."),
+  trustSignedAt: z.string().min(1).max(64),
+  trustSignature: z.string().min(16).max(1024),
 });
 
 export type AuthorizeHostEnrollmentRequest = z.infer<typeof authorizeHostEnrollmentRequestSchema>;

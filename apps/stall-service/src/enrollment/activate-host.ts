@@ -22,11 +22,13 @@ import {
   publicKeyFromPrivate,
   signPossessionMessage,
 } from "../security/ed25519.js";
+import { writeHostMeta } from "../security/host-meta.js";
 import {
   createDefaultHostSecureStorage,
   SecureStorageError,
   type SecureStorageAdapter,
 } from "../security/secure-storage.js";
+import { loadOrCreateTlsMaterial } from "../security/tls-material.js";
 
 export type ActivateHostOptions = {
   databasePath: string;
@@ -308,6 +310,12 @@ export async function activateHostWithDatabase(
   if (!binding) {
     throw new Error("Stall binding missing after activation.");
   }
+
+  const credentialRoot = options.secureStorageDirectory ?? defaultSecureDir();
+  writeHostMeta(credentialRoot, {
+    stallDisplayName: redeem.stallDisplayName,
+  });
+  loadOrCreateTlsMaterial(credentialRoot);
 
   return {
     tenantId: binding.tenantId,

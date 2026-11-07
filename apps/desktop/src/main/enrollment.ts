@@ -4,10 +4,14 @@ import {
   createPrivateKey,
   createPublicKey,
   randomUUID,
+  verify,
 } from "node:crypto";
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { app, safeStorage } from "electron";
+import { buildHostIdentityMessage } from "@polivo/contracts";
+
+import { pinnedHttpsRequest } from "./pinned-https.js";
 
 export type TerminalEnrollmentStatus = {
   installationId: string;
@@ -17,6 +21,15 @@ export type TerminalEnrollmentStatus = {
   hostDeviceId: string | null;
   deviceId: string | null;
   label: string | null;
+  hasHostTrustPins: boolean;
+};
+
+export type HostTrustPins = {
+  hostDeviceId: string;
+  hostPublicKey: string;
+  hostCredentialVersion: number;
+  stallDisplayName: string;
+  tlsCertificateSha256: string;
 };
 
 type StoredEnrollment = {
@@ -31,6 +44,9 @@ type StoredEnrollment = {
   label: string | null;
   tenantId: string | null;
   cloudStateRevision: number | null;
+  hostPublicKey: string | null;
+  hostCredentialVersion: number | null;
+  tlsCertificateSha256: string | null;
 };
 
 type ApiErrorBody = {
@@ -56,7 +72,23 @@ function readState(): StoredEnrollment | null {
   if (!existsSync(path)) {
     return null;
   }
-  return JSON.parse(readFileSync(path, "utf8")) as StoredEnrollment;
+  const raw = JSON.parse(readFileSync(path, "utf8")) as Partial<StoredEnrollment>;
+  return {
+    installationId: raw.installationId ?? randomUUID(),
+    credentialRef: raw.credentialRef ?? "",
+    publicKey: raw.publicKey ?? "",
+    credentialVersion: raw.credentialVersion ?? 0,
+    pairingState: raw.pairingState ?? "idle",
+    stallDisplayName: raw.stallDisplayName ?? null,
+    hostDeviceId: raw.hostDeviceId ?? null,
+    deviceId: raw.deviceId ?? null,
+    label: raw.label ?? null,
+    tenantId: raw.tenantId ?? null,
+    cloudStateRevision: raw.cloudStateRevision ?? null,
+    hostPublicKey: raw.hostPublicKey ?? null,
+    hostCredentialVersion: raw.hostCredentialVersion ?? null,
+    tlsCertificateSha256: raw.tlsCertificateSha256 ?? null,
+  };
 }
 
 function writeState(state: StoredEnrollment): void {
@@ -97,6 +129,9 @@ function ensureInstallation(): StoredEnrollment {
     label: null,
     tenantId: null,
     cloudStateRevision: null,
+    hostPublicKey: null,
+    hostCredentialVersion: null,
+    tlsCertificateSha256: null,
   };
   writeState(state);
   return state;
@@ -172,6 +207,17 @@ function resolveKeypair(state: StoredEnrollment): {
   return { privateKeyPkcs8, publicKeyB64, credentialRef };
 }
 
+function hasTrustPins(state: StoredEnrollment): boolean {
+  return (
+    typeof state.hostPublicKey === "string" &&
+    state.hostPublicKey.length > 0 &&
+    typeof state.tlsCertificateSha256 === "string" &&
+    /^[a-f0-9]{64}$/.test(state.tlsCertificateSha256) &&
+    typeof state.hostDeviceId === "string" &&
+    state.hostDeviceId.length > 0
+  );
+}
+
 export function getTerminalEnrollmentStatus(): TerminalEnrollmentStatus {
   const state = ensureInstallation();
   return {
@@ -182,7 +228,39 @@ export function getTerminalEnrollmentStatus(): TerminalEnrollmentStatus {
     hostDeviceId: state.hostDeviceId,
     deviceId: state.deviceId,
     label: state.label,
+    hasHostTrustPins: hasTrustPins(state),
   };
+}
+
+export function getHostTrustPins(): HostTrustPins | null {
+  const state = ensureInstallation();
+  if (!hasTrustPins(state) || state.hostCredentialVersion === null) {
+    return null;
+  }
+  return {
+    hostDeviceId: state.hostDeviceId!,
+    hostPublicKey: state.hostPublicKey!,
+    hostCredentialVersion: state.hostCredentialVersion,
+    stallDisplayName: state.stallDisplayName ?? "Polivo Stall",
+    tlsCertificateSha256: state.tlsCertificateSha256!,
+  };
+}
+
+/** Load the terminal Ed25519 private key for device proofs (main process only). */
+export function loadTerminalPrivateKeyPkcs8(): string {
+  const state = ensureInstallation();
+  if (!state.credentialRef) {
+    throw new Error("Terminal is not enrolled.");
+  }
+  return loadPrivateKey(state.credentialRef);
+}
+
+export function getTerminalDeviceId(): string | null {
+  return ensureInstallation().deviceId;
+}
+
+export function signTerminalMessage(message: string): string {
+  return signMessage(loadTerminalPrivateKeyPkcs8(), message);
 }
 
 export async function enrollTerminal(input: {
@@ -268,43 +346,93 @@ export async function enrollTerminal(input: {
   });
   const pairingSignature = signMessage(privateKeyPkcs8, pairingArtifact);
 
-  let acceptResponse: Response;
+  const acceptBase = normalizeHostServiceBaseUrl(input.hostServiceBaseUrl);
+  let acceptResult: Awaited<ReturnType<typeof pinnedHttpsRequest>>;
   try {
-    acceptResponse = await fetch(
-      new URL("/enrollment/terminals/accept", input.hostServiceBaseUrl),
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify({
-          terminalDeviceId: state.deviceId,
-          publicKey: publicKeyB64,
-          credentialVersion: state.credentialVersion,
-          label: state.label,
-          cloudStateRevision: state.cloudStateRevision,
-          pairingArtifact,
-          pairingSignature,
-        }),
-      },
-    );
+    acceptResult = await pinnedHttpsRequest({
+      method: "POST",
+      url: new URL("/enrollment/terminals/accept", acceptBase).toString(),
+      body: JSON.stringify({
+        terminalDeviceId: state.deviceId,
+        publicKey: publicKeyB64,
+        credentialVersion: state.credentialVersion,
+        label: state.label,
+        cloudStateRevision: state.cloudStateRevision,
+        pairingArtifact,
+        pairingSignature,
+      }),
+      allowUnpinnedLoopback: true,
+      timeoutMs: 15_000,
+    });
   } catch (error) {
     state.pairingState = "waiting_host_confirm";
     writeState(state);
-    const cause =
-      error instanceof Error && "cause" in error && error.cause instanceof Error
-        ? error.cause.message
-        : error instanceof Error
-          ? error.message
-          : "unknown network error";
+    const detail = error instanceof Error ? error.message : "unknown network error";
     throw new Error(
-      `Cloud redeem succeeded, but the host stall service at ${input.hostServiceBaseUrl} was unreachable (${cause}). Run stall-service on this PC for Phase 14 loopback pairing, then retry enrollment (same secret if still valid).`,
+      `Cloud redeem succeeded, but the host stall service at ${acceptBase} was unreachable (${detail}). Start stall-service with HTTPS on this PC for loopback pairing, then retry enrollment (same secret if still valid).`,
+      { cause: error },
     );
   }
-  if (!acceptResponse.ok) {
+  if (acceptResult.status < 200 || acceptResult.status >= 300) {
     // Cloud succeeded first — leave waiting for host confirmation.
     state.pairingState = "waiting_host_confirm";
     writeState(state);
     return getTerminalEnrollmentStatus();
   }
+
+  const acceptBody = JSON.parse(acceptResult.bodyText) as ApiErrorBody & {
+    pairingState?: string;
+    hostDeviceId?: string;
+    hostPublicKey?: string;
+    hostCredentialVersion?: number;
+    stallDisplayName?: string;
+    tlsCertificateSha256?: string;
+    trustSignedAt?: string;
+    trustSignature?: string;
+  };
+
+  if (
+    !acceptBody.hostDeviceId ||
+    !acceptBody.hostPublicKey ||
+    !acceptBody.hostCredentialVersion ||
+    !acceptBody.stallDisplayName ||
+    !acceptBody.tlsCertificateSha256 ||
+    !acceptBody.trustSignedAt ||
+    !acceptBody.trustSignature
+  ) {
+    state.pairingState = "waiting_host_confirm";
+    writeState(state);
+    throw new Error(
+      "Host accepted the terminal but did not return transport trust pins. Upgrade the stall service and re-pair on the host.",
+    );
+  }
+
+  if (acceptBody.tlsCertificateSha256 !== acceptResult.certificateSha256) {
+    state.pairingState = "failed";
+    writeState(state);
+    throw new Error("Host identity could not be verified");
+  }
+
+  const trustMessage = buildHostIdentityMessage({
+    hostDeviceId: acceptBody.hostDeviceId,
+    hostPublicKey: acceptBody.hostPublicKey,
+    hostCredentialVersion: acceptBody.hostCredentialVersion,
+    stallDisplayName: acceptBody.stallDisplayName,
+    tlsCertificateSha256: acceptBody.tlsCertificateSha256,
+    signedAt: acceptBody.trustSignedAt,
+  });
+  if (!verifyEd25519(acceptBody.hostPublicKey, trustMessage, acceptBody.trustSignature)) {
+    state.pairingState = "failed";
+    writeState(state);
+    throw new Error("Host identity could not be verified");
+  }
+
+  state.hostDeviceId = acceptBody.hostDeviceId;
+  state.hostPublicKey = acceptBody.hostPublicKey;
+  state.hostCredentialVersion = acceptBody.hostCredentialVersion;
+  state.stallDisplayName = acceptBody.stallDisplayName;
+  state.tlsCertificateSha256 = acceptBody.tlsCertificateSha256;
+  writeState(state);
 
   // Confirm with cloud after host accepted.
   const confirmMessage = [
@@ -348,4 +476,34 @@ export async function enrollTerminal(input: {
   state.pairingState = "paired";
   writeState(state);
   return getTerminalEnrollmentStatus();
+}
+
+function normalizeHostServiceBaseUrl(raw: string): string {
+  const trimmed = raw.trim().replace(/\/$/, "");
+  if (trimmed.startsWith("https://")) {
+    return trimmed;
+  }
+  if (trimmed.startsWith("http://")) {
+    // Pairing bootstrap must use HTTPS (Phase 16). Rewrite loopback HTTP to HTTPS.
+    return `https://${trimmed.slice("http://".length)}`;
+  }
+  return `https://${trimmed}`;
+}
+
+function verifyEd25519(publicKey: string, message: string, signature: string): boolean {
+  try {
+    const keyBytes = Buffer.from(publicKey, "base64url");
+    const sig = Buffer.from(signature, "base64url");
+    if (keyBytes.length !== 32 || sig.length !== 64) {
+      return false;
+    }
+    const keyObject = createPublicKey({
+      key: Buffer.concat([Buffer.from("302a300506032b6570032100", "hex"), keyBytes]),
+      format: "der",
+      type: "spki",
+    });
+    return verify(null, Buffer.from(message, "utf8"), keyObject, sig);
+  } catch {
+    return false;
+  }
 }

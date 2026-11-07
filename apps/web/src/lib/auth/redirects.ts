@@ -66,6 +66,15 @@ export function isProtectedPath(pathname: string): boolean {
   if (pathname.startsWith("/api/device-enrollment/")) {
     return false;
   }
+  // Local staff first-owner setup redeem uses a one-time setup grant secret (stall-service CLI),
+  // not a Clerk session. Owner authorize under /api/tenants/.../setup-grant stays protected.
+  if (pathname === "/api/local-staff/setup-grants/redeem") {
+    return false;
+  }
+  // Permission refresh redeem uses a one-time owner-issued grant; returns live membership caps.
+  if (pathname === "/api/local-staff/permission-refresh/redeem") {
+    return false;
+  }
   return (
     pathname === "/dashboard" ||
     pathname.startsWith("/dashboard/") ||

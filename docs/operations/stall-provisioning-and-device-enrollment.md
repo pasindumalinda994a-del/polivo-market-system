@@ -102,11 +102,13 @@ If enrollment fails: check Devices for **Waiting for host confirmation** or stuc
 
 ## Phase 16 trust fields
 
-LAN authentication should use: `device_id`, Ed25519 `public_key`, `credential_version`, host `cloud_state_revision` / local revision, and host-accepted terminal rows. Installation id alone is insufficient.
+Desktop LAN connection (Phase 16) uses trust pins captured at host accept: host `device_id`, host Ed25519 `public_key`, `credential_version`, `stallDisplayName`, and TLS certificate SHA-256 — plus host-accepted terminal rows for device proofs. Installation id alone is insufficient. See [desktop-service-connection-and-lan-terminals.md](./desktop-service-connection-and-lan-terminals.md) and [ADR 0012](../decisions/0012-desktop-service-transport-trust.md). Terminals paired before Phase 16 without trust pins must re-pair on the host over loopback HTTPS.
 
 ## Related docs
 
 - [0010 — Device credential storage](../decisions/0010-device-credential-storage.md)
+- [0012 — Desktop service transport trust](../decisions/0012-desktop-service-transport-trust.md)
+- [Desktop service connection and LAN terminals](./desktop-service-connection-and-lan-terminals.md)
 - [Tenant onboarding](./tenant-onboarding-and-access-management.md)
 - [Local database and migrations](./local-database-and-migrations.md)
 - [Environment configuration](./environment-configuration.md)

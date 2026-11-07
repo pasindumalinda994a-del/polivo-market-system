@@ -145,3 +145,73 @@ Then `db:migrate` and `activate-host` with the one-time enrollment secret (do no
 2. Host PC: stall-service + `pnpm dev:web` + `pnpm dev:desktop`.
 3. Authorize terminal (development) → paste new secret once within 15 minutes → Devices shows terminal Activated / paired.
 4. Defer other-PC pairing until LAN host bind exists.
+
+
+Now: i paste the code in same pc same running code i run in another terminal desktop and and paste the secret key its run and activated the terminal. but i autorize another terminal and  try with another pc that run same code and connect with same wifi  but its not connect its give this error
+
+Enrollment failed
+Error invoking remote method 'enrollment:enrollTerminal': Error: The enrollment request could not be completed. (VALIDATION_ERROR)
+
+electron) 'safeStorage.decryptString' is deprecated and will be removed. Please use 'safeStorage.decryptStringAsync' instead.
+Error occurred in handler for 'enrollment:enrollTerminal': Error: Enrollment secret was not recognized. (VALIDATION_ERROR)
+    at enrollTerminal (file:///E:/Polivo%20Market%20System/polivo-market-system/apps/desktop/out/main/index.js:157:9)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)       
+Error occurred in handler for 'enrollment:enrollTerminal': Error: Enrollment secret is no longer valid (revoked, cancelled, or already used). (VALIDATION_ERROR)
+    at enrollTerminal (file:///E:/Polivo%20Market%20System/polivo-market-system/apps/desktop/out/main/index.js:157:9)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)       
+Error occurred in handler for 'enrollment:enrollTerminal': Error: The enrollment request could not be completed. (VALIDATION_ERROR)
+    at enrollTerminal (file:///E:/Polivo%20Market%20System/polivo-market-system/apps/desktop/out/main/index.js:157:9)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+
+
+## Local staff `setup-owner` — Authentication required (2026-11-07)
+
+**Symptom:** After a successful browser `POST /api/tenants/{tenantId}/local-staff/setup-grant`, host `pnpm --filter @polivo/stall-service staff-cli setup-owner OWNER1` fails with `{"ok":false,"error":"Authentication required."}` after pasting the setup grant secret and choosing a local owner secret.
+
+**Root cause:** `staff-cli` redeems at `POST /api/local-staff/setup-grants/redeem` with the one-time setup grant only (no Clerk cookie). `isProtectedPath` treated all `/api/*` as Clerk-protected except `/api/device-enrollment/`, so `proxy.ts` returned 401 before the machine redeem route ran. The owner secret and staff code were unrelated.
+
+**Fix:** Exempt `/api/local-staff/setup-grants/redeem` in `isProtectedPath` (same machine-endpoint pattern as device enrollment). Keep `POST /api/tenants/{tenantId}/local-staff/setup-grant` Clerk + owner protected. Unit tests cover redeem public / authorize protected.
+
+**Operator verify:**
+
+1. Ensure web is running (`pnpm dev:web`) and migration `20261104180000_local_staff_setup_grants` is applied.
+2. As owner, issue a **fresh** setup grant (previous secret is fine if redeem never consumed it; issue a new one if unsure).
+3. PowerShell with `POLIVO_LOCAL_DB_PATH` set to the stall DB; prefer prompt for the setup grant secret:
+
+```powershell
+$env:POLIVO_LOCAL_DB_PATH = "C:\PolivoData\acceptance-01\stall.sqlite"
+$env:POLIVO_ENROLLMENT_BASE_URL = "http://localhost:3000"
+pnpm --filter @polivo/stall-service staff-cli setup-owner OWNER1
+```
+
+4. Expect `{"ok":true,"staffId":"..."}`. Do not set `POLIVO_SECURE_STORAGE=simulated` for this path.
+
+**Note:** Desktop staff sign-in after redeem was later unblocked by ADR 0013 production offline durations (see below).
+
+## Local staff `activate-staff` — capabilities JSON / PowerShell (2026-11-07)
+
+**Symptom:** `staff-cli activate-staff ... '[\"payments...\"]' ...` prompts for the secret, then fails with `Unexpected token 'p', "[payments.r"... is not valid JSON`. Logged argv shows capabilities as `[payments.receive_trader,...]` (inner quotes stripped).
+
+**Root cause:** Bash-style single-quoted JSON through **PowerShell → pnpm → cmd** loses the `"` around capability ids. `JSON.parse` ran on invalid text before `activateLocalStaff` / `areKnownCapabilities`. Membership id and secret were unrelated.
+
+**Fix:** `parseCapabilitiesArgv` accepts valid JSON arrays and recovers shell-mangled `[cap1,cap2]` / comma lists; clearer errors point at Windows quoting. Ops guide documents escaped multi-cap PowerShell examples. Capability catalog and auth checks unchanged.
+
+**Operator verify** (`POLIVO_LOCAL_DB_PATH` set; local owner already set up):
+
+```powershell
+pnpm --filter @polivo/stall-service staff-cli activate-staff CASH1 mem_127e740cc9f34c80a80cab4ce7f20749 "[\"payments.receive_trader\",\"payments.pay_farmer\",\"payments.record_cheque\",\"reports.view_financial\"]" 1 "Cashier One"
+```
+
+Expect `{"ok":true,"staffId":"..."}`. Desktop sign-in requires ADR 0013 production offline policy (see below).
+
+## Desktop staff sign-in — Stall access needs an online refresh (2026-11-07) — resolved for acceptance
+
+**Symptom:** After successful `setup-owner` / `activate-staff`, desktop sign-in showed **Action failed / Stall access needs an online refresh.**
+
+**Root cause:** Composition defaulted to ADR 0011 `productionFailClosedOfflineAccessPolicy`, which refuses every new session until product durations were approved. Credentials and device proof were unrelated.
+
+**Fix:** ADR [0013](../decisions/0013-local-staff-offline-access-durations.md) — production policy **2h idle / 12h absolute / 7d snapshot / first login offline allowed**. Trusted permission refresh grants replace argv-only `refresh-permissions`. Composition default is `createProductionOfflineAccessPolicy`. Fail-closed object kept for explicit tests only.
+
+**Acceptance (2026-11-08):** Operator-reported Phase 14–16 single-PC checklist included successful local staff desktop sign-in under the production policy. Treat this login blocker as **resolved for acceptance**.
+
+**Still open for full production readiness (not this blocker):** real DPAPI/`safeStorage` reopen evidence; offline cloud-revoke lag until Phase 33; two-PC LAN (documented in ADR 0013 / ops / progress tracker).

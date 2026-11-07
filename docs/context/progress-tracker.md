@@ -4,7 +4,9 @@ Update this file after every meaningful implementation change. Record completed 
 
 ## Current Phase
 
-- Phase 14 in progress: stall provisioning and device enrollment (`14-stall-provisioning-and-device-enrollment.md`). Local staff login and permission synchronization remain deferred (phase 15+).
+- Phase 16 complete (local verification + **operator single-PC acceptance 2026-11-08**): desktop service connection and LAN terminals (`16-desktop-service-connection-and-lan-terminals.md`, ADR [0012](../decisions/0012-desktop-service-transport-trust.md), ops guide). HTTPS listener (loopback default + explicit LAN), enrollment trust pins, main-process pinned client, configure/verify/sign-in/outage UI. **Physical two-PC LAN / Windows firewall acceptance still pending** (does not block Phase 17).
+- Phase 15 mechanics complete; **durations approved** via ADR [0013](../decisions/0013-local-staff-offline-access-durations.md) (2h idle / 12h absolute / 7d snapshot / first login offline allowed). Production composition uses `createProductionOfflineAccessPolicy`; trusted permission-refresh grants added. **Not full operational production-ready** until real DPAPI/`safeStorage` reopen is verified and refresh procedure is confirmed on target env; fresher-auth subset and Phase 33 sync remain open.
+- Phase 14 complete (implementation): stall provisioning and device enrollment (`14-stall-provisioning-and-device-enrollment.md`, ADR 0010, ops guide). Development dashboard confirmed: host Activated, terminal Activated, terminal Revoked, additional terminal authorization Pending activation. Outstanding platform verification (real Windows DPAPI reopen, Electron `safeStorage` reopen, offline-restart enrollment evidence) remains recorded below — not claimed passed.
 - Phase 13 complete: tenant onboarding and role management (`@polivo/web` onboarding/members/permissions UI, SECURITY DEFINER RPCs, invitations, permission profile revisions, ADR 0009, ops guide) implemented and locally verified.
 - Phase 12 complete: Clerk web authentication (`@polivo/web` Clerk SDK, `proxy.ts`, sign-in/up, server identity + membership helpers, user-context Supabase client, protected dashboard/tenant states, auth tests, `docs/operations/web-authentication.md`) implemented and locally verified for deterministic + web e2e checks. Real Clerk→Supabase RLS live verification remains environment-dependent (see Session Notes).
 - Phase 11 complete: Supabase schema and tenant isolation (`@polivo/db-cloud`, `supabase/migrations`, RLS isolation tests) implemented and locally verified.
@@ -21,7 +23,8 @@ Update this file after every meaningful implementation change. Record completed 
 
 ## Current Goal
 
-- Implement phase 14 (`14-stall-provisioning-and-device-enrollment.md`): owner-authorized host/terminal enrollment, local SQLite binding via focused migration `002`, OS-protected device credentials, and interruption-safe activation. Do not mark phase 14 complete until acceptance criteria pass. Do not mark local staff offline access or permission synchronization complete until their dedicated phases.
+- **Ready for Phase 17** farmer-management foundations after operator-reported single-PC Phase 14–16 acceptance (2026-11-08). Obtain or add `docs/implementation/17-farmer-management.md` before coding Phase 17 (file not yet in repo).
+- Keep physical two-PC LAN / formal DPAPI–`safeStorage` evidence / terminal-revoke refresh as **outstanding acceptance** — they do **not** block starting Phase 17, and Phases 14–16 remain **not production-ready**.
 - Complete remaining real Clerk–Supabase integration verification and pre–phase 12 environment items listed in Session Notes as capacity allows.
 - Continue subsequent implementation units only after each prior unit is verified. Do not mark synchronization complete until its dedicated phases.
 
@@ -153,22 +156,40 @@ Update this file after every meaningful implementation change. Record completed 
   - Docs: `docs/operations/tenant-onboarding-and-access-management.md`; web-auth + cloud-isolation links updated.
   - Verification on Windows: `pnpm lint`, `pnpm format:check`, `pnpm typecheck`, `pnpm test` (188), `pnpm test:db-cloud` (25), `pnpm build`, `pnpm test:e2e:web` (7) passed. Remote migration apply and real Clerk→Supabase live onboarding not claimed complete.
   - Deferred: device enrollment, local staff credentials, permission sync/acks, ownership transfer, tenant deletion. Phase 14 can begin.
+- Applied step `14-stall-provisioning-and-device-enrollment.md` (implementation complete; platform reopen smoke still outstanding):
+  - Local SQLite `002_host_and_terminal_enrollment` (`host_enrollment`, `accepted_terminals`); migration `001` checksum unchanged (`b518df58515339e1b90fbc3be4456dc58feb5908798fe75aef0204b96995f286`).
+  - Cloud migration `20261103180000_device_enrollment.sql` (devices, grants, owner + redeem/confirm/rotate RPCs, deny-direct RLS); follow-up `20261104120000_fix_device_enrollment_state_revision_ambiguity.sql`.
+  - Owner Devices UI/APIs; machine redeem/confirm/rotate via privileged server client; stall-service `activate-host` + DPAPI/simulated secure storage; desktop `safeStorage` terminal enroll + loopback pairing accept.
+  - ADR [0010](../decisions/0010-device-credential-storage.md); ops [stall-provisioning-and-device-enrollment.md](../operations/stall-provisioning-and-device-enrollment.md).
+  - Development dashboard confirmed (operator): one host **Activated**, one terminal **Activated**, one terminal **Revoked**, one additional terminal authorization **Pending activation**.
+  - Local verification earlier session: `pnpm lint`, `pnpm test` (218), `pnpm test:db-cloud` (28), stall-service/desktop builds; simulated secure-storage in automated tests.
+  - Hosted: `20261103180000_device_enrollment` applied to **polivo-dev** (`jvwjhvouhuvqujuinuoc`).
+  - Outstanding verification (explicitly not claimed passed): real Windows DPAPI credential reopen smoke; Electron `safeStorage` persistence reopen; offline-restart enrollment evidence; optional web e2e for Devices page. These must not block Phase 15 independent local-auth work.
+- Applied step `15-local-staff-authentication-and-offline-access.md` (mechanics complete; **not production-ready**):
+  - Local SQLite `003_local_staff_and_sessions` (staff, credentials, capability snapshots, sessions, login attempts, security audit); migrations `001`/`002` checksums unchanged.
+  - Stall-service: scrypt$v1 staff verifiers, SHA-256 session digests, device Ed25519 proof, sign-in/session/sign-out routes, first-owner setup + staff CLI, real `createLocalStaffAuthorizationAdapter`, production fail-closed offline policy + TEST-ONLY injectable policy ([0011](../decisions/0011-local-staff-offline-policy-fail-closed.md)).
+  - Command runner rechecks authorization before writes and before idempotent replay.
+  - Cloud: `20261104180000_local_staff_setup_grants.sql` + owner authorize / machine redeem web APIs (distinct from device enrollment grants). Remote apply to polivo-dev **not claimed** in this session.
+  - Ops: [local-staff-authentication-and-offline-access.md](../operations/local-staff-authentication-and-offline-access.md).
+  - Verification on Windows: `pnpm typecheck`, `pnpm test` (225), `pnpm build` passed; phase-touched ESLint clean. Full-repo `pnpm lint` still fails on pre-existing desktop/web Devices issues outside this phase. Automated tests use TEST-ONLY policy + memory secure storage (not real DPAPI/`safeStorage`).
+  - Phase 16 can connect to `/local-auth/*`. Operational offline rollout blocked until product session/snapshot durations are approved.
+- Applied step `16-desktop-service-connection-and-lan-terminals.md` (local verification; physical two-PC pending):
+  - Stall-service: `POLIVO_LISTEN_MODE` loopback|lan, HTTPS with auto-managed self-signed TLS under host credential root, `GET /connection/identity` (Ed25519-signed host trust), loopback-only guards on `/enrollment/terminals/accept` and `/local-auth/setup-owner`, accept response returns trust pins.
+  - Contracts + ADR [0012](../decisions/0012-desktop-service-transport-trust.md): connection/identity schemas; host-accept trust fields.
+  - Desktop: main-process pinned HTTPS client, device proofs + session secret in main only, `polivoConnection` preload IPC, configure/verify/sign-in/switch-staff/sign-out/retry UI; enrollment stores trust pins over loopback HTTPS.
+  - Ops: [desktop-service-connection-and-lan-terminals.md](../operations/desktop-service-connection-and-lan-terminals.md); env + local-dev + Phase 14 trust section updated.
+  - Outage: host unreachable → block + retry; identity fail → stop before credentials; local sign-out without claiming server revocation until ack; internet-only outage must not force sign-out.
+  - Verification on Windows: `pnpm typecheck` (service+desktop), `pnpm test` (234), `pnpm build` (service+desktop), `pnpm test:e2e:desktop` (1) passed. Physical two-PC LAN/firewall not claimed. Production offline policy still fail-closed (ADR 0011).
+  - Phase 17 (`17-farmer-management.md`) may begin for farmer management foundations.
 
 ## In Progress
 
-- Phase 14 — Stall provisioning and device enrollment (implementation largely in place; **not marked complete** until remaining acceptance/hosted checks below):
-  - Local SQLite `002_host_and_terminal_enrollment` (`host_enrollment`, `accepted_terminals`); migration `001` checksum unchanged (`b518df58515339e1b90fbc3be4456dc58feb5908798fe75aef0204b96995f286`).
-  - Cloud migration `20261103180000_device_enrollment.sql` (devices, grants, owner + redeem/confirm/rotate RPCs, deny-direct RLS).
-  - Owner Devices UI/APIs; machine redeem/confirm/rotate via privileged server client; stall-service `activate-host` + DPAPI/simulated secure storage; desktop `safeStorage` terminal enroll + loopback pairing accept.
-  - ADR [0010](../decisions/0010-device-credential-storage.md); ops [stall-provisioning-and-device-enrollment.md](../operations/stall-provisioning-and-device-enrollment.md).
-  - Local verification: `pnpm lint`, `pnpm test` (218), `pnpm test:db-cloud` (28), stall-service/desktop builds passed on this Windows host. Simulated secure-storage used in automated tests; real Windows DPAPI reopen smoke remains outstanding.
-  - Hosted: `20261103180000_device_enrollment` applied to **polivo-dev** (`jvwjhvouhuvqujuinuoc`, 2026-11-03) after relinking CLI away from polivo-staging. Devices PGRST202 for missing `list_tenant_devices` resolved.
-  - Outstanding before Complete: live owner authorize → host activate → terminal pair smoke; report real DPAPI/`safeStorage` reopen separately from simulated tests; optional web e2e for Devices page.
-- Pre–phase 12 / phase 12 live-environment follow-ups remain open where not terminal-confirmed (Docker local Supabase stack, GitHub Actions green observation, Vercel staging env mirroring, optional dedicated Clerk testing-token signed-in e2e, invitation-accept live smoke after Clerk session email claims are added). Remote cloud migrations through **`20261103180000`** confirmed applied on **polivo-dev** (`jvwjhvouhuvqujuinuoc`, matches `NEXT_PUBLIC_SUPABASE_URL`). Keep CLI linked to the same project as `.env.local`.
+- Outstanding Phase 14–16 acceptance (does not block Phase 17 start): physical two-PC LAN + Windows firewall; formal confirmation that host reopen used real Windows DPAPI and terminal reopen used Electron `safeStorage` (not simulated); terminal revocation enforcement under implemented refresh policy.
+- Pre–phase 12 / phase 12 live-environment follow-ups remain open where not terminal-confirmed (Docker local Supabase stack, GitHub Actions green observation, Vercel staging env mirroring, optional dedicated Clerk testing-token signed-in e2e, invitation-accept live smoke after Clerk session email claims are added). Remote cloud migrations through **`20261103180000`** confirmed applied on **polivo-dev** (`jvwjhvouhuvqujuinuoc`, matches `NEXT_PUBLIC_SUPABASE_URL`). Keep CLI linked to the same project as `.env.local`. Confirm remote apply of `20261104180000_local_staff_setup_grants` and `20261107200000_local_staff_permission_refresh` on the linked project when operating trusted refresh.
 
 ## Next Up
 
-- Finish phase 14 acceptance criteria, then begin `15-local-staff-authentication-and-offline-access.md`.
+- Add `docs/implementation/17-farmer-management.md`, then mark Phase 17 in progress and implement per that guide.
 - Later phases: billing UI, permission enforcement, arrivals/inventory migrations (consume domain helpers; do not re-implement rules).
 
 ## Open Questions
@@ -176,7 +197,8 @@ Update this file after every meaningful implementation change. Record completed 
 These are unresolved in the context files. Record accepted resolutions under `docs/decisions/` and link them here when decided. Block only the implementation that depends on each item.
 
 - Trader cheque balance effects: **Proposed** immediate-paid (same pattern as farmer cheques; manual reversal with reason if it fails later). Not confirmed — do not implement as accepted rule. See [0006](../decisions/0006-trader-cheque-immediate-paid-proposed.md). Does not block phase 09 schema (no cheque-clearance tables anyway per [0004](../decisions/0004-phase-09-first-migration-schema-breadth.md)).
-- Offline credential expiry and revocation policy.
+- Fresher-auth capability subset (stricter snapshot age for sensitive ops) and staff secret TTL/rotation — deferred in [0013](../decisions/0013-local-staff-offline-access-durations.md). Session idle/absolute/snapshot age and first-login-offline are **resolved** by 0013.
+- Offline cloud→local revoke lag until Phase 33 automated permission sync (accepted limitation in 0013).
 - Backup retention and recovery expectations (including RTO/RPO).
 - Missing brand guidance: approved logo masters (including reverse/dark-surface and monochrome thermal variants) are not in the repository; text wordmark is temporary until assets are supplied.
 - Reconcile desktop billing chrome: familiar Seller Bill wireframe uses top module nav + paid/unpaid side lists + dense center workspace (`docs/context/desktop-billing-layout.md`), while Phase 07 shipped a left-rail `AppShell`. Decide the application-wide desktop chrome when billing UI is implemented and record it under `docs/decisions/` if needed.
@@ -213,11 +235,22 @@ Resolved ahead of phase 09:
 - [0008 — Cloud schema and tenant isolation](../decisions/0008-cloud-schema-and-tenant-isolation.md): canonical `supabase/migrations`, Clerk `sub` TEXT membership, BIGINT+string numerics, reporting-read-only RLS.
 - [0009 — Tenant onboarding and roles](../decisions/0009-tenant-onboarding-and-roles.md): stall creation→owner, operational roles/capabilities, hashed invitations, owner-only admin, no ownership transfer, cloud configuration vs local enforcement.
 - [0010 — Device credential storage](../decisions/0010-device-credential-storage.md): Ed25519 possession proofs; host Windows DPAPI; terminal Electron `safeStorage`; opaque `credential_ref` in SQLite; offline expiry deferred to phase 15.
+- [0011 — Local staff offline policy fail-closed](../decisions/0011-local-staff-offline-policy-fail-closed.md): production offline staff auth fail-closed until product durations approved; TEST-ONLY injectable policy for tests only; session lifetime independent of snapshot deadline; scrypt$v1 verifiers.
+- [0012 — Desktop service transport trust](../decisions/0012-desktop-service-transport-trust.md): HTTPS + enrollment-pinned TLS fingerprint + host Ed25519 identity; editable address separate from trust; loopback-only provisioning routes; re-pair for legacy terminals without pins.
+- [0013 — Local staff offline access durations](../decisions/0013-local-staff-offline-access-durations.md): 2h idle / 12h absolute / 7d snapshot / first login offline allowed; production policy composition default; trusted permission refresh grants; offline cloud-revoke lag documented.
 
 ## Session Notes
 
+- Phase 14–16 single-PC operator acceptance (2026-11-08): Operator reported PASS for minimum checklist on one Windows PC (web owner + web cashier access controls; fresh host Activated; HTTPS `/health`; terminal pair with trust pins; Verify host → Stall A; local CASH1/owner sign-in, wrong secret, switch staff, sign-out; service stop → unavailable; restart → Retry; sign-out while stopped locks; pairing survives desktop reopen). **Ready for Phase 17 foundations.** Still outstanding (not production-ready): two-PC LAN, formal DPAPI/`safeStorage` evidence, terminal revoke refresh. Implementation guide `17-farmer-management.md` not yet in repo.
+- Production offline policy ADR 0013 (2026-11-07): replaced fail-closed default with production durations; trusted `permission-refresh` authorize/redeem; CLI rejects argv-only refresh; unit + integration coverage for login success, snapshot expiry mid-session, session poll not extending idle. Operator must apply cloud migration `20261107200000` and restart stall-service.
+- Local staff activate-staff capabilities argv (2026-11-07): PowerShell/pnpm stripped JSON quotes → `JSON.parse` failure. Added `parseCapabilitiesArgv` (valid JSON + shell-mangled recovery) for `activate-staff`; stall-service unit tests; ops + current-issues updated. Does not weaken `areKnownCapabilities`.
+- Local staff setup-grant redeem Clerk 401 (2026-11-07): `isProtectedPath` now exempts `POST /api/local-staff/setup-grants/redeem` as a machine endpoint (mirrors `/api/device-enrollment/`); owner authorize stays protected. Unit tests in `redirects.test.ts` pass (9). Operator retest: fresh grant + `staff-cli setup-owner` with web running. See `docs/context/current-issues.md`. Does not change ADR 0011 fail-closed or second-PC LAN enrollment.
 - Devices PGRST202 (2026-11-03): CLI was on polivo-staging while web used polivo-dev; pushed `20261103180000` to polivo-dev; clarified missing-RPC error copy; Devices page shows unavailable instead of 500.
-- Phase 14 implementation (2026-11-03): enrollment path Owner Devices → one-time secret → `activate-host` / Electron enroll → cloud redeem/confirm → local `stall_binding` + `host_enrollment` / `accepted_terminals`. Recovery: same installation resumes consumed grants; different installation cannot claim; no second host auto-promotion. Hosted enrollment migration applied; live host/terminal smoke and real DPAPI/`safeStorage` reopen still outstanding before Phase 14 Complete. Offline credential expiry still open.
+- Phase 14 implementation (2026-11-03) / completion note (2026-11-04): enrollment path Owner Devices → one-time secret → `activate-host` / Electron enroll → cloud redeem/confirm → local `stall_binding` + `host_enrollment` / `accepted_terminals`. Development dashboard confirmed host+terminal Activated, one Revoked, one Pending. Phase 14 implementation marked complete; real DPAPI/`safeStorage` reopen and offline-restart evidence remain outstanding (not claimed passed). Offline credential expiry still open (ADR 0011 fail-closed for Phase 15 production).
+- Phase 15 started (2026-11-04): progress tracker marked in progress; ADR 0011 recorded; implementation follows `15-local-staff-authentication-and-offline-access.md`.
+- Phase 15 mechanics completed (2026-11-04): migration `003`, local auth routes/CLI, authorization adapter, TEST-ONLY offline policy tests (offline cashier login with zero cloud calls; wrong-device session denial; staff switch; credential reset/deactivate; capability reduction on idempotent replay; production fail-closed denies login). Not production-ready pending offline duration decisions. Phase 16 may connect to local auth interface.
+- Phase 16 started (2026-11-05): progress tracker marked in progress; implementation follows `16-desktop-service-connection-and-lan-terminals.md`.
+- Phase 16 completed locally (2026-11-05): HTTPS + trust pins + main-process client + desktop connection UI; ADR 0012; ops guide. Checks: typecheck, test (234), desktop/service build, desktop e2e. Physical two-PC LAN pending. Ready for Phase 17 farmer management (not offline-production-ready).
 - Invitation accept non-canonical email_verified (2026-11-03): Clerk `currentUser` verified but session claim was a non-true string; preflight now trusts verified currentUser (unless claim explicitly false); migration `20261103120000` softens `polivo_jwt_verified_email`. See `docs/context/current-issues.md`.
 - Invitation accept email_verified false (2026-11-03): after shortcode fix, claims present but `email_verified` false (unverified invitee email). Split preflight messages; `currentUser()` cross-check. See `docs/context/current-issues.md`.
 - Invitation accept EMAIL_NOT_VERIFIED shortcode (2026-11-03): invalid `primary_email_address_verified` corrected to `{{user.email_verified}}`. See `docs/context/current-issues.md`.
