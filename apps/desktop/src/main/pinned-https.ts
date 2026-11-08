@@ -45,7 +45,9 @@ function peerCertificateSha256(socket: TLSSocket | null): string | null {
 /**
  * HTTPS request with optional certificate pinning.
  * Rejects non-HTTPS URLs and does not follow redirects.
- * When pinned, the fingerprint is checked on TLS `secureConnect` before any body is written.
+ * When pinned, the fingerprint is checked before any body is written (on handshake or
+ * immediately when a socket is already encrypted). Uses `agent: false` so keep-alive reuse
+ * cannot skip the pin check or leave the request hanging without a body.
  */
 export function pinnedHttpsRequest(options: PinnedHttpsOptions): Promise<PinnedHttpsResponse> {
   return new Promise((resolve, reject) => {
@@ -101,6 +103,8 @@ export function pinnedHttpsRequest(options: PinnedHttpsOptions): Promise<PinnedH
           ...options.headers,
         },
         rejectUnauthorized: false,
+        // Avoid keep-alive pool reuse across pin/unpinned callers and skipped secureConnect.
+        agent: false,
         timeout: timeoutMs,
       },
       (response) => {
@@ -158,28 +162,37 @@ export function pinnedHttpsRequest(options: PinnedHttpsOptions): Promise<PinnedH
       fail(new Error("Stall host unavailable"));
     });
 
+    const sendAfterPinCheck = (tlsSocket: TLSSocket): void => {
+      const fingerprint = peerCertificateSha256(tlsSocket);
+      if (!fingerprint) {
+        request.destroy();
+        fail(new Error("Host identity could not be verified"));
+        return;
+      }
+      certificateSha256 = fingerprint;
+      if (
+        options.expectedCertificateSha256 !== undefined &&
+        certificateSha256 !== options.expectedCertificateSha256
+      ) {
+        request.destroy();
+        fail(new Error("Host identity could not be verified"));
+        return;
+      }
+      if (options.body) {
+        request.write(options.body);
+      }
+      request.end();
+    };
+
     request.on("socket", (socket) => {
       const tlsSocket = socket as TLSSocket;
-      tlsSocket.on("secureConnect", () => {
-        const fingerprint = peerCertificateSha256(tlsSocket);
-        if (!fingerprint) {
-          request.destroy();
-          fail(new Error("Host identity could not be verified"));
-          return;
-        }
-        certificateSha256 = fingerprint;
-        if (
-          options.expectedCertificateSha256 !== undefined &&
-          certificateSha256 !== options.expectedCertificateSha256
-        ) {
-          request.destroy();
-          fail(new Error("Host identity could not be verified"));
-          return;
-        }
-        if (options.body) {
-          request.write(options.body);
-        }
-        request.end();
+      // Reused / already-encrypted sockets never emit secureConnect again.
+      if (tlsSocket.encrypted && !tlsSocket.connecting) {
+        sendAfterPinCheck(tlsSocket);
+        return;
+      }
+      tlsSocket.once("secureConnect", () => {
+        sendAfterPinCheck(tlsSocket);
       });
     });
   });

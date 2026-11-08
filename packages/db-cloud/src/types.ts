@@ -487,15 +487,17 @@ export type Database = {
           p_possession_signature: string;
         };
         Returns: {
-          tenant_id: string;
-          device_id: string;
-          role: DeviceRole;
+          tenant_id: string | null;
+          device_id: string | null;
+          role: DeviceRole | null;
           intended_host_device_id: string | null;
           label: string | null;
-          credential_version: number;
-          state_revision: number;
-          enrollment_state: DeviceEnrollmentState;
-          stall_display_name: string;
+          credential_version: number | null;
+          state_revision: number | null;
+          enrollment_state: DeviceEnrollmentState | null;
+          stall_display_name: string | null;
+          /** Null on success; token such as GRANT_EXPIRED when side effects were persisted. */
+          error_code: string | null;
         }[];
       };
       confirm_device_enrollment: {

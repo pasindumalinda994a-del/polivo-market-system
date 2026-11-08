@@ -203,7 +203,7 @@ export function activateLocalStaff(
       { path: "secret", code: "invalid", message: "Secret must be at least 4 characters." },
     ]);
   }
-  if (!Number.isFinite(input.sourceRevision) || input.sourceRevision < 1) {
+  if (!Number.isInteger(input.sourceRevision) || input.sourceRevision < 1) {
     return validationError("sourceRevision is invalid.", [
       { path: "sourceRevision", code: "invalid", message: "Revision must be a positive integer." },
     ]);

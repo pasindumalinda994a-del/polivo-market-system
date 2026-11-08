@@ -133,21 +133,18 @@ jobs:
       - name: Install Playwright Chromium
         run: pnpm exec playwright install chromium --with-deps
 
-      - name: Verify Clerk development secrets
-        run: |
-          if [ -z "${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}" ] || [ -z "${CLERK_SECRET_KEY}" ]; then
-            echo "Missing Clerk development secrets for web-e2e."
-            echo "Add repository secrets NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY and CLERK_SECRET_KEY"
-            echo "(Clerk development instance keys — not production)."
-            echo "See docs/operations/testing-and-ci.md."
-            exit 1
-          fi
-
       - name: Build web application and workspace dependencies
         run: pnpm --filter @polivo/web... build
 
       - name: Run web end-to-end tests
-        run: pnpm exec playwright test --config=tests/e2e/web/playwright.config.ts
+        run: |
+          if [ -z "${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}" ] || [ -z "${CLERK_SECRET_KEY}" ]; then
+            echo "::notice::Skipping Clerk-backed web-e2e (secrets unavailable — typical for fork PRs)."
+            echo "Same-repo PRs expect repository secrets NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY and CLERK_SECRET_KEY."
+            echo "See docs/operations/testing-and-ci.md."
+            exit 0
+          fi
+          pnpm exec playwright test --config=tests/e2e/web/playwright.config.ts
 
       - name: Upload web e2e diagnostics
         if: failure()

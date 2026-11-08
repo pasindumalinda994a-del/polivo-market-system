@@ -210,16 +210,31 @@ export async function redeemEnrollmentGrant(
     throw serviceUnavailableError("Enrollment redeem did not return a result.");
   }
   const result = row as {
-    tenant_id: string;
-    device_id: string;
-    role: RedeemEnrollmentResponse["role"];
+    tenant_id: string | null;
+    device_id: string | null;
+    role: RedeemEnrollmentResponse["role"] | null;
     intended_host_device_id: string | null;
     label: string | null;
-    credential_version: number;
-    state_revision: number;
-    enrollment_state: RedeemEnrollmentResponse["enrollmentState"];
-    stall_display_name: string;
+    credential_version: number | null;
+    state_revision: number | null;
+    enrollment_state: RedeemEnrollmentResponse["enrollmentState"] | null;
+    stall_display_name: string | null;
+    error_code: string | null;
   };
+  if (typeof result.error_code === "string" && result.error_code.trim().length > 0) {
+    throw mapTenantRpcError({ message: result.error_code.trim() });
+  }
+  if (
+    !result.tenant_id ||
+    !result.device_id ||
+    !result.role ||
+    result.credential_version == null ||
+    result.state_revision == null ||
+    !result.enrollment_state ||
+    !result.stall_display_name
+  ) {
+    throw serviceUnavailableError("Enrollment redeem did not return a complete result.");
+  }
   return {
     tenantId: result.tenant_id,
     deviceId: result.device_id,

@@ -89,7 +89,7 @@ export function mapTenantRpcError(error: unknown): WebAuthError {
   // GRANT_NOT_FOUND must precede the broad NOT_FOUND token match.
   if (message.includes("GRANT_EXPIRED")) {
     return validationError(
-      "Enrollment secret expired. Authorize the host again and use the new secret within 15 minutes.",
+      "Enrollment secret expired. Cancel or revoke the pending reservation if needed, re-authorize the affected device (host or terminal), and use the new secret within 15 minutes.",
     );
   }
   if (message.includes("GRANT_NOT_REDEEMABLE")) {

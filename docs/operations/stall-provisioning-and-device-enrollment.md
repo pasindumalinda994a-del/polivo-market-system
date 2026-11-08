@@ -4,14 +4,14 @@ Phase 14 operations guide for authorizing one Windows host per stall, binding it
 
 ## Concepts
 
-| Concept              | Meaning                                                                                                                          |
-| -------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| Stall host           | One Windows installation runs `@polivo/stall-service` and owns the authoritative SQLite file for one Phase 13 tenant.            |
-| Terminal             | An Electron installation paired to a specific activated host. It never opens SQLite.                                             |
-| Enrollment secret    | Single-use secret shown once in the owner Devices UI. Default TTL is **15 minutes** (900s). Digests only are stored in Postgres. |
-| Credential           | Ed25519 keypair. Private key in OS-protected storage (host: Windows DPAPI; terminal: Electron `safeStorage`).                    |
-| Cloud revoke         | Owner revoke commits in Postgres; subsequent cloud device operations fail.                                                       |
-| Host acknowledgement | Local host must persist terminal revocation / pairing state. Cloud revoke and host ack are displayed separately.                 |
+| Concept              | Meaning                                                                                                                                                                                    |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Stall host           | One Windows installation runs `@polivo/stall-service` and owns the authoritative SQLite file for one Phase 13 tenant.                                                                      |
+| Terminal             | An Electron installation paired to a specific activated host. It never opens SQLite.                                                                                                       |
+| Enrollment secret    | Single-use secret shown once in the owner Devices UI. Default TTL is **15 minutes** (900s). Digests only are stored in Postgres.                                                           |
+| Credential           | Ed25519 keypair. Private key in OS-protected storage (host: Windows DPAPI; terminal: Electron `safeStorage`).                                                                              |
+| Cloud revoke         | Owner revoke commits in Postgres; subsequent cloud device operations fail.                                                                                                                 |
+| Host acknowledgement | Local host must persist terminal revocation / pairing state. Devices UI shows **cloud** enrollment state only; confirm local revoke by host/terminal behavior (not a separate ack column). |
 
 Device enrollment does not open a billing session. Local staff authentication is Phase 15. LAN business auth is Phase 16.
 
@@ -36,8 +36,10 @@ Use **PowerShell** (Cursor / Windows Terminal). Environment variables must use `
 New-Item -ItemType Directory -Force -Path C:\PolivoData | Out-Null
 $env:POLIVO_LOCAL_DB_PATH = "C:\PolivoData\stall.sqlite"
 
-# Build db-local if dist/ is missing or stale
+# Build workspace packages if dist/ is missing or stale (fresh checkout)
+pnpm --filter @polivo/contracts build
 pnpm --filter @polivo/db-local build
+pnpm --filter @polivo/stall-service build
 pnpm --filter @polivo/db-local db:init
 pnpm --filter @polivo/db-local db:migrate
 
