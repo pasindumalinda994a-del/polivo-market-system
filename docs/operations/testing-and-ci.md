@@ -147,12 +147,14 @@ Workflow file: `.github/workflows/ci.yml`
 
 Triggers: pull requests, pushes to `main`, and `workflow_dispatch`.
 
-| Job name            | Runner           | What it runs                                                                        |
-| ------------------- | ---------------- | ----------------------------------------------------------------------------------- |
-| `quality-and-build` | `ubuntu-latest`  | Doctor, format check, lint, typecheck, unit/integration with coverage, full build   |
-| `db-cloud`          | `ubuntu-latest`  | Cloud migration + RLS isolation suite (`pnpm test:db-cloud`)                        |
-| `web-e2e`           | `ubuntu-latest`  | Playwright Chromium against the production web build                                |
-| `desktop-smoke`     | `windows-latest` | Electron smoke against built desktop output (ensures Electron binary after install) |
+| Job name            | Runner           | What it runs                                                                      |
+| ------------------- | ---------------- | --------------------------------------------------------------------------------- |
+| `quality-and-build` | `ubuntu-latest`  | Doctor, format check, lint, typecheck, unit/integration with coverage, full build |
+| `db-cloud`          | `ubuntu-latest`  | Cloud migration + RLS isolation suite (`pnpm test:db-cloud`)                      |
+| `web-e2e`           | `ubuntu-latest`  | Playwright Chromium against the production web build                              |
+| `desktop-smoke`     | `windows-latest` | Electron smoke against built desktop output                                       |
+
+Electron **45.x has no package postinstall**, so `pnpm install` alone does not download the Windows binary. The `desktop-smoke` job caches `electron_config_cache`, runs `require.resolve('electron/install.js')` under `apps/desktop`, then verifies the executable before build/smoke.
 
 Permissions are `contents: read`. Jobs do not deploy and do not publish installers. Failure diagnostics retain for 7 days.
 

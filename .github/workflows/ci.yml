@@ -189,10 +189,37 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # Electron 45 has no postinstall; pnpm install does not download the Windows binary.
+      - name: Cache Electron download
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ${{ runner.temp }}/electron-cache
+          key: electron-45.1.0-win-${{ runner.os }}
+
       - name: Ensure Electron binary
+        working-directory: apps/desktop
+        shell: pwsh
+        env:
+          electron_config_cache: ${{ runner.temp }}/electron-cache
         run: |
-          pnpm --filter @polivo/desktop exec node node_modules/electron/install.js
-          pnpm --filter @polivo/desktop exec electron --version
+          New-Item -ItemType Directory -Force -Path $env:electron_config_cache | Out-Null
+          $installJs = node -p "require.resolve('electron/install.js')"
+          $electronDir = Split-Path -Parent $installJs
+          Write-Host "Electron package: $electronDir"
+          if (Test-Path (Join-Path $electronDir "dist")) {
+            Remove-Item -Recurse -Force (Join-Path $electronDir "dist")
+          }
+          if (Test-Path (Join-Path $electronDir "path.txt")) {
+            Remove-Item -Force (Join-Path $electronDir "path.txt")
+          }
+          node $installJs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $exe = node -p "require('electron')"
+          Write-Host "Electron executable: $exe"
+          if (-not (Test-Path -LiteralPath $exe)) {
+            throw "Electron binary missing at $exe after install.js"
+          }
+          & $exe --version
 
       - name: Build desktop application and workspace dependencies
         run: pnpm --filter @polivo/desktop... build
