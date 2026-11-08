@@ -9,13 +9,25 @@ const desktopDir = dirname(fileURLToPath(import.meta.url));
 const repositoryRoot = resolve(desktopDir, "../../..");
 const desktopPackageJson = resolve(repositoryRoot, "apps/desktop/package.json");
 const desktopMainEntry = resolve(repositoryRoot, "apps/desktop/out/main/index.js");
-const require = createRequire(desktopPackageJson);
-const electronExecutable = require("electron") as unknown as string;
+const requireFromDesktop = createRequire(desktopPackageJson);
+
+function resolveElectronExecutable(): string {
+  try {
+    return requireFromDesktop("electron") as unknown as string;
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    throw new Error(
+      `Electron executable is missing or incomplete (${detail}). Re-run Electron install (CI: Ensure Electron binary step; local: pnpm --filter @polivo/desktop exec node node_modules/electron/install.js).`,
+      { cause: error },
+    );
+  }
+}
 
 let electronApp: ElectronApplication | undefined;
 let window: Page | undefined;
 
 test.beforeAll(async () => {
+  const electronExecutable = resolveElectronExecutable();
   electronApp = await electron.launch({
     executablePath: electronExecutable,
     args: [desktopMainEntry],

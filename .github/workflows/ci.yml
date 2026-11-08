@@ -189,6 +189,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Ensure Electron binary
+        run: |
+          pnpm --filter @polivo/desktop exec node node_modules/electron/install.js
+          pnpm --filter @polivo/desktop exec electron --version
+
       - name: Build desktop application and workspace dependencies
         run: pnpm --filter @polivo/desktop... build
 

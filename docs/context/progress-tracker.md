@@ -255,6 +255,7 @@ Resolved ahead of phase 09:
 
 ## Session Notes
 
+- CI desktop-smoke Electron binary (2026-11-08): Windows job now runs Electron `install.js` + `--version` after `pnpm install`; smoke test resolves `require("electron")` in `beforeAll` so missing binaries fail clearly instead of “No tests found.”
 - CodeRabbit PR #5 CR-37 (2026-11-08): Desktop host-accept validates with `hostAcceptTerminalResponseSchema.safeParse` so null/invalid JSON is a retryable `waiting_host_confirm` failure (r4505222709).
 - CodeRabbit PR #5 closeout (2026-11-08): Listed discussion IDs closed for code except deferred CR-10/11/21/24. Hardened desktop host-accept JSON via `parseJsonText`. Canonical redeem remains `20261108150000` (ignore static flags on superseded SQL).
 - CodeRabbit PR #5 wave 3 (2026-11-08): CR-34 fork/Dependabot-only web-e2e skip; CR-35 ops `@polivo/domain` build; CR-36 cancel exhausted grants (`20261108150000`); `[inbucket]`→`[local_smtp]` for newer CLI. Still deferred CR-10/11/21/24.
