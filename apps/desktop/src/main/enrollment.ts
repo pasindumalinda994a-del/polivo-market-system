@@ -9,7 +9,7 @@ import {
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { app, safeStorage } from "electron";
-import { buildHostIdentityMessage } from "@polivo/contracts";
+import { buildHostIdentityMessage, hostAcceptTerminalResponseSchema } from "@polivo/contracts";
 
 import { pinnedHttpsRequest } from "./pinned-https.js";
 
@@ -412,32 +412,17 @@ export async function enrollTerminal(input: {
     return getTerminalEnrollmentStatus();
   }
 
-  const acceptBody = parseJsonText(acceptResult.bodyText) as ApiErrorBody & {
-    pairingState?: string;
-    hostDeviceId?: string;
-    hostPublicKey?: string;
-    hostCredentialVersion?: number;
-    stallDisplayName?: string;
-    tlsCertificateSha256?: string;
-    trustSignedAt?: string;
-    trustSignature?: string;
-  };
-
-  if (
-    !acceptBody.hostDeviceId ||
-    !acceptBody.hostPublicKey ||
-    !acceptBody.hostCredentialVersion ||
-    !acceptBody.stallDisplayName ||
-    !acceptBody.tlsCertificateSha256 ||
-    !acceptBody.trustSignedAt ||
-    !acceptBody.trustSignature
-  ) {
+  const parsedAccept = hostAcceptTerminalResponseSchema.safeParse(
+    parseJsonText(acceptResult.bodyText),
+  );
+  if (!parsedAccept.success) {
     state.pairingState = "waiting_host_confirm";
     writeState(state);
     throw new Error(
       "Host accepted the terminal but did not return transport trust pins. Upgrade the stall service and re-pair on the host.",
     );
   }
+  const acceptBody = parsedAccept.data;
 
   if (acceptBody.tlsCertificateSha256 !== acceptResult.certificateSha256) {
     state.pairingState = "failed";
