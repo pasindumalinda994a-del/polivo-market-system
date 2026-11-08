@@ -163,7 +163,7 @@ Permissions are `contents: read`. Jobs do not deploy and do not publish installe
 | `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerk development publishable key     |
 | `CLERK_SECRET_KEY`                  | Matching Clerk development secret key |
 
-The workflow also sets `NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in` and `NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up` (not secrets). `web-e2e` always builds `@polivo/web`. When Clerk secrets are present (same-repo PRs / maintainers), it runs the Playwright suite. When they are missing (typical for **fork PRs**, which cannot read repository secrets), Playwright is skipped with a notice and the job exits successfully so the required check stays green. Create both secrets on the GitHub repository so same-repo CI runs the full Clerk-backed e2e suite.
+The workflow also sets `NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in` and `NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up` (not secrets). `web-e2e` always builds `@polivo/web`. When Clerk secrets are present, it runs the Playwright suite. When they are missing on a **fork PR** or **Dependabot** run (cannot read repository secrets), Playwright is skipped with a notice and the job exits successfully. On same-repo maintainer runs, missing secrets fail the job so a misconfigured repository cannot report a false-green required check. Create both secrets on the GitHub repository so same-repo CI runs the full Clerk-backed e2e suite.
 
 ### Required checks after the first successful run
 

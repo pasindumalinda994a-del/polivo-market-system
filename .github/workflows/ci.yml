@@ -110,6 +110,8 @@ jobs:
       CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
       NEXT_PUBLIC_CLERK_SIGN_IN_URL: /sign-in
       NEXT_PUBLIC_CLERK_SIGN_UP_URL: /sign-up
+      IS_FORK_PR: ${{ github.event.pull_request.head.repo.fork == true }}
+      IS_DEPENDABOT: ${{ github.actor == 'dependabot[bot]' }}
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -139,10 +141,16 @@ jobs:
       - name: Run web end-to-end tests
         run: |
           if [ -z "${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}" ] || [ -z "${CLERK_SECRET_KEY}" ]; then
-            echo "::notice::Skipping Clerk-backed web-e2e (secrets unavailable — typical for fork PRs)."
-            echo "Same-repo PRs expect repository secrets NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY and CLERK_SECRET_KEY."
+            if [ "${IS_FORK_PR}" = "true" ] || [ "${IS_DEPENDABOT}" = "true" ]; then
+              echo "::notice::Skipping Clerk-backed web-e2e (secrets unavailable for fork PR or Dependabot)."
+              echo "See docs/operations/testing-and-ci.md."
+              exit 0
+            fi
+            echo "::error::Missing Clerk development secrets for web-e2e."
+            echo "Add repository secrets NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY and CLERK_SECRET_KEY"
+            echo "(Clerk development instance keys — not production)."
             echo "See docs/operations/testing-and-ci.md."
-            exit 0
+            exit 1
           fi
           pnpm exec playwright test --config=tests/e2e/web/playwright.config.ts
 

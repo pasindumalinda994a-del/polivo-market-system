@@ -37,6 +37,7 @@ New-Item -ItemType Directory -Force -Path C:\PolivoData | Out-Null
 $env:POLIVO_LOCAL_DB_PATH = "C:\PolivoData\stall.sqlite"
 
 # Build workspace packages if dist/ is missing or stale (fresh checkout)
+pnpm --filter @polivo/domain build
 pnpm --filter @polivo/contracts build
 pnpm --filter @polivo/db-local build
 pnpm --filter @polivo/stall-service build
