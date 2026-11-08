@@ -2,7 +2,18 @@
 
 Update this file after every meaningful implementation change. Record completed work only when supported by inspected code or verification results. Documentation progress does not establish implementation completion.
 
+<!-- coderabbit-ai-generated:v1 -->
+
+<!-- coderabbit-ai-generated-section:v1:65a55e01f9e5bde049d4ccfe87e7345d157d4f3e5272783fb7b46c283e76be4a -->
+
+## Host-accept response validation (2026-11-08)
+
+- Desktop host-accept responses use the shared runtime schema before field access. Invalid responses report a retry action and preserve redeemed state; valid responses retain trust verification and confirmation behavior.
+- Desktop typecheck, source ESLint/Prettier, and a synthetic regression harness passed (11 malformed responses, three valid response states, certificate/signature failures). Electron storage and network calls were mocked; native Electron smoke was not run.
+
 ## Current Phase
+
+<!-- /coderabbit-ai-generated:v1 -->
 
 - Phase 16 complete (local verification + **operator single-PC acceptance 2026-11-08**): desktop service connection and LAN terminals (`16-desktop-service-connection-and-lan-terminals.md`, ADR [0012](../decisions/0012-desktop-service-transport-trust.md), ops guide). HTTPS listener (loopback default + explicit LAN), enrollment trust pins, main-process pinned client, configure/verify/sign-in/outage UI. **Physical two-PC LAN / Windows firewall acceptance still pending** (does not block Phase 17).
 - Phase 15 mechanics complete; **durations approved** via ADR [0013](../decisions/0013-local-staff-offline-access-durations.md) (2h idle / 12h absolute / 7d snapshot / first login offline allowed). Production composition uses `createProductionOfflineAccessPolicy`; trusted permission-refresh grants added. **Not full operational production-ready** until real DPAPI/`safeStorage` reopen is verified and refresh procedure is confirmed on target env; fresher-auth subset and Phase 33 sync remain open.

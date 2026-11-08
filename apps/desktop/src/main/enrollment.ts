@@ -416,11 +416,7 @@ export async function enrollTerminal(input: {
     parseJsonText(acceptResult.bodyText),
   );
   if (!parsedAccept.success) {
-    state.pairingState = "waiting_host_confirm";
-    writeState(state);
-    throw new Error(
-      "Host accepted the terminal but did not return transport trust pins. Upgrade the stall service and re-pair on the host.",
-    );
+    throw new Error("Host returned an invalid pairing response. Retry terminal enrollment.");
   }
   const acceptBody = parsedAccept.data;
 
