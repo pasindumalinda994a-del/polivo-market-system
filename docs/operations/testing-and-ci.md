@@ -158,10 +158,10 @@ Permissions are `contents: read`. Jobs do not deploy and do not publish installe
 
 `web-e2e` uses **repository secrets for a dedicated Clerk development instance** (not production) so Playwright can start `next start` and exercise Clerk middleware / SignIn UI:
 
-| Secret name                          | Purpose                                      |
-| ------------------------------------ | -------------------------------------------- |
-| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`  | Clerk development publishable key            |
-| `CLERK_SECRET_KEY`                   | Matching Clerk development secret key        |
+| Secret name                         | Purpose                               |
+| ----------------------------------- | ------------------------------------- |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerk development publishable key     |
+| `CLERK_SECRET_KEY`                  | Matching Clerk development secret key |
 
 The workflow also sets `NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in` and `NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up` (not secrets). A preflight step fails immediately if the Clerk secrets are missing, instead of waiting for Playwright’s webServer timeout. Create both secrets on the GitHub repository before expecting `web-e2e` to pass.
 
