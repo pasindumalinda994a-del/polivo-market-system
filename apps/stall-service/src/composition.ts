@@ -18,10 +18,7 @@ import {
   createDefaultHostSecureStorage,
   type SecureStorageAdapter,
 } from "./security/secure-storage.js";
-import {
-  loadOrCreateTlsMaterial,
-  type TlsMaterial,
-} from "./security/tls-material.js";
+import { loadOrCreateTlsMaterial, type TlsMaterial } from "./security/tls-material.js";
 
 export type Clock = () => string;
 export type IdGenerator = () => string;
@@ -54,10 +51,8 @@ export function createServiceDependencies(
   const now = options.now ?? (() => new Date().toISOString());
   const createId = options.createId ?? (() => randomUUID());
   const offlinePolicy = options.offlinePolicy ?? createProductionOfflineAccessPolicy();
-  const credentialRoot =
-    options.credentialRoot ?? join(homedir(), ".polivo", "host-credentials");
-  const secureStorage =
-    options.secureStorage ?? createDefaultHostSecureStorage(credentialRoot);
+  const credentialRoot = options.credentialRoot ?? join(homedir(), ".polivo", "host-credentials");
+  const secureStorage = options.secureStorage ?? createDefaultHostSecureStorage(credentialRoot);
   const tlsMaterial = options.tlsMaterial ?? loadOrCreateTlsMaterial(credentialRoot);
 
   let authorization = options.authorization;

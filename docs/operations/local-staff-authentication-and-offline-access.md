@@ -117,14 +117,14 @@ Reset invalidates existing sessions. Deactivated accounts fail login and session
 
 ## Online vs outage
 
-| Step | Internet required? |
-| --- | --- |
-| First-owner setup grant issue + redeem | Yes |
-| Host activated + staff credentials + snapshot within 7 days | Sign-in can work offline |
-| Trusted permission refresh (authorize + redeem) | Yes |
-| Recover from snapshot / session expiry | Yes (trusted refresh) then sign in again |
-| Staff switch / logout | No (local) |
-| Cloud-only revoke while host offline | Not local until refresh/apply or snapshot expiry |
+| Step                                                        | Internet required?                               |
+| ----------------------------------------------------------- | ------------------------------------------------ |
+| First-owner setup grant issue + redeem                      | Yes                                              |
+| Host activated + staff credentials + snapshot within 7 days | Sign-in can work offline                         |
+| Trusted permission refresh (authorize + redeem)             | Yes                                              |
+| Recover from snapshot / session expiry                      | Yes (trusted refresh) then sign in again         |
+| Staff switch / logout                                       | No (local)                                       |
+| Cloud-only revoke while host offline                        | Not local until refresh/apply or snapshot expiry |
 
 ## Recovery from offline expiry
 

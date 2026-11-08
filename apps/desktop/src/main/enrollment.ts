@@ -167,14 +167,21 @@ function shouldReuseExistingCredential(state: StoredEnrollment): boolean {
   if (state.credentialRef.length === 0 || state.publicKey.length === 0) {
     return false;
   }
-  if (!existsSync(credentialPath(state.credentialRef))) {
-    return false;
+  // Reuse whenever the protected key file exists — regenerating after a partial
+  // cloud redeem causes INSTALLATION_MISMATCH on retry.
+  return existsSync(credentialPath(state.credentialRef));
+}
+
+async function readJsonBody(response: Response): Promise<unknown> {
+  const text = await response.text();
+  if (text.length === 0) {
+    return {};
   }
-  return (
-    state.pairingState === "redeemed" ||
-    state.pairingState === "waiting_host_confirm" ||
-    (state.pairingState === "failed" && state.deviceId !== null)
-  );
+  try {
+    return JSON.parse(text) as unknown;
+  } catch {
+    return {};
+  }
 }
 
 function resolveKeypair(state: StoredEnrollment): {
@@ -277,61 +284,83 @@ export async function enrollTerminal(input: {
   state.credentialVersion = state.credentialVersion > 0 ? state.credentialVersion : 1;
   writeState(state);
 
-  const possessionMessage = [
-    "polivo-redeem-v1",
-    state.installationId,
-    publicKeyB64,
-    input.deploymentEnvironment,
-  ].join("\n");
-  const possessionSignature = signMessage(privateKeyPkcs8, possessionMessage);
+  const canResumeAfterRedeem =
+    (state.pairingState === "redeemed" || state.pairingState === "waiting_host_confirm") &&
+    state.deviceId !== null &&
+    state.tenantId !== null &&
+    state.hostDeviceId !== null &&
+    state.cloudStateRevision !== null;
 
-  const redeemResponse = await fetch(
-    new URL("/api/device-enrollment/redeem", input.enrollmentBaseUrl),
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({
-        enrollmentSecret: input.enrollmentSecret,
-        installationId: state.installationId,
-        publicKey: publicKeyB64,
-        deploymentEnvironment: input.deploymentEnvironment,
-        possessionMessage,
-        possessionSignature,
-      }),
-    },
-  );
-  const redeem = (await redeemResponse.json()) as ApiErrorBody & {
-    tenantId?: string;
-    deviceId?: string;
-    role?: string;
-    intendedHostDeviceId?: string | null;
-    label?: string | null;
-    credentialVersion?: number;
-    stateRevision?: number;
-    enrollmentState?: string;
-    stallDisplayName?: string;
-  };
-  if (!redeemResponse.ok) {
-    state.pairingState = "failed";
-    writeState(state);
-    throw new Error(
-      messageFromApiError(redeem, redeemResponse.status, "Terminal enrollment redeem failed"),
+  if (!canResumeAfterRedeem) {
+    const possessionMessage = [
+      "polivo-redeem-v1",
+      state.installationId,
+      publicKeyB64,
+      input.deploymentEnvironment,
+      "terminal",
+    ].join("\n");
+    const possessionSignature = signMessage(privateKeyPkcs8, possessionMessage);
+
+    const redeemResponse = await fetch(
+      new URL("/api/device-enrollment/redeem", input.enrollmentBaseUrl),
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({
+          enrollmentSecret: input.enrollmentSecret,
+          installationId: state.installationId,
+          publicKey: publicKeyB64,
+          deploymentEnvironment: input.deploymentEnvironment,
+          expectedRole: "terminal",
+          possessionMessage,
+          possessionSignature,
+        }),
+      },
     );
-  }
-  if (redeem.role !== "terminal") {
-    throw new Error("Enrollment grant was not a terminal role.");
-  }
+    const redeemBody = await readJsonBody(redeemResponse);
+    const redeem = redeemBody as ApiErrorBody & {
+      tenantId?: string;
+      deviceId?: string;
+      role?: string;
+      intendedHostDeviceId?: string | null;
+      label?: string | null;
+      credentialVersion?: number;
+      stateRevision?: number;
+      enrollmentState?: string;
+      stallDisplayName?: string;
+    };
+    if (!redeemResponse.ok) {
+      state.pairingState = "failed";
+      writeState(state);
+      throw new Error(
+        messageFromApiError(redeem, redeemResponse.status, "Terminal enrollment redeem failed"),
+      );
+    }
+    if (redeem.role !== "terminal") {
+      throw new Error("Enrollment grant was not a terminal role.");
+    }
+    if (
+      typeof redeem.tenantId !== "string" ||
+      typeof redeem.deviceId !== "string" ||
+      typeof redeem.stateRevision !== "number" ||
+      typeof redeem.credentialVersion !== "number"
+    ) {
+      state.pairingState = "failed";
+      writeState(state);
+      throw new Error("Incomplete terminal enrollment result.");
+    }
 
-  state.deviceId = redeem.deviceId ?? null;
-  state.hostDeviceId = redeem.intendedHostDeviceId ?? null;
-  state.stallDisplayName = redeem.stallDisplayName ?? null;
-  state.label = redeem.label ?? null;
-  state.tenantId = redeem.tenantId ?? null;
-  state.cloudStateRevision = redeem.stateRevision ?? null;
-  state.credentialVersion = redeem.credentialVersion ?? 1;
-  state.pairingState =
-    redeem.enrollmentState === "waiting_host_confirm" ? "waiting_host_confirm" : "redeemed";
-  writeState(state);
+    state.deviceId = redeem.deviceId;
+    state.hostDeviceId = redeem.intendedHostDeviceId ?? null;
+    state.stallDisplayName = redeem.stallDisplayName ?? null;
+    state.label = redeem.label ?? null;
+    state.tenantId = redeem.tenantId;
+    state.cloudStateRevision = redeem.stateRevision;
+    state.credentialVersion = redeem.credentialVersion;
+    state.pairingState =
+      redeem.enrollmentState === "waiting_host_confirm" ? "waiting_host_confirm" : "redeemed";
+    writeState(state);
+  }
 
   if (!state.hostDeviceId || !state.deviceId || state.cloudStateRevision === null) {
     throw new Error("Incomplete terminal enrollment result.");
@@ -460,8 +489,8 @@ export async function enrollTerminal(input: {
       }),
     },
   );
+  const confirmBody = (await readJsonBody(confirmResponse)) as ApiErrorBody;
   if (!confirmResponse.ok) {
-    const confirmBody = (await confirmResponse.json()) as ApiErrorBody;
     state.pairingState = "waiting_host_confirm";
     writeState(state);
     throw new Error(

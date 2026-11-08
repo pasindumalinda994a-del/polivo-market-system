@@ -37,9 +37,7 @@ describe("createProductionOfflineAccessPolicy (ADR 0013)", () => {
     const verified = "2026-11-01T00:00:00.000Z";
     const justUnder = "2026-11-07T23:59:59.000Z";
     const atLimit = "2026-11-08T00:00:00.000Z";
-    expect(policy.allowNewSession({ nowIso: justUnder, authorityVerifiedAt: verified })).toBe(
-      true,
-    );
+    expect(policy.allowNewSession({ nowIso: justUnder, authorityVerifiedAt: verified })).toBe(true);
     const denied = policy.allowNewSession({ nowIso: atLimit, authorityVerifiedAt: verified });
     expect(denied).not.toBe(true);
     if (denied !== true) {

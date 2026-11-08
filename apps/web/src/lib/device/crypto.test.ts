@@ -24,6 +24,7 @@ describe("device enrollment crypto", () => {
       installationId: "inst_1",
       publicKey: rawPublic,
       deploymentEnvironment: "development",
+      expectedRole: "terminal",
     });
     const signature = Buffer.from(sign(null, Buffer.from(message, "utf8"), privateKey)).toString(
       "base64url",

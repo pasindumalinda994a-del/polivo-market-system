@@ -36,15 +36,9 @@ export default async function DevicesPage({ params }: DevicesPageProps) {
     );
   }
 
+  let devices: Awaited<ReturnType<typeof listTenantDevices>>["devices"];
   try {
-    const { devices } = await listTenantDevices(tenantId);
-    return (
-      <DevicesAdmin
-        tenantId={tenantId}
-        displayName={access.membership.displayName}
-        devices={devices}
-      />
-    );
+    ({ devices } = await listTenantDevices(tenantId));
   } catch (error) {
     if (error instanceof WebAuthError && error.code === "SERVICE_UNAVAILABLE") {
       return (
@@ -55,4 +49,12 @@ export default async function DevicesPage({ params }: DevicesPageProps) {
     }
     throw error;
   }
+
+  return (
+    <DevicesAdmin
+      tenantId={tenantId}
+      displayName={access.membership.displayName}
+      devices={devices}
+    />
+  );
 }

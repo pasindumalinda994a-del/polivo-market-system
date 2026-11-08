@@ -23,10 +23,7 @@ declare global {
         hostAddress: string;
         port?: number;
       }) => Promise<ConfigureHostResult>;
-      signIn: (input: {
-        staffCode: string;
-        secret: string;
-      }) => Promise<DesktopConnectionStatus>;
+      signIn: (input: { staffCode: string; secret: string }) => Promise<DesktopConnectionStatus>;
       getSession: () => Promise<DesktopConnectionStatus>;
       signOut: () => Promise<{
         status: DesktopConnectionStatus;

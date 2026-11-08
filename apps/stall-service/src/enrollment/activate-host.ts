@@ -62,30 +62,61 @@ async function promptSecret(): Promise<string> {
   }
 }
 
-async function postJson<T>(fetchImpl: typeof fetch, url: string, body: unknown): Promise<T> {
+async function readJsonBody(response: Response): Promise<unknown> {
+  const text = await response.text();
+  if (text.length === 0) {
+    return {};
+  }
+  try {
+    return JSON.parse(text) as unknown;
+  } catch {
+    return { message: `Enrollment request failed (${response.status}).` };
+  }
+}
+
+function errorMessageFromPayload(payload: unknown, status: number): string {
+  if (!payload || typeof payload !== "object") {
+    return `Enrollment request failed (${status}).`;
+  }
+  const record = payload as {
+    message?: unknown;
+    code?: unknown;
+    error?: { message?: unknown; code?: unknown };
+  };
+  const detail =
+    typeof record.message === "string"
+      ? record.message
+      : typeof record.error?.message === "string"
+        ? record.error.message
+        : undefined;
+  const code =
+    typeof record.code === "string"
+      ? record.code
+      : typeof record.error?.code === "string"
+        ? record.error.code
+        : undefined;
+  if (detail !== undefined && detail.trim().length > 0) {
+    return code !== undefined && code.trim().length > 0 ? `${detail} (${code})` : detail;
+  }
+  return `Enrollment request failed (${status}).`;
+}
+
+async function postJson<T>(
+  fetchImpl: typeof fetch,
+  url: string,
+  body: unknown,
+  parseSuccess: (payload: unknown) => T,
+): Promise<T> {
   const response = await fetchImpl(url, {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
     body: JSON.stringify(body),
   });
-  const payload = (await response.json()) as T & {
-    message?: string;
-    code?: string;
-    error?: { message?: string; code?: string };
-  };
+  const payload = await readJsonBody(response);
   if (!response.ok) {
-    // Public ApiError is top-level { code, message }; tolerate nested error for older shapes.
-    const detail = payload.message ?? payload.error?.message;
-    const code = payload.code ?? payload.error?.code;
-    const message =
-      detail !== undefined && detail.trim().length > 0
-        ? code !== undefined && code.trim().length > 0
-          ? `${detail} (${code})`
-          : detail
-        : `Enrollment request failed (${response.status}).`;
-    throw new Error(message);
+    throw new Error(errorMessageFromPayload(payload, response.status));
   }
-  return payload;
+  return parseSuccess(payload);
 }
 
 /**
@@ -209,18 +240,11 @@ export async function activateHostWithDatabase(
     installationId: installation.id,
     publicKey,
     deploymentEnvironment: options.deploymentEnvironment,
+    expectedRole: "host",
   });
   const possessionSignature = signPossessionMessage(privateKeyPkcs8, possessionMessage);
 
-  const redeem = await postJson<{
-    tenantId: string;
-    deviceId: string;
-    role: string;
-    credentialVersion: number;
-    stateRevision: number;
-    enrollmentState: string;
-    stallDisplayName: string;
-  }>(
+  const redeem = await postJson(
     options.fetchImpl,
     new URL("/api/device-enrollment/redeem", options.enrollmentBaseUrl).toString(),
     {
@@ -228,8 +252,35 @@ export async function activateHostWithDatabase(
       installationId: installation.id,
       publicKey,
       deploymentEnvironment: options.deploymentEnvironment,
+      expectedRole: "host",
       possessionMessage,
       possessionSignature,
+    },
+    (payload) => {
+      if (!payload || typeof payload !== "object") {
+        throw new Error("Enrollment redeem response was incomplete.");
+      }
+      const row = payload as Record<string, unknown>;
+      if (
+        typeof row.tenantId !== "string" ||
+        typeof row.deviceId !== "string" ||
+        typeof row.role !== "string" ||
+        typeof row.credentialVersion !== "number" ||
+        typeof row.stateRevision !== "number" ||
+        typeof row.enrollmentState !== "string" ||
+        typeof row.stallDisplayName !== "string"
+      ) {
+        throw new Error("Enrollment redeem response was incomplete.");
+      }
+      return {
+        tenantId: row.tenantId,
+        deviceId: row.deviceId,
+        role: row.role,
+        credentialVersion: row.credentialVersion,
+        stateRevision: row.stateRevision,
+        enrollmentState: row.enrollmentState,
+        stallDisplayName: row.stallDisplayName,
+      };
     },
   );
 
@@ -279,10 +330,7 @@ export async function activateHostWithDatabase(
   });
   const confirmSignature = signPossessionMessage(privateKeyPkcs8, confirmMessage);
 
-  const confirm = await postJson<{
-    enrollmentState: string;
-    stateRevision: number;
-  }>(
+  const confirm = await postJson(
     options.fetchImpl,
     new URL("/api/device-enrollment/confirm", options.enrollmentBaseUrl).toString(),
     {
@@ -293,6 +341,19 @@ export async function activateHostWithDatabase(
       credentialVersion: redeem.credentialVersion,
       possessionMessage: confirmMessage,
       possessionSignature: confirmSignature,
+    },
+    (payload) => {
+      if (!payload || typeof payload !== "object") {
+        throw new Error("Enrollment confirm response was incomplete.");
+      }
+      const row = payload as Record<string, unknown>;
+      if (typeof row.enrollmentState !== "string" || typeof row.stateRevision !== "number") {
+        throw new Error("Enrollment confirm response was incomplete.");
+      }
+      return {
+        enrollmentState: row.enrollmentState,
+        stateRevision: row.stateRevision,
+      };
     },
   );
 

@@ -8,11 +8,7 @@ describe("parseCapabilitiesArgv", () => {
       parseCapabilitiesArgv(
         '["payments.receive_trader","payments.pay_farmer","reports.view_financial"]',
       ),
-    ).toEqual([
-      "payments.receive_trader",
-      "payments.pay_farmer",
-      "reports.view_financial",
-    ]);
+    ).toEqual(["payments.receive_trader", "payments.pay_farmer", "reports.view_financial"]);
   });
 
   it("parses an empty JSON array", () => {

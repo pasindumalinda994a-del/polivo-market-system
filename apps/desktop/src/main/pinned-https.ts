@@ -1,5 +1,6 @@
 import { createHash, X509Certificate } from "node:crypto";
 import https from "node:https";
+import type { TLSSocket } from "node:tls";
 import { URL } from "node:url";
 
 export type PinnedHttpsResponse = {
@@ -30,9 +31,21 @@ function isLoopbackHostname(hostname: string): boolean {
   return host === "127.0.0.1" || host === "localhost" || host === "::1";
 }
 
+function peerCertificateSha256(socket: TLSSocket | null): string | null {
+  if (!socket || typeof socket.getPeerCertificate !== "function") {
+    return null;
+  }
+  const peer = socket.getPeerCertificate(true);
+  if (!peer || !peer.raw) {
+    return null;
+  }
+  return createHash("sha256").update(peer.raw).digest("hex");
+}
+
 /**
  * HTTPS request with optional certificate pinning.
  * Rejects non-HTTPS URLs and does not follow redirects.
+ * When pinned, the fingerprint is checked on TLS `secureConnect` before any body is written.
  */
 export function pinnedHttpsRequest(options: PinnedHttpsOptions): Promise<PinnedHttpsResponse> {
   return new Promise((resolve, reject) => {
@@ -64,6 +77,17 @@ export function pinnedHttpsRequest(options: PinnedHttpsOptions): Promise<PinnedH
     }
 
     const timeoutMs = options.timeoutMs ?? 10_000;
+    let settled = false;
+    let certificateSha256 = "";
+
+    const fail = (error: Error): void => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      reject(error);
+    };
+
     const request = https.request(
       {
         protocol: url.protocol,
@@ -87,32 +111,7 @@ export function pinnedHttpsRequest(options: PinnedHttpsOptions): Promise<PinnedH
           response.headers.location
         ) {
           response.resume();
-          reject(new Error("Redirects to another origin are rejected."));
-          return;
-        }
-
-        const socket = response.socket as
-          | (typeof response.socket & {
-              getPeerCertificate?: (detailed?: boolean) => { raw?: Buffer };
-            })
-          | null;
-        const peer =
-          socket && typeof socket.getPeerCertificate === "function"
-            ? socket.getPeerCertificate(true)
-            : null;
-        if (!peer || !peer.raw) {
-          response.resume();
-          reject(new Error("Host identity could not be verified"));
-          return;
-        }
-
-        const certificateSha256 = createHash("sha256").update(peer.raw).digest("hex");
-        if (
-          options.expectedCertificateSha256 !== undefined &&
-          certificateSha256 !== options.expectedCertificateSha256
-        ) {
-          response.resume();
-          reject(new Error("Host identity could not be verified"));
+          fail(new Error("Redirects to another origin are rejected."));
           return;
         }
 
@@ -121,6 +120,10 @@ export function pinnedHttpsRequest(options: PinnedHttpsOptions): Promise<PinnedH
           chunks.push(chunk);
         });
         response.on("end", () => {
+          if (settled) {
+            return;
+          }
+          settled = true;
           resolve({
             status: response.statusCode ?? 0,
             headers: response.headers as Record<string, string | string[] | undefined>,
@@ -137,7 +140,7 @@ export function pinnedHttpsRequest(options: PinnedHttpsOptions): Promise<PinnedH
     if (options.signal) {
       if (options.signal.aborted) {
         onAbort();
-        reject(new Error("Request cancelled."));
+        fail(new Error("Request cancelled."));
         return;
       }
       options.signal.addEventListener("abort", onAbort, { once: true });
@@ -149,16 +152,36 @@ export function pinnedHttpsRequest(options: PinnedHttpsOptions): Promise<PinnedH
     request.on("error", (error) => {
       const message = error instanceof Error ? error.message : "Stall host unavailable";
       if (/cancelled/i.test(message)) {
-        reject(error);
+        fail(error instanceof Error ? error : new Error(message));
         return;
       }
-      reject(new Error("Stall host unavailable"));
+      fail(new Error("Stall host unavailable"));
     });
 
-    if (options.body) {
-      request.write(options.body);
-    }
-    request.end();
+    request.on("socket", (socket) => {
+      const tlsSocket = socket as TLSSocket;
+      tlsSocket.on("secureConnect", () => {
+        const fingerprint = peerCertificateSha256(tlsSocket);
+        if (!fingerprint) {
+          request.destroy();
+          fail(new Error("Host identity could not be verified"));
+          return;
+        }
+        certificateSha256 = fingerprint;
+        if (
+          options.expectedCertificateSha256 !== undefined &&
+          certificateSha256 !== options.expectedCertificateSha256
+        ) {
+          request.destroy();
+          fail(new Error("Host identity could not be verified"));
+          return;
+        }
+        if (options.body) {
+          request.write(options.body);
+        }
+        request.end();
+      });
+    });
   });
 }
 

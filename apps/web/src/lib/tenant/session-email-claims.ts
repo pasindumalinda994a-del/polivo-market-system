@@ -129,10 +129,7 @@ export function requireVerifiedEmailSessionClaims(
     throw validationError(STALE_TOKEN_GUIDANCE);
   }
 
-  if (
-    assessment.emailVerifiedIsFalse ||
-    options.clerkPrimaryEmailStatus === "unverified"
-  ) {
+  if (assessment.emailVerifiedIsFalse || options.clerkPrimaryEmailStatus === "unverified") {
     throw validationError(EMAIL_UNVERIFIED_GUIDANCE);
   }
 

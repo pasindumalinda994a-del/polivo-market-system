@@ -62,9 +62,14 @@ export function createSimulatedFileSecureStorage(directory: string): SecureStora
   };
 }
 
+function powershellSingleQuote(value: string): string {
+  return `'${value.replace(/'/g, "''")}'`;
+}
+
 /**
  * Windows DPAPI (CurrentUser) via PowerShell ProtectedData.
  * Must run as the same Windows account that will run the stall service.
+ * Secrets are passed on stdin — never embedded in `-Command` argv.
  */
 export function createWindowsDpapiSecureStorage(directory: string): SecureStorageAdapter {
   if (platform() !== "win32") {
@@ -80,11 +85,12 @@ export function createWindowsDpapiSecureStorage(directory: string): SecureStorag
       const script = `
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Security
-$plain = [Text.Encoding]::UTF8.GetBytes(${JSON.stringify(secret)})
+$plainText = [Console]::In.ReadToEnd()
+$plain = [Text.Encoding]::UTF8.GetBytes($plainText)
 $protected = [Security.Cryptography.ProtectedData]::Protect($plain, $null, [Security.Cryptography.DataProtectionScope]::CurrentUser)
-[IO.File]::WriteAllBytes(${JSON.stringify(path)}, $protected)
+[IO.File]::WriteAllBytes(${powershellSingleQuote(path)}, $protected)
 `;
-      runPowerShell(script);
+      runPowerShell(script, secret);
     },
     getSecret(credentialRef) {
       const path = join(directory, `${sanitizeRef(credentialRef)}.dpapi`);
@@ -94,7 +100,7 @@ $protected = [Security.Cryptography.ProtectedData]::Protect($plain, $null, [Secu
       const script = `
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Security
-$protected = [IO.File]::ReadAllBytes(${JSON.stringify(path)})
+$protected = [IO.File]::ReadAllBytes(${powershellSingleQuote(path)})
 $plain = [Security.Cryptography.ProtectedData]::Unprotect($protected, $null, [Security.Cryptography.DataProtectionScope]::CurrentUser)
 [Text.Encoding]::UTF8.GetString($plain)
 `;
@@ -124,12 +130,13 @@ function sanitizeRef(credentialRef: string): string {
   return cleaned;
 }
 
-function runPowerShell(script: string): string {
+function runPowerShell(script: string, stdinInput?: string): string {
   try {
     return execFileSync("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", script], {
       encoding: "utf8",
       windowsHide: true,
       timeout: 15_000,
+      input: stdinInput,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

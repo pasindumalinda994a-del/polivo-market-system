@@ -78,13 +78,13 @@ pnpm dev:desktop
 
 ## Troubleshooting
 
-| Symptom                                | Likely cause                               | Action                                                                             |
-| -------------------------------------- | ------------------------------------------ | ---------------------------------------------------------------------------------- |
-| Stall host unavailable                 | Service down, wrong address/port, firewall | Confirm service log listening HTTPS; retry; check LAN firewall                     |
-| Host identity could not be verified    | Wrong host, MITM, stale pins, cert rotated | Stop before credentials; re-pair on the real host or restore TLS material          |
-| Revoked pairing / device not enrolled  | Terminal revoked locally or not accepted   | Owner Devices revoke/authorize; host accept; re-pair                               |
+| Symptom                                | Likely cause                               | Action                                                                                                                            |
+| -------------------------------------- | ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
+| Stall host unavailable                 | Service down, wrong address/port, firewall | Confirm service log listening HTTPS; retry; check LAN firewall                                                                    |
+| Host identity could not be verified    | Wrong host, MITM, stale pins, cert rotated | Stop before credentials; re-pair on the real host or restore TLS material                                                         |
+| Revoked pairing / device not enrolled  | Terminal revoked locally or not accepted   | Owner Devices revoke/authorize; host accept; re-pair                                                                              |
 | Expired staff session / online refresh | Session or offline policy (ADR 0013)       | Sign in again if absolute/idle expired; for snapshot age, owner-authorize permission refresh then `staff-cli refresh-permissions` |
-| Trust pins missing                     | Paired before Phase 16                     | Re-pair on the host PC over loopback HTTPS                                         |
+| Trust pins missing                     | Paired before Phase 16                     | Re-pair on the host PC over loopback HTTPS                                                                                        |
 
 ## Outage behavior
 

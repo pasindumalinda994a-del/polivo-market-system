@@ -4,16 +4,29 @@ import { jsonError, jsonOk, parseJsonBody } from "@/lib/api/route-helpers";
 import { createPrivilegedSupabaseClient } from "@/lib/auth/supabase-privileged";
 import { validationError, serviceUnavailableError, redactForLog } from "@/lib/auth/errors";
 import { mapTenantRpcError, summarizeRpcErrorForLog } from "@/lib/tenant/rpc-errors";
-import { verifyEd25519Possession } from "@/lib/device/crypto";
+import { buildRotatePossessionMessage, verifyEd25519Possession } from "@/lib/device/crypto";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
   try {
     const body = await parseJsonBody(request, rotateDeviceCredentialRequestSchema);
+    const expectedMessage = buildRotatePossessionMessage({
+      tenantId: body.tenantId,
+      deviceId: body.deviceId,
+      installationId: body.installationId,
+      previousPublicKey: body.previousPublicKey,
+      previousCredentialVersion: body.previousCredentialVersion,
+      newPublicKey: body.newPublicKey,
+      newCredentialVersion: body.newCredentialVersion,
+    });
+    if (body.possessionMessage !== expectedMessage) {
+      throw validationError("Possession message does not match the expected rotation proof.");
+    }
+    // Prove possession of the *current* (previous) private key — not the replacement key.
     if (
       !verifyEd25519Possession({
-        publicKey: body.newPublicKey,
+        publicKey: body.previousPublicKey,
         message: body.possessionMessage,
         signature: body.possessionSignature,
       })

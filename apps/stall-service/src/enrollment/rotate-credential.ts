@@ -6,6 +6,7 @@ import {
 } from "@polivo/db-local";
 
 import {
+  buildRotatePossessionMessage,
   generateDeviceKeyPair,
   publicKeyFromPrivate,
   signPossessionMessage,
@@ -58,18 +59,17 @@ export async function rotateHostCredential(
     nextPublic = publicKeyFromPrivate(nextPrivate);
   }
 
-  const possessionMessage = [
-    "polivo-rotate-v1",
-    options.tenantId,
-    enrollment.cloudDeviceId,
-    installation.id,
+  const possessionMessage = buildRotatePossessionMessage({
+    tenantId: options.tenantId,
+    deviceId: enrollment.cloudDeviceId,
+    installationId: installation.id,
     previousPublicKey,
-    String(enrollment.credentialVersion),
-    nextPublic,
-    String(nextVersion),
-  ].join("\n");
-  // Prove possession of the *new* key for the rotation RPC (server verifies signature).
-  const possessionSignature = signPossessionMessage(nextPrivate, possessionMessage);
+    previousCredentialVersion: enrollment.credentialVersion,
+    newPublicKey: nextPublic,
+    newCredentialVersion: nextVersion,
+  });
+  // Prove possession of the *current* key; the replacement key is bound in the message.
+  const possessionSignature = signPossessionMessage(previousSecret, possessionMessage);
 
   const response = await fetchImpl(
     new URL("/api/device-enrollment/rotate", options.enrollmentBaseUrl).toString(),

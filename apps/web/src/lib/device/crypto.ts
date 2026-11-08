@@ -18,12 +18,36 @@ export function buildRedeemPossessionMessage(input: {
   installationId: string;
   publicKey: string;
   deploymentEnvironment: string;
+  expectedRole: string;
 }): string {
   return [
     "polivo-redeem-v1",
     input.installationId,
     input.publicKey,
     input.deploymentEnvironment,
+    input.expectedRole,
+  ].join("\n");
+}
+
+/** Canonical rotate message; must be signed by the *previous* private key. */
+export function buildRotatePossessionMessage(input: {
+  tenantId: string;
+  deviceId: string;
+  installationId: string;
+  previousPublicKey: string;
+  previousCredentialVersion: number;
+  newPublicKey: string;
+  newCredentialVersion: number;
+}): string {
+  return [
+    "polivo-rotate-v1",
+    input.tenantId,
+    input.deviceId,
+    input.installationId,
+    input.previousPublicKey,
+    String(input.previousCredentialVersion),
+    input.newPublicKey,
+    String(input.newCredentialVersion),
   ].join("\n");
 }
 

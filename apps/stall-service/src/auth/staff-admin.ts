@@ -6,6 +6,7 @@ import {
   getStallBinding,
   insertLocalStaff,
   revokeSessionsForStaff,
+  runInTransaction,
   tryGetLocalOwner,
   tryGetLocalStaffByCode,
   tryGetLocalStaffById,
@@ -98,37 +99,57 @@ export function setupFirstLocalOwner(
       { path: "staffCode", code: "invalid", message: "Staff code is too short." },
     ]);
   }
+  if (input.secret.length < 4) {
+    return validationError("Staff secret is too short.", [
+      { path: "secret", code: "invalid", message: "Secret must be at least 4 characters." },
+    ]);
+  }
 
   const nowIso = deps.now();
   const staffId = deps.createId();
+  const verifier = hashStaffSecret(input.secret);
   try {
-    insertLocalStaff(deps.database, {
-      id: staffId,
-      tenantId: binding.tenantId,
-      staffCode: input.staffCode.trim(),
-      displayName: input.displayName?.trim() || input.proof.ownerDisplayName,
-      status: "active",
-      isLocalOwner: true,
-      cloudMembershipId: input.proof.cloudMembershipId,
-      createdAt: nowIso,
-      updatedAt: nowIso,
-    });
-    upsertStaffCredential(deps.database, {
-      staffId,
-      tenantId: binding.tenantId,
-      verifier: hashStaffSecret(input.secret),
-      verifierFormat: STAFF_VERIFIER_FORMAT,
-      credentialRevision: 1,
-      updatedAt: nowIso,
-    });
-    applyCapabilitySnapshot(deps.database, {
-      staffId,
-      tenantId: binding.tenantId,
-      stallId: binding.stallId,
-      capabilitiesJson: JSON.stringify([...input.proof.capabilities]),
-      sourceRevision: input.proof.sourceRevision,
-      authorityVerifiedAt: nowIso,
-      updatedAt: nowIso,
+    runInTransaction(deps.database.db, (tx) => {
+      insertLocalStaff(tx, {
+        id: staffId,
+        tenantId: binding.tenantId,
+        staffCode: input.staffCode.trim(),
+        displayName: input.displayName?.trim() || input.proof.ownerDisplayName,
+        status: "active",
+        isLocalOwner: true,
+        cloudMembershipId: input.proof.cloudMembershipId,
+        createdAt: nowIso,
+        updatedAt: nowIso,
+      });
+      upsertStaffCredential(tx, {
+        staffId,
+        tenantId: binding.tenantId,
+        verifier,
+        verifierFormat: STAFF_VERIFIER_FORMAT,
+        credentialRevision: 1,
+        updatedAt: nowIso,
+      });
+      applyCapabilitySnapshot(tx, {
+        staffId,
+        tenantId: binding.tenantId,
+        stallId: binding.stallId,
+        capabilitiesJson: JSON.stringify([...input.proof.capabilities]),
+        sourceRevision: input.proof.sourceRevision,
+        authorityVerifiedAt: nowIso,
+        updatedAt: nowIso,
+      });
+      appendSecurityAuditEvent(tx, {
+        id: deps.createId(),
+        tenantId: binding.tenantId,
+        stallId: binding.stallId,
+        actorRef: staffId,
+        action: "staff.first_owner_setup",
+        targetType: "staff",
+        targetId: staffId,
+        occurredAt: nowIso,
+        correlationRef: input.requestId ?? null,
+        detailsJson: JSON.stringify({ grantId: input.proof.grantId }),
+      });
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Owner setup failed.";
@@ -137,19 +158,6 @@ export function setupFirstLocalOwner(
     }
     throw error;
   }
-
-  appendSecurityAuditEvent(deps.database, {
-    id: deps.createId(),
-    tenantId: binding.tenantId,
-    stallId: binding.stallId,
-    actorRef: staffId,
-    action: "staff.first_owner_setup",
-    targetType: "staff",
-    targetId: staffId,
-    occurredAt: nowIso,
-    correlationRef: input.requestId ?? null,
-    detailsJson: JSON.stringify({ grantId: input.proof.grantId }),
-  });
 
   return { staffId };
 }
@@ -190,50 +198,70 @@ export function activateLocalStaff(
   if (tryGetLocalStaffByCode(deps.database, owner.tenantId, input.staffCode.trim())) {
     return conflictError("A staff member with this staff code already exists.");
   }
+  if (input.secret.length < 4) {
+    return validationError("Staff secret is too short.", [
+      { path: "secret", code: "invalid", message: "Secret must be at least 4 characters." },
+    ]);
+  }
+  if (!Number.isFinite(input.sourceRevision) || input.sourceRevision < 1) {
+    return validationError("sourceRevision is invalid.", [
+      { path: "sourceRevision", code: "invalid", message: "Revision must be a positive integer." },
+    ]);
+  }
 
   const nowIso = deps.now();
   const staffId = deps.createId();
-  insertLocalStaff(deps.database, {
-    id: staffId,
-    tenantId: owner.tenantId,
-    staffCode: input.staffCode.trim(),
-    displayName: input.displayName.trim(),
-    status: "active",
-    isLocalOwner: false,
-    cloudMembershipId: input.cloudMembershipId.trim(),
-    createdAt: nowIso,
-    updatedAt: nowIso,
-  });
-  upsertStaffCredential(deps.database, {
-    staffId,
-    tenantId: owner.tenantId,
-    verifier: hashStaffSecret(input.secret),
-    verifierFormat: STAFF_VERIFIER_FORMAT,
-    credentialRevision: 1,
-    updatedAt: nowIso,
-  });
-  applyCapabilitySnapshot(deps.database, {
-    staffId,
-    tenantId: owner.tenantId,
-    stallId: owner.stallId,
-    capabilitiesJson: JSON.stringify([...input.capabilities]),
-    sourceRevision: input.sourceRevision,
-    authorityVerifiedAt: nowIso,
-    updatedAt: nowIso,
-  });
-
-  appendSecurityAuditEvent(deps.database, {
-    id: deps.createId(),
-    tenantId: owner.tenantId,
-    stallId: owner.stallId,
-    actorRef: owner.actorId,
-    action: "staff.activated",
-    targetType: "staff",
-    targetId: staffId,
-    occurredAt: nowIso,
-    correlationRef: input.requestId ?? null,
-    detailsJson: JSON.stringify({ cloudMembershipId: input.cloudMembershipId.trim() }),
-  });
+  const verifier = hashStaffSecret(input.secret);
+  try {
+    runInTransaction(deps.database.db, (tx) => {
+      insertLocalStaff(tx, {
+        id: staffId,
+        tenantId: owner.tenantId,
+        staffCode: input.staffCode.trim(),
+        displayName: input.displayName.trim(),
+        status: "active",
+        isLocalOwner: false,
+        cloudMembershipId: input.cloudMembershipId.trim(),
+        createdAt: nowIso,
+        updatedAt: nowIso,
+      });
+      upsertStaffCredential(tx, {
+        staffId,
+        tenantId: owner.tenantId,
+        verifier,
+        verifierFormat: STAFF_VERIFIER_FORMAT,
+        credentialRevision: 1,
+        updatedAt: nowIso,
+      });
+      applyCapabilitySnapshot(tx, {
+        staffId,
+        tenantId: owner.tenantId,
+        stallId: owner.stallId,
+        capabilitiesJson: JSON.stringify([...input.capabilities]),
+        sourceRevision: input.sourceRevision,
+        authorityVerifiedAt: nowIso,
+        updatedAt: nowIso,
+      });
+      appendSecurityAuditEvent(tx, {
+        id: deps.createId(),
+        tenantId: owner.tenantId,
+        stallId: owner.stallId,
+        actorRef: owner.actorId,
+        action: "staff.activated",
+        targetType: "staff",
+        targetId: staffId,
+        occurredAt: nowIso,
+        correlationRef: input.requestId ?? null,
+        detailsJson: JSON.stringify({ cloudMembershipId: input.cloudMembershipId.trim() }),
+      });
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Staff activation failed.";
+    if (/already exists|conflicts/i.test(message)) {
+      return conflictError("A staff member with this staff code already exists.");
+    }
+    throw error;
+  }
 
   return { staffId };
 }

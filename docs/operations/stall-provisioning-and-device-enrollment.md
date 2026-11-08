@@ -4,14 +4,14 @@ Phase 14 operations guide for authorizing one Windows host per stall, binding it
 
 ## Concepts
 
-| Concept              | Meaning                                                                                                               |
-| -------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| Stall host           | One Windows installation runs `@polivo/stall-service` and owns the authoritative SQLite file for one Phase 13 tenant. |
-| Terminal             | An Electron installation paired to a specific activated host. It never opens SQLite.                                  |
+| Concept              | Meaning                                                                                                                          |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| Stall host           | One Windows installation runs `@polivo/stall-service` and owns the authoritative SQLite file for one Phase 13 tenant.            |
+| Terminal             | An Electron installation paired to a specific activated host. It never opens SQLite.                                             |
 | Enrollment secret    | Single-use secret shown once in the owner Devices UI. Default TTL is **15 minutes** (900s). Digests only are stored in Postgres. |
-| Credential           | Ed25519 keypair. Private key in OS-protected storage (host: Windows DPAPI; terminal: Electron `safeStorage`).         |
-| Cloud revoke         | Owner revoke commits in Postgres; subsequent cloud device operations fail.                                            |
-| Host acknowledgement | Local host must persist terminal revocation / pairing state. Cloud revoke and host ack are displayed separately.      |
+| Credential           | Ed25519 keypair. Private key in OS-protected storage (host: Windows DPAPI; terminal: Electron `safeStorage`).                    |
+| Cloud revoke         | Owner revoke commits in Postgres; subsequent cloud device operations fail.                                                       |
+| Host acknowledgement | Local host must persist terminal revocation / pairing state. Cloud revoke and host ack are displayed separately.                 |
 
 Device enrollment does not open a billing session. Local staff authentication is Phase 15. LAN business auth is Phase 16.
 
@@ -72,7 +72,7 @@ Phase 14 pairs over **loopback**. Run these on the **same host PC** that already
 
 Do **not** expect another Wi‑Fi PC to pair in this phase: desktop hardcodes `127.0.0.1:3040`, which is that PC’s loopback, not the host. LAN bind is a later phase.
 
-If enrollment fails: check Devices for **Waiting for host confirmation** or stuck Pending; **Revoke** that terminal; **Authorize terminal** again; paste the new secret on the host PC. Do not reuse an old secret after redeem already consumed the grant.
+If enrollment fails **before** cloud redeem: check Devices, fix web/stall-service, and retry with the **same** secret while it is still valid (15-minute TTL). After a successful redeem, **do not revoke** to retry host accept/confirm — desktop reuses the stored keypair and resumes accept + cloud confirm. Revoke and re-authorize only when the secret expired unused, the wrong role was authorized, or the device must be retired.
 
 ## Status meanings
 
@@ -91,7 +91,8 @@ If enrollment fails: check Devices for **Waiting for host confirmation** or stuc
 3. **Protected storage failed:** Activation stays incomplete. Do not fall back to plaintext. Fix storage under the service account, then resume.
 4. **Existing host present:** Do not authorize a second financial writer. Host replacement is Phase 39.
 5. **Enrollment secret expired (`GRANT_EXPIRED`):** The Pending host’s grant timed out (default 15 minutes) or the shell still holds an older secret. **Revoke** that Pending host or **Cancel unused enrollment**, then **Authorize host** once, clear `$env:POLIVO_ENROLLMENT_SECRET`, and run `activate-host` with the **new** secret within 15 minutes. Do not authorize a second host while a valid pending reservation still exists.
-6. **Terminal redeem failed / host unreachable:** On the host PC, ensure web + stall-service are running. Revoke stuck terminal rows, authorize a fresh terminal secret, and enroll again on the host PC. Retries reuse the stored keypair when cloud already redeemed this installation.
+6. **Terminal cloud redeem succeeded, host accept/confirm interrupted:** Keep the same installation. Ensure web + stall-service HTTPS are running on the host PC, then retry enrollment — desktop reuses the stored key and resumes accept + confirm. Do **not** revoke after a successful redeem solely to retry confirm.
+7. **Terminal redeem never succeeded / secret expired / wrong role:** Revoke or cancel the stuck Pending/Waiting row if needed, **Authorize terminal** again, and enroll with the **new** secret on that installation (or the PC that should own it). Each installation must enroll itself; host accept remains loopback in this phase.
 
 ## Revocation
 

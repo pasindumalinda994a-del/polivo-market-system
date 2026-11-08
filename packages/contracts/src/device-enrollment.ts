@@ -74,6 +74,8 @@ export const redeemEnrollmentRequestSchema = z.object({
   installationId: opaqueIdSchema,
   publicKey: z.string().min(16).max(512),
   deploymentEnvironment: deploymentEnvironmentSchema,
+  /** Client-declared role; RPC rejects ROLE_MISMATCH before consuming the grant. */
+  expectedRole: deviceRoleSchema,
   possessionMessage: z.string().min(1).max(2048),
   possessionSignature: z.string().min(16).max(1024),
 });

@@ -49,7 +49,10 @@ export async function createTenantInvitation(
   });
 
   if (error) {
-    console.error("tenant.invitation.create_rpc_failed", redactForLog(summarizeRpcErrorForLog(error)));
+    console.error(
+      "tenant.invitation.create_rpc_failed",
+      redactForLog(summarizeRpcErrorForLog(error)),
+    );
     throw mapTenantRpcError(error);
   }
 
@@ -77,7 +80,10 @@ export async function revokeTenantInvitation(
     p_invitation_id: invitationId,
   });
   if (error) {
-    console.error("tenant.invitation.revoke_rpc_failed", redactForLog(summarizeRpcErrorForLog(error)));
+    console.error(
+      "tenant.invitation.revoke_rpc_failed",
+      redactForLog(summarizeRpcErrorForLog(error)),
+    );
     throw mapTenantRpcError(error);
   }
 }
@@ -97,7 +103,10 @@ export async function acceptTenantInvitation(
   });
 
   if (error) {
-    console.error("tenant.invitation.accept_rpc_failed", redactForLog(summarizeRpcErrorForLog(error)));
+    console.error(
+      "tenant.invitation.accept_rpc_failed",
+      redactForLog(summarizeRpcErrorForLog(error)),
+    );
     throw mapTenantRpcError(error);
   }
 

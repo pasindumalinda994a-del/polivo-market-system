@@ -46,10 +46,7 @@ export function parseCapabilitiesArgv(raw: string): string[] {
     })
     .filter((token) => token.length > 0);
 
-  if (
-    capabilities.length === 0 ||
-    capabilities.some((cap) => /[\[\]{}\s"]/.test(cap))
-  ) {
+  if (capabilities.length === 0 || capabilities.some((cap) => /[[\]{}\s"]/.test(cap))) {
     throw new Error(`Could not parse capabilities argument. ${CAPABILITIES_ARGV_HINT}`);
   }
 

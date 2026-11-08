@@ -100,6 +100,11 @@ export function mapTenantRpcError(error: unknown): WebAuthError {
   if (message.includes("GRANT_NOT_FOUND")) {
     return validationError("Enrollment secret was not recognized.");
   }
+  if (message.includes("ROLE_MISMATCH")) {
+    return validationError(
+      "Enrollment secret is for a different device role. Use the host or terminal flow that matches the authorization.",
+    );
+  }
   if (message.includes("NOT_FOUND")) {
     return notFoundError();
   }

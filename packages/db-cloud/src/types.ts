@@ -482,6 +482,7 @@ export type Database = {
           p_installation_id: string;
           p_public_key: string;
           p_deployment_environment: DeploymentEnvironment;
+          p_expected_role: DeviceRole;
           p_possession_message: string;
           p_possession_signature: string;
         };

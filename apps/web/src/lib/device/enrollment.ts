@@ -176,6 +176,7 @@ export async function redeemEnrollmentGrant(
     installationId: input.installationId,
     publicKey: input.publicKey,
     deploymentEnvironment: input.deploymentEnvironment,
+    expectedRole: input.expectedRole,
   });
   if (input.possessionMessage !== expectedMessage) {
     throw validationError("Possession message does not match the expected enrollment proof.");
@@ -196,6 +197,7 @@ export async function redeemEnrollmentGrant(
     p_installation_id: input.installationId,
     p_public_key: input.publicKey,
     p_deployment_environment: input.deploymentEnvironment,
+    p_expected_role: input.expectedRole,
     p_possession_message: input.possessionMessage,
     p_possession_signature: input.possessionSignature,
   });
