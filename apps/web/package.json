@@ -4,12 +4,18 @@
   "private": true,
   "scripts": {
     "dev": "next dev --port 3000",
-    "build": "pnpm --filter @polivo/ui build && next build",
+    "build": "pnpm --filter @polivo/contracts build && pnpm --filter @polivo/domain build && pnpm --filter @polivo/db-cloud build && pnpm --filter @polivo/ui build && next build",
     "start": "next start --port 3000",
-    "typecheck": "tsc --noEmit -p tsconfig.json"
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run --config vitest.config.mts"
   },
   "dependencies": {
+    "@clerk/nextjs": "7.9.23",
+    "@polivo/contracts": "workspace:*",
+    "@polivo/db-cloud": "workspace:*",
+    "@polivo/domain": "workspace:*",
     "@polivo/ui": "workspace:*",
+    "@supabase/supabase-js": "2.81.1",
     "lucide-react": "0.544.0",
     "next": "16.4.3",
     "react": "19.3.1",
@@ -22,6 +28,7 @@
     "@types/react-dom": "19.3.0",
     "postcss": "8.5.32",
     "tailwindcss": "4.3.3",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "vitest": "5.0.5"
   }
 }

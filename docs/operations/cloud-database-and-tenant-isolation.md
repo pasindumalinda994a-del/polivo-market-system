@@ -142,7 +142,8 @@ Ordinary builds and pull-request tests must not require production credentials a
 ## Deferred
 
 - Clerk sign-in and session integration (phase 12)
-- Tenant onboarding / invitations / role administration (phase 13+)
+- Device enrollment, local staff credentials, and permission sync acknowledgements (phase 14+)
+- See [tenant-onboarding-and-access-management.md](./tenant-onboarding-and-access-management.md) for phase 13 onboarding RPCs and tables
 - Device provisioning and sync ingestion/workers (later)
 - Dashboard reporting UI
 - Object storage buckets (no confirmed upload feature in this phase)

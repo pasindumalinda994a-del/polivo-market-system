@@ -104,6 +104,14 @@ jobs:
     name: web-e2e
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # Clerk development keys (not production). Required for next start + SignIn UI e2e.
+    env:
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
+      CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
+      NEXT_PUBLIC_CLERK_SIGN_IN_URL: /sign-in
+      NEXT_PUBLIC_CLERK_SIGN_UP_URL: /sign-up
+      IS_FORK_PR: ${{ github.event.pull_request.head.repo.fork == true }}
+      IS_DEPENDABOT: ${{ github.actor == 'dependabot[bot]' }}
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -131,7 +139,20 @@ jobs:
         run: pnpm --filter @polivo/web... build
 
       - name: Run web end-to-end tests
-        run: pnpm exec playwright test --config=tests/e2e/web/playwright.config.ts
+        run: |
+          if [ -z "${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}" ] || [ -z "${CLERK_SECRET_KEY}" ]; then
+            if [ "${IS_FORK_PR}" = "true" ] || [ "${IS_DEPENDABOT}" = "true" ]; then
+              echo "::notice::Skipping Clerk-backed web-e2e (secrets unavailable for fork PR or Dependabot)."
+              echo "See docs/operations/testing-and-ci.md."
+              exit 0
+            fi
+            echo "::error::Missing Clerk development secrets for web-e2e."
+            echo "Add repository secrets NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY and CLERK_SECRET_KEY"
+            echo "(Clerk development instance keys — not production)."
+            echo "See docs/operations/testing-and-ci.md."
+            exit 1
+          fi
+          pnpm exec playwright test --config=tests/e2e/web/playwright.config.ts
 
       - name: Upload web e2e diagnostics
         if: failure()
@@ -167,6 +188,38 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      # Electron 45 has no postinstall; pnpm install does not download the Windows binary.
+      - name: Cache Electron download
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ${{ runner.temp }}/electron-cache
+          key: electron-45.1.0-win-${{ runner.os }}
+
+      - name: Ensure Electron binary
+        working-directory: apps/desktop
+        shell: pwsh
+        env:
+          electron_config_cache: ${{ runner.temp }}/electron-cache
+        run: |
+          New-Item -ItemType Directory -Force -Path $env:electron_config_cache | Out-Null
+          $installJs = node -p "require.resolve('electron/install.js')"
+          $electronDir = Split-Path -Parent $installJs
+          Write-Host "Electron package: $electronDir"
+          if (Test-Path (Join-Path $electronDir "dist")) {
+            Remove-Item -Recurse -Force (Join-Path $electronDir "dist")
+          }
+          if (Test-Path (Join-Path $electronDir "path.txt")) {
+            Remove-Item -Force (Join-Path $electronDir "path.txt")
+          }
+          node $installJs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $exe = node -p "require('electron')"
+          Write-Host "Electron executable: $exe"
+          if (-not (Test-Path -LiteralPath $exe)) {
+            throw "Electron binary missing at $exe after install.js"
+          }
+          & $exe --version
 
       - name: Build desktop application and workspace dependencies
         run: pnpm --filter @polivo/desktop... build

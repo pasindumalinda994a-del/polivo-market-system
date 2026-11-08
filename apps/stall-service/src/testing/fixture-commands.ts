@@ -87,11 +87,22 @@ function createBumpBillDefinition(
 export function runFixtureBumpBillCommand(
   deps: CommandDeps,
   input: FixtureBumpBillInput,
-  meta: { requestId: string; idempotencyKey: string },
+  meta: {
+    requestId: string;
+    idempotencyKey: string;
+    deviceProof?: import("../auth/device-proof.js").DeviceProof;
+    sessionSecret?: string;
+    method?: string;
+    path?: string;
+  },
 ): FixtureBumpBillResult {
   return runIdempotentCommand(deps, createBumpBillDefinition(deps), {
     input,
     requestId: meta.requestId,
     idempotencyKey: meta.idempotencyKey,
+    deviceProof: meta.deviceProof,
+    sessionSecret: meta.sessionSecret,
+    method: meta.method,
+    path: meta.path,
   });
 }

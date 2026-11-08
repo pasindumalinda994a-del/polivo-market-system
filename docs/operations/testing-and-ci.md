@@ -52,7 +52,7 @@ Browser, desktop, and cloud isolation suites stay explicit because they need Pla
 
 - Unit and integration tests do not require network access, cloud credentials, or a listening server.
 - `pnpm test:db-cloud` uses local Supabase when Docker is available, otherwise embedded Postgres. It never uses production credentials. See [cloud-database-and-tenant-isolation.md](./cloud-database-and-tenant-isolation.md).
-- `pnpm test:e2e:web` builds `@polivo/web` and starts a production Next.js server on dedicated port **3100**.
+- `pnpm test:e2e:web` builds `@polivo/web` and starts a production Next.js server on dedicated port **3100** at `http://localhost:3100` (use hostname `localhost`, not `127.0.0.1`, with Clerk + Next.js 16 `proxy.ts`).
 - `pnpm test:e2e:desktop` builds `@polivo/desktop` and launches Electron against `apps/desktop/out/main/index.js`.
 - Contracts consumers that resolve package exports still need `pnpm --filter @polivo/contracts build` before compiled application runs; Vitest and `tsconfig.test.json` alias contracts source for integration tests.
 
@@ -154,7 +154,18 @@ Triggers: pull requests, pushes to `main`, and `workflow_dispatch`.
 | `web-e2e`           | `ubuntu-latest`  | Playwright Chromium against the production web build                              |
 | `desktop-smoke`     | `windows-latest` | Electron smoke against built desktop output                                       |
 
-Permissions are `contents: read`. Jobs do not use production secrets, do not deploy, and do not publish installers. Failure diagnostics retain for 7 days.
+Electron **45.x has no package postinstall**, so `pnpm install` alone does not download the Windows binary. The `desktop-smoke` job caches `electron_config_cache`, runs `require.resolve('electron/install.js')` under `apps/desktop`, then verifies the executable before build/smoke.
+
+Permissions are `contents: read`. Jobs do not deploy and do not publish installers. Failure diagnostics retain for 7 days.
+
+`web-e2e` uses **repository secrets for a dedicated Clerk development instance** (not production) so Playwright can start `next start` and exercise Clerk middleware / SignIn UI:
+
+| Secret name                         | Purpose                               |
+| ----------------------------------- | ------------------------------------- |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerk development publishable key     |
+| `CLERK_SECRET_KEY`                  | Matching Clerk development secret key |
+
+The workflow also sets `NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in` and `NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up` (not secrets). `web-e2e` always builds `@polivo/web`. When Clerk secrets are present, it runs the Playwright suite. When they are missing on a **fork PR** or **Dependabot** run (cannot read repository secrets), Playwright is skipped with a notice and the job exits successfully. On same-repo maintainer runs, missing secrets fail the job so a misconfigured repository cannot report a false-green required check. Create both secrets on the GitHub repository so same-repo CI runs the full Clerk-backed e2e suite.
 
 ### Required checks after the first successful run
 
@@ -173,7 +184,8 @@ Do not mark checks required before their first successful observed run.
 - Broader security and recovery scenarios
 - Performance tests under `tests/performance/` (phase 43)
 - Installer packaging and printer hardware certification
-- Authenticated dashboard and full billing end-to-end flows
+- Signed-in Clerk dashboard membership flows that require dedicated testing tokens or live fixtures (unauthenticated redirect/API checks are covered; see `web-authentication.md`)
+- Full billing end-to-end flows
 
 ## Related guides
 

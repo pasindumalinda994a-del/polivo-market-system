@@ -6,7 +6,11 @@ function readDbPathFromEnv(): string {
   const raw = process.env.POLIVO_LOCAL_DB_PATH;
   if (raw === undefined || raw.trim().length === 0) {
     throw new Error(
-      "POLIVO_LOCAL_DB_PATH is required and must be an absolute filesystem path outside the repository for operational use.",
+      [
+        "POLIVO_LOCAL_DB_PATH is required and must be an absolute filesystem path outside the repository for operational use.",
+        'PowerShell: $env:POLIVO_LOCAL_DB_PATH = "C:\\PolivoData\\stall.sqlite"',
+        "cmd.exe: set POLIVO_LOCAL_DB_PATH=C:\\PolivoData\\stall.sqlite",
+      ].join(" "),
     );
   }
   return requireAbsoluteDatabasePath(raw);
