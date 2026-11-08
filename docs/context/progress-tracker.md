@@ -244,6 +244,7 @@ Resolved ahead of phase 09:
 
 ## Session Notes
 
+- CodeRabbit PR #5 closeout (2026-11-08): Listed discussion IDs closed for code except deferred CR-10/11/21/24. Hardened desktop host-accept JSON via `parseJsonText`. Canonical redeem remains `20261108150000` (ignore static flags on superseded SQL).
 - CodeRabbit PR #5 wave 3 (2026-11-08): CR-34 fork/Dependabot-only web-e2e skip; CR-35 ops `@polivo/domain` build; CR-36 cancel exhausted grants (`20261108150000`); `[inbucket]`→`[local_smtp]` for newer CLI. Still deferred CR-10/11/21/24.
 - CodeRabbit PR #5 wave 2 (2026-11-08): CR-27 keep-alive pin, CR-28 redeem `error_code` persistence migration, CR-29 fork-safe web-e2e skip, CR-30–33 ops/rpc/staff integer. Still deferred CR-10/11/21/24. See [docs/coderabbitissues/2026-11-08-pr-5-phases-12-16.md](../coderabbitissues/2026-11-08-pr-5-phases-12-16.md).
 - CI web-e2e Clerk keys (2026-11-08): `web-e2e` passes Clerk development secrets into build/`next start`. Same-repo: secrets required or job fails. Fork/Dependabot missing secrets: build-only skip. See `docs/operations/testing-and-ci.md`.

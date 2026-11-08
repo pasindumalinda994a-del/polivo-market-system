@@ -172,8 +172,7 @@ function shouldReuseExistingCredential(state: StoredEnrollment): boolean {
   return existsSync(credentialPath(state.credentialRef));
 }
 
-async function readJsonBody(response: Response): Promise<unknown> {
-  const text = await response.text();
+function parseJsonText(text: string): unknown {
   if (text.length === 0) {
     return {};
   }
@@ -182,6 +181,10 @@ async function readJsonBody(response: Response): Promise<unknown> {
   } catch {
     return {};
   }
+}
+
+async function readJsonBody(response: Response): Promise<unknown> {
+  return parseJsonText(await response.text());
 }
 
 function resolveKeypair(state: StoredEnrollment): {
@@ -409,7 +412,7 @@ export async function enrollTerminal(input: {
     return getTerminalEnrollmentStatus();
   }
 
-  const acceptBody = JSON.parse(acceptResult.bodyText) as ApiErrorBody & {
+  const acceptBody = parseJsonText(acceptResult.bodyText) as ApiErrorBody & {
     pairingState?: string;
     hostDeviceId?: string;
     hostPublicKey?: string;
