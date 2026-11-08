@@ -6,7 +6,7 @@ Document each new variable when its integration is implemented. Sanitized `.env.
 
 ## Web Application
 
-Clerk and Supabase development variables for phases 11–12. Phase 11 validates cloud URL/publishable-key names in `@polivo/db-cloud` user-context clients. Phase 12 wires Clerk sign-in and request-scoped Supabase access. Fill local values before running authenticated web flows. See [web-authentication.md](./web-authentication.md).
+Clerk and Supabase development variables for phases 11–12. Phase 11 validates cloud URL/publishable-key names in `@polivo/db-cloud` user-context clients. Phase 12 wires Clerk sign-in and request-scoped Supabase access. Fill local values before running authenticated web flows. See [web-authentication.md](./web-authentication.md). CI `web-e2e` expects the same Clerk development key names as GitHub Actions secrets; see [testing-and-ci.md](./testing-and-ci.md).
 
 | Variable                               | Required for integrations | Public | Description                                                                                            |
 | -------------------------------------- | ------------------------- | ------ | ------------------------------------------------------------------------------------------------------ |

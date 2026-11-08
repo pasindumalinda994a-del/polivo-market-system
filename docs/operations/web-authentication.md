@@ -192,5 +192,5 @@ If remote migrations, third-party auth activation, or dedicated fixtures are mis
 
 - [environment-configuration.md](./environment-configuration.md)
 - [cloud-database-and-tenant-isolation.md](./cloud-database-and-tenant-isolation.md)
-- [testing-and-ci.md](./testing-and-ci.md)
+- [testing-and-ci.md](./testing-and-ci.md) — includes Clerk development secrets required for CI `web-e2e`
 - [local-development.md](./local-development.md)

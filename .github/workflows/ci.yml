@@ -104,6 +104,12 @@ jobs:
     name: web-e2e
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # Clerk development keys (not production). Required for next start + SignIn UI e2e.
+    env:
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
+      CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
+      NEXT_PUBLIC_CLERK_SIGN_IN_URL: /sign-in
+      NEXT_PUBLIC_CLERK_SIGN_UP_URL: /sign-up
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -126,6 +132,16 @@ jobs:
 
       - name: Install Playwright Chromium
         run: pnpm exec playwright install chromium --with-deps
+
+      - name: Verify Clerk development secrets
+        run: |
+          if [ -z "${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}" ] || [ -z "${CLERK_SECRET_KEY}" ]; then
+            echo "Missing Clerk development secrets for web-e2e."
+            echo "Add repository secrets NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY and CLERK_SECRET_KEY"
+            echo "(Clerk development instance keys — not production)."
+            echo "See docs/operations/testing-and-ci.md."
+            exit 1
+          fi
 
       - name: Build web application and workspace dependencies
         run: pnpm --filter @polivo/web... build

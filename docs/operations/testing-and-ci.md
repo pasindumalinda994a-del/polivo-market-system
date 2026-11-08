@@ -154,7 +154,16 @@ Triggers: pull requests, pushes to `main`, and `workflow_dispatch`.
 | `web-e2e`           | `ubuntu-latest`  | Playwright Chromium against the production web build                              |
 | `desktop-smoke`     | `windows-latest` | Electron smoke against built desktop output                                       |
 
-Permissions are `contents: read`. Jobs do not use production secrets, do not deploy, and do not publish installers. Failure diagnostics retain for 7 days.
+Permissions are `contents: read`. Jobs do not deploy and do not publish installers. Failure diagnostics retain for 7 days.
+
+`web-e2e` uses **repository secrets for a dedicated Clerk development instance** (not production) so Playwright can start `next start` and exercise Clerk middleware / SignIn UI:
+
+| Secret name                          | Purpose                                      |
+| ------------------------------------ | -------------------------------------------- |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`  | Clerk development publishable key            |
+| `CLERK_SECRET_KEY`                   | Matching Clerk development secret key        |
+
+The workflow also sets `NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in` and `NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up` (not secrets). A preflight step fails immediately if the Clerk secrets are missing, instead of waiting for Playwright’s webServer timeout. Create both secrets on the GitHub repository before expecting `web-e2e` to pass.
 
 ### Required checks after the first successful run
 
