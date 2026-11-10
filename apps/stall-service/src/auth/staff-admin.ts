@@ -42,7 +42,11 @@ export type VerifiedOwnerSetupProof = {
   tenantId: string;
   cloudMembershipId: string;
   ownerDisplayName: string;
-  /** Capability set for the local owner snapshot (typically empty; owners use is_local_owner). */
+  /**
+   * Capability set stored on the local owner snapshot (typically empty from cloud).
+   * Effective operational access for local owners is expanded at authorize/session time
+   * via `effectiveLocalCapabilities` (full catalog when `is_local_owner`).
+   */
   capabilities: readonly string[];
   sourceRevision: number;
   grantId: string;

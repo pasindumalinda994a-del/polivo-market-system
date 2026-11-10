@@ -18,6 +18,12 @@ import { acceptTerminalPairing } from "./enrollment/accept-terminal.js";
 import { buildAcceptTrustFields } from "./enrollment/host-trust.js";
 import { registerConnectionRoutes } from "./http/connection-routes.js";
 import { registerErrorHandler } from "./http/error-handler.js";
+import { registerBuyerRoutes } from "./http/buyer-routes.js";
+import { registerFarmerRoutes } from "./http/farmer-routes.js";
+import { registerPackageTypeRoutes } from "./http/package-type-routes.js";
+import { registerVegetableRoutes } from "./http/vegetable-routes.js";
+import { registerCommissionPolicyRoutes } from "./http/commission-policy-routes.js";
+import { registerAccountRoutes } from "./http/account-routes.js";
 import { assertLoopbackOnly } from "./http/loopback-guard.js";
 import { registerLocalStaffRoutes } from "./http/local-staff-routes.js";
 import type { TlsMaterial } from "./security/tls-material.js";
@@ -47,7 +53,7 @@ export type StallApp = ReturnType<typeof buildApp>;
 /**
  * Production application construction.
  * Registers health, Phase 14 terminal accept, Phase 15 local staff auth,
- * and Phase 16 connection identity.
+ * Phase 16 connection identity, and Phase 17 farmer management.
  */
 export function buildApp(options: BuildAppOptions = {}) {
   const deps =
@@ -133,6 +139,13 @@ export function buildApp(options: BuildAppOptions = {}) {
     setupGrantRedeemer: options.setupGrantRedeemer,
     enrollmentBaseUrl: options.enrollmentBaseUrl,
   });
+
+  registerFarmerRoutes(app, deps);
+  registerBuyerRoutes(app, deps);
+  registerVegetableRoutes(app, deps);
+  registerPackageTypeRoutes(app, deps);
+  registerCommissionPolicyRoutes(app, deps);
+  registerAccountRoutes(app, deps);
 
   return Object.assign(app, {
     getLocalDatabase: (): LocalDatabase | undefined => deps.database,

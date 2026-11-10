@@ -638,3 +638,100 @@ export function switchStaffPrepare(): DesktopConnectionStatus {
   runtime.lastErrorMessage = null;
   return getConnectionStatus();
 }
+
+export type AuthenticatedHostRequestOptions = {
+  method: string;
+  path: string;
+  query?: Record<string, string | undefined>;
+  body?: unknown;
+  idempotencyKey?: string;
+};
+
+export type AuthenticatedHostResponse = {
+  status: number;
+  bodyText: string;
+  requestGeneration: number;
+};
+
+/**
+ * Signed staff+device request to the configured host.
+ * Session secrets stay in the main process. Callers must ignore stale generations.
+ */
+export async function authenticatedHostRequest(
+  options: AuthenticatedHostRequestOptions,
+): Promise<AuthenticatedHostResponse> {
+  const settings = runtime.settings;
+  const staff = runtime.staff;
+  const pins = getHostTrustPins();
+  if (!settings || !pins) {
+    throw new Error("Stall host unavailable");
+  }
+  if (!staff || runtime.state !== "signed_in") {
+    throw new Error("Staff session required.");
+  }
+
+  const generation = runtime.requestGeneration;
+  const deviceProof = buildDeviceProof(options.method, options.path);
+  const url = new URL(options.path, serviceBaseUrl(settings));
+  if (options.query) {
+    for (const [key, value] of Object.entries(options.query)) {
+      if (value !== undefined && value.length > 0) {
+        url.searchParams.set(key, value);
+      }
+    }
+  }
+
+  const headers: Record<string, string> = {
+    "x-polivo-device-id": deviceProof.deviceId,
+    "x-polivo-device-signed-at": deviceProof.signedAt,
+    "x-polivo-device-signature": deviceProof.signature,
+    "x-polivo-session": staff.sessionSecret,
+  };
+  if (options.idempotencyKey) {
+    headers["idempotency-key"] = options.idempotencyKey;
+  }
+  if (options.body !== undefined) {
+    headers["content-type"] = "application/json";
+  }
+
+  const response = await pinnedHttpsRequest({
+    method: options.method,
+    url: url.toString(),
+    expectedCertificateSha256: pins.tlsCertificateSha256,
+    headers,
+    body: options.body === undefined ? undefined : JSON.stringify(options.body),
+    timeoutMs: REQUEST_TIMEOUT_MS,
+    signal: runtime.abortController.signal,
+  });
+
+  if (response.status === 401) {
+    clearStaffLocally();
+    runtime.state = "session_refresh_required";
+    runtime.lastErrorMessage = mapApiErrorMessage(
+      response.status,
+      response.bodyText,
+      "Session refresh required.",
+    );
+  } else if (response.status === 0 || response.status >= 500) {
+    runtime.state = "unreachable";
+    runtime.lastErrorMessage = "Stall host unavailable";
+  }
+
+  return {
+    status: response.status,
+    bodyText: response.bodyText,
+    requestGeneration: generation,
+  };
+}
+
+export function getConnectionRequestGeneration(): number {
+  return runtime.requestGeneration;
+}
+
+export function isStaffSignedIn(): boolean {
+  return runtime.state === "signed_in" && runtime.staff !== null;
+}
+
+export function mapHostApiError(status: number, bodyText: string, fallback: string): string {
+  return mapApiErrorMessage(status, bodyText, fallback);
+}

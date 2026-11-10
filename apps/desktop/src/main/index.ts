@@ -12,6 +12,42 @@ import {
   switchStaffPrepare,
 } from "./connection.js";
 import { enrollTerminal, getTerminalEnrollmentStatus } from "./enrollment.js";
+import { changeBuyerStatus, createBuyer, getBuyer, listBuyers, updateBuyer } from "./buyers.js";
+import {
+  changeFarmerStatus,
+  createFarmer,
+  getFarmer,
+  listFarmers,
+  updateFarmer,
+} from "./farmers.js";
+import {
+  changePackageTypeStatus,
+  createPackageType,
+  listPackageTypes,
+  updatePackageType,
+} from "./package-types.js";
+import {
+  changeVegetableStatus,
+  createVegetable,
+  getVegetable,
+  listVegetables,
+  updateVegetable,
+} from "./vegetables.js";
+import {
+  activateCommissionPolicy,
+  getActiveCommissionPolicy,
+  getCommissionPolicyVersion,
+  listCommissionPolicyVersions,
+  previewCommission,
+} from "./commission-policy.js";
+import {
+  correctOpening,
+  getAccountBalance,
+  listAccountMovements,
+  postOpeningDraft,
+  prepareOpeningDraft,
+  updateOpeningDraft,
+} from "./accounts.js";
 
 const isDevelopment = !app.isPackaged;
 
@@ -189,6 +225,507 @@ app.whenReady().then(() => {
     }
     return switchStaffPrepare();
   });
+
+  ipcMain.handle("farmers:list", async (event, input: unknown) => {
+    if (!isTrustedIpcSender(event)) {
+      throw new Error("Untrusted IPC sender.");
+    }
+    const query =
+      input && typeof input === "object"
+        ? (input as {
+            q?: string;
+            active?: "active" | "inactive" | "all";
+            limit?: number;
+            cursor?: string;
+          })
+        : {};
+    return listFarmers(query);
+  });
+  ipcMain.handle("farmers:get", async (event, farmerId: unknown) => {
+    if (!isTrustedIpcSender(event)) {
+      throw new Error("Untrusted IPC sender.");
+    }
+    if (typeof farmerId !== "string" || farmerId.trim().length === 0) {
+      throw new Error("Farmer id is required.");
+    }
+    return getFarmer(farmerId);
+  });
+  ipcMain.handle("farmers:create", async (event, input: unknown, idempotencyKey: unknown) => {
+    if (!isTrustedIpcSender(event)) {
+      throw new Error("Untrusted IPC sender.");
+    }
+    if (!input || typeof input !== "object") {
+      throw new Error("Invalid farmer payload.");
+    }
+    return createFarmer(
+      input as {
+        shortCode: string;
+        displayName: string;
+        contactNumber?: string | null;
+        locality?: string | null;
+      },
+      typeof idempotencyKey === "string" ? idempotencyKey : undefined,
+    );
+  });
+  ipcMain.handle(
+    "farmers:update",
+    async (event, farmerId: unknown, input: unknown, idempotencyKey: unknown) => {
+      if (!isTrustedIpcSender(event)) {
+        throw new Error("Untrusted IPC sender.");
+      }
+      if (typeof farmerId !== "string" || farmerId.trim().length === 0) {
+        throw new Error("Farmer id is required.");
+      }
+      if (!input || typeof input !== "object") {
+        throw new Error("Invalid farmer payload.");
+      }
+      return updateFarmer(
+        farmerId,
+        input as {
+          expectedRevision: number;
+          displayName?: string;
+          contactNumber?: string | null;
+          locality?: string | null;
+        },
+        typeof idempotencyKey === "string" ? idempotencyKey : undefined,
+      );
+    },
+  );
+  ipcMain.handle(
+    "farmers:changeStatus",
+    async (event, farmerId: unknown, input: unknown, idempotencyKey: unknown) => {
+      if (!isTrustedIpcSender(event)) {
+        throw new Error("Untrusted IPC sender.");
+      }
+      if (typeof farmerId !== "string" || farmerId.trim().length === 0) {
+        throw new Error("Farmer id is required.");
+      }
+      if (!input || typeof input !== "object") {
+        throw new Error("Invalid farmer status payload.");
+      }
+      return changeFarmerStatus(
+        farmerId,
+        input as { expectedRevision: number; status: "active" | "inactive" },
+        typeof idempotencyKey === "string" ? idempotencyKey : undefined,
+      );
+    },
+  );
+
+  ipcMain.handle("buyers:list", async (event, input: unknown) => {
+    if (!isTrustedIpcSender(event)) {
+      throw new Error("Untrusted IPC sender.");
+    }
+    const query =
+      input && typeof input === "object"
+        ? (input as {
+            q?: string;
+            active?: "active" | "inactive" | "all";
+            limit?: number;
+            cursor?: string;
+          })
+        : {};
+    return listBuyers(query);
+  });
+  ipcMain.handle("buyers:get", async (event, buyerId: unknown) => {
+    if (!isTrustedIpcSender(event)) {
+      throw new Error("Untrusted IPC sender.");
+    }
+    if (typeof buyerId !== "string" || buyerId.trim().length === 0) {
+      throw new Error("Buyer id is required.");
+    }
+    return getBuyer(buyerId);
+  });
+  ipcMain.handle("buyers:create", async (event, input: unknown, idempotencyKey: unknown) => {
+    if (!isTrustedIpcSender(event)) {
+      throw new Error("Untrusted IPC sender.");
+    }
+    if (!input || typeof input !== "object") {
+      throw new Error("Invalid buyer payload.");
+    }
+    return createBuyer(
+      input as {
+        shortCode: string;
+        displayName: string;
+        contactNumber?: string | null;
+        locality?: string | null;
+      },
+      typeof idempotencyKey === "string" ? idempotencyKey : undefined,
+    );
+  });
+  ipcMain.handle(
+    "buyers:update",
+    async (event, buyerId: unknown, input: unknown, idempotencyKey: unknown) => {
+      if (!isTrustedIpcSender(event)) {
+        throw new Error("Untrusted IPC sender.");
+      }
+      if (typeof buyerId !== "string" || buyerId.trim().length === 0) {
+        throw new Error("Buyer id is required.");
+      }
+      if (!input || typeof input !== "object") {
+        throw new Error("Invalid buyer payload.");
+      }
+      return updateBuyer(
+        buyerId,
+        input as {
+          expectedRevision: number;
+          displayName?: string;
+          contactNumber?: string | null;
+          locality?: string | null;
+        },
+        typeof idempotencyKey === "string" ? idempotencyKey : undefined,
+      );
+    },
+  );
+  ipcMain.handle(
+    "buyers:changeStatus",
+    async (event, buyerId: unknown, input: unknown, idempotencyKey: unknown) => {
+      if (!isTrustedIpcSender(event)) {
+        throw new Error("Untrusted IPC sender.");
+      }
+      if (typeof buyerId !== "string" || buyerId.trim().length === 0) {
+        throw new Error("Buyer id is required.");
+      }
+      if (!input || typeof input !== "object") {
+        throw new Error("Invalid buyer status payload.");
+      }
+      return changeBuyerStatus(
+        buyerId,
+        input as { expectedRevision: number; status: "active" | "inactive" },
+        typeof idempotencyKey === "string" ? idempotencyKey : undefined,
+      );
+    },
+  );
+
+  ipcMain.handle("vegetables:list", async (event, input: unknown) => {
+    if (!isTrustedIpcSender(event)) {
+      throw new Error("Untrusted IPC sender.");
+    }
+    const query =
+      input && typeof input === "object"
+        ? (input as {
+            q?: string;
+            active?: "active" | "inactive" | "all";
+            limit?: number;
+            cursor?: string;
+          })
+        : {};
+    return listVegetables(query);
+  });
+  ipcMain.handle("vegetables:get", async (event, vegetableId: unknown) => {
+    if (!isTrustedIpcSender(event)) {
+      throw new Error("Untrusted IPC sender.");
+    }
+    if (typeof vegetableId !== "string" || vegetableId.trim().length === 0) {
+      throw new Error("Vegetable id is required.");
+    }
+    return getVegetable(vegetableId);
+  });
+  ipcMain.handle("vegetables:create", async (event, input: unknown, idempotencyKey: unknown) => {
+    if (!isTrustedIpcSender(event)) {
+      throw new Error("Untrusted IPC sender.");
+    }
+    if (!input || typeof input !== "object") {
+      throw new Error("Invalid vegetable payload.");
+    }
+    return createVegetable(
+      input as { shortCode: string; displayName: string },
+      typeof idempotencyKey === "string" ? idempotencyKey : undefined,
+    );
+  });
+  ipcMain.handle(
+    "vegetables:update",
+    async (event, vegetableId: unknown, input: unknown, idempotencyKey: unknown) => {
+      if (!isTrustedIpcSender(event)) {
+        throw new Error("Untrusted IPC sender.");
+      }
+      if (typeof vegetableId !== "string" || vegetableId.trim().length === 0) {
+        throw new Error("Vegetable id is required.");
+      }
+      if (!input || typeof input !== "object") {
+        throw new Error("Invalid vegetable payload.");
+      }
+      return updateVegetable(
+        vegetableId,
+        input as { expectedRevision: number; displayName: string },
+        typeof idempotencyKey === "string" ? idempotencyKey : undefined,
+      );
+    },
+  );
+  ipcMain.handle(
+    "vegetables:changeStatus",
+    async (event, vegetableId: unknown, input: unknown, idempotencyKey: unknown) => {
+      if (!isTrustedIpcSender(event)) {
+        throw new Error("Untrusted IPC sender.");
+      }
+      if (typeof vegetableId !== "string" || vegetableId.trim().length === 0) {
+        throw new Error("Vegetable id is required.");
+      }
+      if (!input || typeof input !== "object") {
+        throw new Error("Invalid vegetable status payload.");
+      }
+      return changeVegetableStatus(
+        vegetableId,
+        input as { expectedRevision: number; status: "active" | "inactive" },
+        typeof idempotencyKey === "string" ? idempotencyKey : undefined,
+      );
+    },
+  );
+
+  ipcMain.handle("packageTypes:list", async (event, input: unknown) => {
+    if (!isTrustedIpcSender(event)) {
+      throw new Error("Untrusted IPC sender.");
+    }
+    const query =
+      input && typeof input === "object"
+        ? (input as {
+            q?: string;
+            active?: "active" | "inactive" | "all";
+            limit?: number;
+            cursor?: string;
+          })
+        : {};
+    return listPackageTypes(query);
+  });
+  ipcMain.handle("packageTypes:create", async (event, input: unknown, idempotencyKey: unknown) => {
+    if (!isTrustedIpcSender(event)) {
+      throw new Error("Untrusted IPC sender.");
+    }
+    if (!input || typeof input !== "object") {
+      throw new Error("Invalid package type payload.");
+    }
+    return createPackageType(
+      input as { shortCode: string; displayName: string },
+      typeof idempotencyKey === "string" ? idempotencyKey : undefined,
+    );
+  });
+  ipcMain.handle(
+    "packageTypes:update",
+    async (event, packageTypeId: unknown, input: unknown, idempotencyKey: unknown) => {
+      if (!isTrustedIpcSender(event)) {
+        throw new Error("Untrusted IPC sender.");
+      }
+      if (typeof packageTypeId !== "string" || packageTypeId.trim().length === 0) {
+        throw new Error("Package type id is required.");
+      }
+      if (!input || typeof input !== "object") {
+        throw new Error("Invalid package type payload.");
+      }
+      return updatePackageType(
+        packageTypeId,
+        input as { expectedRevision: number; displayName: string },
+        typeof idempotencyKey === "string" ? idempotencyKey : undefined,
+      );
+    },
+  );
+  ipcMain.handle(
+    "packageTypes:changeStatus",
+    async (event, packageTypeId: unknown, input: unknown, idempotencyKey: unknown) => {
+      if (!isTrustedIpcSender(event)) {
+        throw new Error("Untrusted IPC sender.");
+      }
+      if (typeof packageTypeId !== "string" || packageTypeId.trim().length === 0) {
+        throw new Error("Package type id is required.");
+      }
+      if (!input || typeof input !== "object") {
+        throw new Error("Invalid package type status payload.");
+      }
+      return changePackageTypeStatus(
+        packageTypeId,
+        input as { expectedRevision: number; status: "active" | "inactive" },
+        typeof idempotencyKey === "string" ? idempotencyKey : undefined,
+      );
+    },
+  );
+
+  ipcMain.handle("commissionPolicy:getActive", async (event) => {
+    if (!isTrustedIpcSender(event)) {
+      throw new Error("Untrusted IPC sender.");
+    }
+    return getActiveCommissionPolicy();
+  });
+  ipcMain.handle("commissionPolicy:listVersions", async (event, input: unknown) => {
+    if (!isTrustedIpcSender(event)) {
+      throw new Error("Untrusted IPC sender.");
+    }
+    const query =
+      input && typeof input === "object" ? (input as { limit?: number; cursor?: string }) : {};
+    return listCommissionPolicyVersions(query);
+  });
+  ipcMain.handle("commissionPolicy:getVersion", async (event, versionId: unknown) => {
+    if (!isTrustedIpcSender(event)) {
+      throw new Error("Untrusted IPC sender.");
+    }
+    if (typeof versionId !== "string" || versionId.trim().length === 0) {
+      throw new Error("Commission version id is required.");
+    }
+    return getCommissionPolicyVersion(versionId);
+  });
+  ipcMain.handle(
+    "commissionPolicy:activate",
+    async (event, input: unknown, idempotencyKey: unknown) => {
+      if (!isTrustedIpcSender(event)) {
+        throw new Error("Untrusted IPC sender.");
+      }
+      if (!input || typeof input !== "object") {
+        throw new Error("Invalid commission activation payload.");
+      }
+      return activateCommissionPolicy(
+        input as {
+          expectedRevision: number;
+          bands: Array<{
+            id: string;
+            minPricePerKgMinor: number;
+            maxPricePerKgMinor: number | null;
+            ratePerKgMinor: number;
+          }>;
+        },
+        typeof idempotencyKey === "string" ? idempotencyKey : undefined,
+      );
+    },
+  );
+  ipcMain.handle("commissionPolicy:preview", async (event, input: unknown) => {
+    if (!isTrustedIpcSender(event)) {
+      throw new Error("Untrusted IPC sender.");
+    }
+    if (!input || typeof input !== "object") {
+      throw new Error("Invalid commission preview payload.");
+    }
+    return previewCommission(
+      input as {
+        versionId?: string;
+        sellingPricePerKgMinor: number;
+        netWeightHundredths: number;
+      },
+    );
+  });
+
+  ipcMain.handle("accounts:getBalance", async (event, input: unknown) => {
+    if (!isTrustedIpcSender(event)) {
+      throw new Error("Untrusted IPC sender.");
+    }
+    if (!input || typeof input !== "object") {
+      throw new Error("Invalid account balance request.");
+    }
+    return getAccountBalance(
+      input as { partyKind: "farmer" | "trader"; partyId: string },
+    );
+  });
+  ipcMain.handle("accounts:listMovements", async (event, input: unknown) => {
+    if (!isTrustedIpcSender(event)) {
+      throw new Error("Untrusted IPC sender.");
+    }
+    if (!input || typeof input !== "object") {
+      throw new Error("Invalid account movements request.");
+    }
+    return listAccountMovements(
+      input as {
+        partyKind: "farmer" | "trader";
+        partyId: string;
+        limit?: number;
+        cursor?: string;
+      },
+    );
+  });
+  ipcMain.handle(
+    "accounts:prepareOpening",
+    async (event, input: unknown, idempotencyKey: unknown) => {
+      if (!isTrustedIpcSender(event)) {
+        throw new Error("Untrusted IPC sender.");
+      }
+      if (!input || typeof input !== "object") {
+        throw new Error("Invalid opening draft payload.");
+      }
+      return prepareOpeningDraft(
+        input as {
+          partyKind: "farmer" | "trader";
+          partyId: string;
+          direction:
+            | "stall_owes_farmer"
+            | "farmer_owes_stall"
+            | "buyer_owes_stall"
+            | "stall_owes_buyer";
+          amountMinor: number;
+          cutoffDate: string;
+          reference?: string;
+          explanation?: string;
+        },
+        typeof idempotencyKey === "string" ? idempotencyKey : undefined,
+      );
+    },
+  );
+  ipcMain.handle(
+    "accounts:updateOpening",
+    async (event, draftId: unknown, input: unknown, idempotencyKey: unknown) => {
+      if (!isTrustedIpcSender(event)) {
+        throw new Error("Untrusted IPC sender.");
+      }
+      if (typeof draftId !== "string" || !input || typeof input !== "object") {
+        throw new Error("Invalid opening draft update.");
+      }
+      return updateOpeningDraft(
+        draftId,
+        input as {
+          expectedRevision: number;
+          direction:
+            | "stall_owes_farmer"
+            | "farmer_owes_stall"
+            | "buyer_owes_stall"
+            | "stall_owes_buyer";
+          amountMinor: number;
+          cutoffDate: string;
+          reference?: string;
+          explanation?: string;
+        },
+        typeof idempotencyKey === "string" ? idempotencyKey : undefined,
+      );
+    },
+  );
+  ipcMain.handle(
+    "accounts:postOpening",
+    async (event, draftId: unknown, input: unknown, idempotencyKey: unknown) => {
+      if (!isTrustedIpcSender(event)) {
+        throw new Error("Untrusted IPC sender.");
+      }
+      if (typeof draftId !== "string" || !input || typeof input !== "object") {
+        throw new Error("Invalid opening post payload.");
+      }
+      return postOpeningDraft(
+        draftId,
+        input as { expectedRevision: number },
+        typeof idempotencyKey === "string" ? idempotencyKey : undefined,
+      );
+    },
+  );
+  ipcMain.handle(
+    "accounts:correctOpening",
+    async (event, input: unknown, idempotencyKey: unknown) => {
+      if (!isTrustedIpcSender(event)) {
+        throw new Error("Untrusted IPC sender.");
+      }
+      if (!input || typeof input !== "object") {
+        throw new Error("Invalid opening correction payload.");
+      }
+      return correctOpening(
+        input as {
+          partyKind: "farmer" | "trader";
+          partyId: string;
+          reason: string;
+          replacement?: {
+            direction:
+              | "stall_owes_farmer"
+              | "farmer_owes_stall"
+              | "buyer_owes_stall"
+              | "stall_owes_buyer";
+            amountMinor: number;
+            cutoffDate?: string;
+            reference?: string;
+            explanation?: string;
+          };
+        },
+        typeof idempotencyKey === "string" ? idempotencyKey : undefined,
+      );
+    },
+  );
 
   createWindow();
 

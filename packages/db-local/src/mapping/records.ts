@@ -60,6 +60,132 @@ export type PartyRecord = {
   updatedAt: string;
 };
 
+/** Farmer master record after migration 004 (revision + optional contact fields). */
+export type FarmerRecord = PartyRecord & {
+  revision: number;
+  contactNumber: string | null;
+  locality: string | null;
+};
+
+/** Buyer master record after migration 005. Stored on the traders table. */
+export type BuyerRecord = PartyRecord & {
+  revision: number;
+  contactNumber: string | null;
+  locality: string | null;
+};
+
+/** Vegetable catalog record after migration 006. */
+export type VegetableRecord = PartyRecord & {
+  revision: number;
+};
+
+/** Package-type catalog record after migration 006. No default tare fields. */
+export type PackageTypeRecord = PartyRecord & {
+  revision: number;
+};
+
+/** Stall commission policy pointer after migration 007. */
+export type CommissionPolicyStateRecord = {
+  stallId: string;
+  activeBandSetId: string | null;
+  revision: number;
+  updatedAt: string;
+};
+
+/** Immutable published commission band-set version after migration 007. */
+export type CommissionBandSetRecord = {
+  id: string;
+  stallId: string;
+  versionNumber: number;
+  effectiveFrom: string;
+  createdAt: string;
+  createdByStaffId: string | null;
+  activatedAt: string | null;
+  activatedByStaffId: string | null;
+  previousBandSetId: string | null;
+};
+
+export type CommissionBandRecord = {
+  id: string;
+  stallId: string;
+  bandSetId: string;
+  sortOrder: number;
+  minPricePerKgMinor: number | null;
+  maxPricePerKgMinor: number | null;
+  ratePerKgMinor: number;
+};
+
+export type LedgerPartyKind = "farmer" | "trader";
+export type PartyAccountOpeningStatus = "not_opened" | "opened" | "opened_zero";
+export type OpeningDraftStatus = "draft" | "posted" | "discarded";
+export type OpeningBalanceDirection =
+  | "stall_owes_farmer"
+  | "farmer_owes_stall"
+  | "buyer_owes_stall"
+  | "stall_owes_buyer";
+
+export type PartyAccountRecord = {
+  id: string;
+  stallId: string;
+  partyKind: LedgerPartyKind;
+  partyId: string;
+  currency: "LKR";
+  openingStatus: PartyAccountOpeningStatus;
+  openingCutoffDate: string | null;
+  openingCompletedAt: string | null;
+  openingCompletedByStaffId: string | null;
+  openingDraftId: string | null;
+  openingPostingId: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type LedgerPostingRecord = {
+  id: string;
+  stallId: string;
+  sourceType: string;
+  sourceId: string;
+  financialEventType: string;
+  eventSequence: number;
+  businessDate: string;
+  recordedAt: string;
+  actorStaffId: string | null;
+  description: string | null;
+  currency: "LKR";
+};
+
+export type LedgerEntryRecord = {
+  id: string;
+  stallId: string;
+  postingId: string;
+  partyKind: LedgerPartyKind;
+  partyId: string;
+  amountMinor: number;
+  currency: "LKR";
+  postingSequence: number;
+  reversesEntryId: string | null;
+};
+
+export type OpeningBalanceDraftRecord = {
+  id: string;
+  stallId: string;
+  partyKind: LedgerPartyKind;
+  partyId: string;
+  direction: OpeningBalanceDirection;
+  amountMinor: number;
+  signedAmountMinor: number | null;
+  cutoffDate: string;
+  currency: "LKR";
+  reference: string | null;
+  explanation: string | null;
+  status: OpeningDraftStatus;
+  revision: number;
+  createdAt: string;
+  updatedAt: string;
+  createdByStaffId: string | null;
+  postedPostingId: string | null;
+};
+
 export type BillStatus = "draft" | "finalized" | "cancelled";
 export type PaymentStatus = "unpaid" | "partially_paid" | "fully_paid";
 
@@ -261,6 +387,52 @@ function optionalMoneyMinor(value: unknown, field: string): number | null {
   }
 }
 
+function requireMoneyMinor(value: unknown, field: string): number {
+  const amount = optionalMoneyMinor(value, field);
+  if (amount === null) {
+    throw new RowMappingError(`Expected money amount for ${field}.`);
+  }
+  return amount;
+}
+
+function requireLedgerPartyKind(value: unknown, field: string): LedgerPartyKind {
+  const text = requireString(value, field);
+  if (text !== "farmer" && text !== "trader") {
+    throw new RowMappingError(`Invalid ledger party kind for ${field}.`);
+  }
+  return text;
+}
+
+function requireOpeningStatus(value: unknown, field: string): PartyAccountOpeningStatus {
+  const text = requireString(value, field);
+  if (text !== "not_opened" && text !== "opened" && text !== "opened_zero") {
+    throw new RowMappingError(`Invalid opening status for ${field}.`);
+  }
+  return text;
+}
+
+function requireOpeningDirection(value: unknown, field: string): OpeningBalanceDirection {
+  const text = requireString(value, field);
+  const allowed: OpeningBalanceDirection[] = [
+    "stall_owes_farmer",
+    "farmer_owes_stall",
+    "buyer_owes_stall",
+    "stall_owes_buyer",
+  ];
+  if (!allowed.includes(text as OpeningBalanceDirection)) {
+    throw new RowMappingError(`Invalid opening direction for ${field}.`);
+  }
+  return text as OpeningBalanceDirection;
+}
+
+function requireOpeningDraftStatus(value: unknown, field: string): OpeningDraftStatus {
+  const text = requireString(value, field);
+  if (text !== "draft" && text !== "posted" && text !== "discarded") {
+    throw new RowMappingError(`Invalid opening draft status for ${field}.`);
+  }
+  return text;
+}
+
 export function mapStallBindingRow(row: Record<string, unknown>): StallBindingRecord {
   return {
     stallId: requireString(row["stall_id"], "stall_binding.stall_id"),
@@ -340,7 +512,7 @@ export function mapAcceptedTerminalRow(row: Record<string, unknown>): AcceptedTe
 
 export function mapPartyRow(
   row: Record<string, unknown>,
-  table: "farmers" | "traders",
+  table: "farmers" | "traders" | "vegetables" | "package_types",
 ): PartyRecord {
   return {
     id: requireString(row["id"], `${table}.id`),
@@ -350,6 +522,112 @@ export function mapPartyRow(
     isActive: requireBoolean01(row["is_active"], `${table}.is_active`),
     createdAt: requireAbsoluteTimestamp(row["created_at"], `${table}.created_at`),
     updatedAt: requireAbsoluteTimestamp(row["updated_at"], `${table}.updated_at`),
+  };
+}
+
+export function mapFarmerRow(row: Record<string, unknown>): FarmerRecord {
+  const base = mapPartyRow(row, "farmers");
+  return {
+    ...base,
+    revision: requireInteger(row["revision"], "farmers.revision"),
+    contactNumber: optionalString(row["contact_number"], "farmers.contact_number"),
+    locality: optionalString(row["locality"], "farmers.locality"),
+  };
+}
+
+export function mapBuyerRow(row: Record<string, unknown>): BuyerRecord {
+  const base = mapPartyRow(row, "traders");
+  return {
+    ...base,
+    revision: requireInteger(row["revision"], "traders.revision"),
+    contactNumber: optionalString(row["contact_number"], "traders.contact_number"),
+    locality: optionalString(row["locality"], "traders.locality"),
+  };
+}
+
+export function mapVegetableRow(row: Record<string, unknown>): VegetableRecord {
+  const base = mapPartyRow(row, "vegetables");
+  return {
+    ...base,
+    revision: requireInteger(row["revision"], "vegetables.revision"),
+  };
+}
+
+export function mapPackageTypeRow(row: Record<string, unknown>): PackageTypeRecord {
+  const base = mapPartyRow(row, "package_types");
+  return {
+    ...base,
+    revision: requireInteger(row["revision"], "package_types.revision"),
+  };
+}
+
+export function mapCommissionPolicyStateRow(
+  row: Record<string, unknown>,
+): CommissionPolicyStateRecord {
+  return {
+    stallId: requireString(row["stall_id"], "commission_policies.stall_id"),
+    activeBandSetId: optionalString(
+      row["active_band_set_id"],
+      "commission_policies.active_band_set_id",
+    ),
+    revision: requireInteger(row["revision"], "commission_policies.revision"),
+    updatedAt: requireAbsoluteTimestamp(row["updated_at"], "commission_policies.updated_at"),
+  };
+}
+
+export function mapCommissionBandSetRow(row: Record<string, unknown>): CommissionBandSetRecord {
+  return {
+    id: requireString(row["id"], "commission_band_sets.id"),
+    stallId: requireString(row["stall_id"], "commission_band_sets.stall_id"),
+    versionNumber: requireInteger(row["version_number"], "commission_band_sets.version_number"),
+    effectiveFrom: requireAbsoluteTimestamp(
+      row["effective_from"],
+      "commission_band_sets.effective_from",
+    ),
+    createdAt: requireAbsoluteTimestamp(row["created_at"], "commission_band_sets.created_at"),
+    createdByStaffId: optionalString(
+      row["created_by_staff_id"],
+      "commission_band_sets.created_by_staff_id",
+    ),
+    activatedAt:
+      row["activated_at"] === null || row["activated_at"] === undefined
+        ? null
+        : requireAbsoluteTimestamp(row["activated_at"], "commission_band_sets.activated_at"),
+    activatedByStaffId: optionalString(
+      row["activated_by_staff_id"],
+      "commission_band_sets.activated_by_staff_id",
+    ),
+    previousBandSetId: optionalString(
+      row["previous_band_set_id"],
+      "commission_band_sets.previous_band_set_id",
+    ),
+  };
+}
+
+export function mapCommissionBandRow(row: Record<string, unknown>): CommissionBandRecord {
+  return {
+    id: requireString(row["id"], "commission_bands.id"),
+    stallId: requireString(row["stall_id"], "commission_bands.stall_id"),
+    bandSetId: requireString(row["band_set_id"], "commission_bands.band_set_id"),
+    sortOrder: requireInteger(row["sort_order"], "commission_bands.sort_order"),
+    minPricePerKgMinor: optionalMoneyMinor(
+      row["min_price_per_kg_minor"],
+      "commission_bands.min_price_per_kg_minor",
+    ),
+    maxPricePerKgMinor: optionalMoneyMinor(
+      row["max_price_per_kg_minor"],
+      "commission_bands.max_price_per_kg_minor",
+    ),
+    ratePerKgMinor: (() => {
+      try {
+        return moneyMinorFromSqliteInteger(row["rate_per_kg_minor"]);
+      } catch (error) {
+        if (error instanceof NumericPersistenceError) {
+          throw new RowMappingError(error.message);
+        }
+        throw error;
+      }
+    })(),
   };
 }
 
@@ -586,5 +864,118 @@ export function mapLocalSecurityAuditEventRow(
       "local_security_audit_events.correlation_ref",
     ),
     detailsJson: optionalString(row["details_json"], "local_security_audit_events.details_json"),
+  };
+}
+
+export function mapPartyAccountRow(row: Record<string, unknown>): PartyAccountRecord {
+  const currency = requireString(row["currency"], "party_accounts.currency");
+  if (currency !== "LKR") {
+    throw new RowMappingError("Unsupported currency for party_accounts.currency.");
+  }
+  return {
+    id: requireString(row["id"], "party_accounts.id"),
+    stallId: requireString(row["stall_id"], "party_accounts.stall_id"),
+    partyKind: requireLedgerPartyKind(row["party_kind"], "party_accounts.party_kind"),
+    partyId: requireString(row["party_id"], "party_accounts.party_id"),
+    currency: "LKR",
+    openingStatus: requireOpeningStatus(row["opening_status"], "party_accounts.opening_status"),
+    openingCutoffDate:
+      row["opening_cutoff_date"] === null || row["opening_cutoff_date"] === undefined
+        ? null
+        : requireCalendarDate(row["opening_cutoff_date"], "party_accounts.opening_cutoff_date"),
+    openingCompletedAt:
+      row["opening_completed_at"] === null || row["opening_completed_at"] === undefined
+        ? null
+        : requireAbsoluteTimestamp(
+            row["opening_completed_at"],
+            "party_accounts.opening_completed_at",
+          ),
+    openingCompletedByStaffId: optionalString(
+      row["opening_completed_by_staff_id"],
+      "party_accounts.opening_completed_by_staff_id",
+    ),
+    openingDraftId: optionalString(row["opening_draft_id"], "party_accounts.opening_draft_id"),
+    openingPostingId: optionalString(
+      row["opening_posting_id"],
+      "party_accounts.opening_posting_id",
+    ),
+    createdAt: requireAbsoluteTimestamp(row["created_at"], "party_accounts.created_at"),
+    updatedAt: requireAbsoluteTimestamp(row["updated_at"], "party_accounts.updated_at"),
+  };
+}
+
+export function mapLedgerPostingRow(row: Record<string, unknown>): LedgerPostingRecord {
+  const currency = requireString(row["currency"], "ledger_postings.currency");
+  if (currency !== "LKR") {
+    throw new RowMappingError("Unsupported currency for ledger_postings.currency.");
+  }
+  return {
+    id: requireString(row["id"], "ledger_postings.id"),
+    stallId: requireString(row["stall_id"], "ledger_postings.stall_id"),
+    sourceType: requireString(row["source_type"], "ledger_postings.source_type"),
+    sourceId: requireString(row["source_id"], "ledger_postings.source_id"),
+    financialEventType: requireString(
+      row["financial_event_type"],
+      "ledger_postings.financial_event_type",
+    ),
+    eventSequence: requireInteger(row["event_sequence"], "ledger_postings.event_sequence"),
+    businessDate: requireCalendarDate(row["business_date"], "ledger_postings.business_date"),
+    recordedAt: requireAbsoluteTimestamp(row["recorded_at"], "ledger_postings.recorded_at"),
+    actorStaffId: optionalString(row["actor_staff_id"], "ledger_postings.actor_staff_id"),
+    description: optionalString(row["description"], "ledger_postings.description"),
+    currency: "LKR",
+  };
+}
+
+export function mapLedgerEntryRow(row: Record<string, unknown>): LedgerEntryRecord {
+  const currency = requireString(row["currency"], "ledger_entries.currency");
+  if (currency !== "LKR") {
+    throw new RowMappingError("Unsupported currency for ledger_entries.currency.");
+  }
+  return {
+    id: requireString(row["id"], "ledger_entries.id"),
+    stallId: requireString(row["stall_id"], "ledger_entries.stall_id"),
+    postingId: requireString(row["posting_id"], "ledger_entries.posting_id"),
+    partyKind: requireLedgerPartyKind(row["party_kind"], "ledger_entries.party_kind"),
+    partyId: requireString(row["party_id"], "ledger_entries.party_id"),
+    amountMinor: requireMoneyMinor(row["amount_minor"], "ledger_entries.amount_minor"),
+    currency: "LKR",
+    postingSequence: requireInteger(row["posting_sequence"], "ledger_entries.posting_sequence"),
+    reversesEntryId: optionalString(row["reverses_entry_id"], "ledger_entries.reverses_entry_id"),
+  };
+}
+
+export function mapOpeningBalanceDraftRow(row: Record<string, unknown>): OpeningBalanceDraftRecord {
+  const currency = requireString(row["currency"], "opening_balance_drafts.currency");
+  if (currency !== "LKR") {
+    throw new RowMappingError("Unsupported currency for opening_balance_drafts.currency.");
+  }
+  return {
+    id: requireString(row["id"], "opening_balance_drafts.id"),
+    stallId: requireString(row["stall_id"], "opening_balance_drafts.stall_id"),
+    partyKind: requireLedgerPartyKind(row["party_kind"], "opening_balance_drafts.party_kind"),
+    partyId: requireString(row["party_id"], "opening_balance_drafts.party_id"),
+    direction: requireOpeningDirection(row["direction"], "opening_balance_drafts.direction"),
+    amountMinor: requireMoneyMinor(row["amount_minor"], "opening_balance_drafts.amount_minor"),
+    signedAmountMinor: optionalMoneyMinor(
+      row["signed_amount_minor"],
+      "opening_balance_drafts.signed_amount_minor",
+    ),
+    cutoffDate: requireCalendarDate(row["cutoff_date"], "opening_balance_drafts.cutoff_date"),
+    currency: "LKR",
+    reference: optionalString(row["reference"], "opening_balance_drafts.reference"),
+    explanation: optionalString(row["explanation"], "opening_balance_drafts.explanation"),
+    status: requireOpeningDraftStatus(row["status"], "opening_balance_drafts.status"),
+    revision: requireInteger(row["revision"], "opening_balance_drafts.revision"),
+    createdAt: requireAbsoluteTimestamp(row["created_at"], "opening_balance_drafts.created_at"),
+    updatedAt: requireAbsoluteTimestamp(row["updated_at"], "opening_balance_drafts.updated_at"),
+    createdByStaffId: optionalString(
+      row["created_by_staff_id"],
+      "opening_balance_drafts.created_by_staff_id",
+    ),
+    postedPostingId: optionalString(
+      row["posted_posting_id"],
+      "opening_balance_drafts.posted_posting_id",
+    ),
   };
 }

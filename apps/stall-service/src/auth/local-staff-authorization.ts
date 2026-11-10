@@ -7,7 +7,7 @@ import {
   updateSessionActivity,
   type LocalDatabase,
 } from "@polivo/db-local";
-import { areKnownCapabilities } from "@polivo/domain";
+import { areKnownCapabilities, effectiveLocalCapabilities } from "@polivo/domain";
 
 import { forbiddenError, unauthenticatedError, type AppError } from "../errors/app-error.js";
 import type { SecureStorageAdapter } from "../security/secure-storage.js";
@@ -116,10 +116,16 @@ export function createLocalStaffAuthorizationAdapter(
         return policyOk;
       }
 
-      const capabilities = parseCapabilities(snapshot.capabilitiesJson);
-      if ("code" in capabilities) {
-        return capabilities;
+      const snapshotCapabilities = parseCapabilities(snapshot.capabilitiesJson);
+      if ("code" in snapshotCapabilities) {
+        return snapshotCapabilities;
       }
+      const capabilities: ReadonlySet<string> = new Set<string>(
+        effectiveLocalCapabilities({
+          isLocalOwner: staff.isLocalOwner,
+          snapshotCapabilities: [...snapshotCapabilities],
+        }),
+      );
       if (!capabilities.has(request.requiredCapability)) {
         return forbiddenError(`Missing capability: ${request.requiredCapability}`);
       }

@@ -14,42 +14,65 @@ import {
   StatusIndicator,
   type SidebarNavItem,
 } from "@polivo/ui";
-import { ClipboardList, LayoutDashboard, Settings, Users } from "lucide-react";
+import { ClipboardList, LayoutDashboard, Settings, Sprout, Users } from "lucide-react";
 
-const navigation: SidebarNavItem[] = [
-  {
-    id: "workspace",
-    label: "Workspace",
-    href: "#workspace",
-    available: true,
-    active: true,
-    icon: <LayoutDashboard className="h-5 w-5" aria-hidden="true" />,
-  },
-  {
-    id: "billing",
-    label: "Billing",
-    available: false,
-    icon: <ClipboardList className="h-5 w-5" aria-hidden="true" />,
-  },
-  {
-    id: "farmers",
-    label: "Farmers",
-    available: false,
-    icon: <Users className="h-5 w-5" aria-hidden="true" />,
-  },
-  {
-    id: "buyers",
-    label: "Buyers",
-    available: false,
-    icon: <Users className="h-5 w-5" aria-hidden="true" />,
-  },
-  {
-    id: "settings",
-    label: "Settings",
-    available: false,
-    icon: <Settings className="h-5 w-5" aria-hidden="true" />,
-  },
-];
+import { BuyersPanel } from "./BuyersPanel";
+import { CatalogPanel } from "./CatalogPanel";
+import { CommissionSettingsPanel } from "./CommissionSettingsPanel";
+import { FarmersPanel } from "./FarmersPanel";
+
+type DesktopView = "workspace" | "farmers" | "buyers" | "catalog" | "settings";
+
+function buildNavigation(activeView: DesktopView): SidebarNavItem[] {
+  return [
+    {
+      id: "workspace",
+      label: "Workspace",
+      href: "#workspace",
+      available: true,
+      active: activeView === "workspace",
+      icon: <LayoutDashboard className="h-5 w-5" aria-hidden="true" />,
+    },
+    {
+      id: "billing",
+      label: "Billing",
+      available: false,
+      icon: <ClipboardList className="h-5 w-5" aria-hidden="true" />,
+    },
+    {
+      id: "farmers",
+      label: "Farmers",
+      href: "#farmers",
+      available: true,
+      active: activeView === "farmers",
+      icon: <Users className="h-5 w-5" aria-hidden="true" />,
+    },
+    {
+      id: "buyers",
+      label: "Buyers",
+      href: "#buyers",
+      available: true,
+      active: activeView === "buyers",
+      icon: <Users className="h-5 w-5" aria-hidden="true" />,
+    },
+    {
+      id: "catalog",
+      label: "Catalog",
+      href: "#catalog",
+      available: true,
+      active: activeView === "catalog",
+      icon: <Sprout className="h-5 w-5" aria-hidden="true" />,
+    },
+    {
+      id: "settings",
+      label: "Settings",
+      href: "#settings",
+      available: true,
+      active: activeView === "settings",
+      icon: <Settings className="h-5 w-5" aria-hidden="true" />,
+    },
+  ];
+}
 
 type EnrollmentStatus = {
   installationId: string;
@@ -131,6 +154,7 @@ function statusLabel(
 
 export default function App() {
   const [pending, startTransition] = useTransition();
+  const [activeView, setActiveView] = useState<DesktopView>("workspace");
   const [enrollment, setEnrollment] = useState<EnrollmentStatus | null>(null);
   const [connection, setConnection] = useState<ConnectionStatus | null>(null);
   const [enrollmentSecret, setEnrollmentSecret] = useState("");
@@ -140,6 +164,7 @@ export default function App() {
   const [staffSecret, setStaffSecret] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+  const [staffEpoch, setStaffEpoch] = useState(0);
   const staffCodeRef = useRef<HTMLInputElement>(null);
   const staffSecretRef = useRef<HTMLInputElement>(null);
 
@@ -241,6 +266,7 @@ export default function App() {
           queueMicrotask(() => staffSecretRef.current?.focus());
           return;
         }
+        setStaffEpoch((value) => value + 1);
         setInfo(null);
       } catch (err) {
         setStaffSecret("");
@@ -275,6 +301,8 @@ export default function App() {
       setConnection(result.status);
       setStaffCode("");
       setStaffSecret("");
+      setStaffEpoch((value) => value + 1);
+      setActiveView("workspace");
       setInfo(
         result.serverRevocationAcknowledged
           ? "Signed out on this terminal and on the stall host."
@@ -295,6 +323,8 @@ export default function App() {
       setConnection(status);
       setStaffCode("");
       setStaffSecret("");
+      setStaffEpoch((value) => value + 1);
+      setActiveView("workspace");
       queueMicrotask(() => staffCodeRef.current?.focus());
     });
   }
@@ -308,12 +338,32 @@ export default function App() {
   const signedIn = connection?.state === "signed_in";
   const hostDown = connection?.state === "unreachable";
   const identityFailed = connection?.state === "identity_failed";
+  const hostAvailable = signedIn && !hostDown && !identityFailed;
+  const canManageParties = Boolean(connection?.capabilities.includes("parties.register_edit"));
+  const canManageCatalog = Boolean(connection?.capabilities.includes("catalog.manage"));
+  const canManageCommission = Boolean(connection?.capabilities.includes("commission.manage"));
+  const canViewAccounts = Boolean(connection?.capabilities.includes("accounts.view"));
+  const canPrepareOpening = Boolean(connection?.capabilities.includes("accounts.opening_prepare"));
+  const canPostOpening = Boolean(connection?.capabilities.includes("accounts.opening_post"));
+  const staffSessionKey = signedIn ? `${connection?.staffCode ?? "staff"}:${staffEpoch}` : null;
+  const navigation = buildNavigation(activeView);
 
   return (
     <AppShell
       compactNav
       brand={<BrandMark compact />}
       navigation={navigation}
+      onNavigate={(item) => {
+        if (
+          item.id === "farmers" ||
+          item.id === "buyers" ||
+          item.id === "catalog" ||
+          item.id === "settings" ||
+          item.id === "workspace"
+        ) {
+          setActiveView(item.id as DesktopView);
+        }
+      }}
       header={<AppHeader title="Desktop workspace" />}
       statusArea={
         <StatusIndicator
@@ -499,7 +549,42 @@ export default function App() {
         </section>
       ) : null}
 
-      {signedIn ? (
+      {activeView === "farmers" ? (
+        <FarmersPanel
+          hostAvailable={hostAvailable}
+          signedIn={signedIn}
+          canManage={canManageParties}
+          canViewAccounts={canViewAccounts}
+          canPrepareOpening={canPrepareOpening}
+          canPostOpening={canPostOpening}
+          staffKey={staffSessionKey}
+        />
+      ) : activeView === "buyers" ? (
+        <BuyersPanel
+          hostAvailable={hostAvailable}
+          signedIn={signedIn}
+          canManage={canManageParties}
+          canViewAccounts={canViewAccounts}
+          canPrepareOpening={canPrepareOpening}
+          canPostOpening={canPostOpening}
+          staffKey={staffSessionKey}
+        />
+      ) : activeView === "catalog" ? (
+        <CatalogPanel
+          hostAvailable={hostAvailable}
+          signedIn={signedIn}
+          canManage={canManageCatalog}
+          staffKey={staffSessionKey}
+        />
+      ) : activeView === "settings" ? (
+        <CommissionSettingsPanel
+          key={staffSessionKey ?? "signed-out"}
+          hostAvailable={hostAvailable}
+          signedIn={signedIn}
+          canManage={canManageCommission}
+          staffKey={staffSessionKey}
+        />
+      ) : signedIn ? (
         <EmptyState
           title="Billing workspace reserved"
           description={`Signed in to ${connection?.verifiedStallDisplayName ?? "the stall"}. Party selection, line entry, and totals will appear here in a later phase.`}

@@ -76,6 +76,8 @@ test("launches Electron with Polivo desktop shell and secure boundaries", async 
         ipcRenderer?: unknown;
         polivoEnrollment?: unknown;
         polivoConnection?: unknown;
+        polivoFarmers?: unknown;
+        polivoBuyers?: unknown;
       };
 
     return {
@@ -85,6 +87,8 @@ test("launches Electron with Polivo desktop shell and secure boundaries", async 
       hasIpcRenderer: typeof scopedWindow.ipcRenderer !== "undefined",
       hasEnrollmentBridge: typeof scopedWindow.polivoEnrollment !== "undefined",
       hasConnectionBridge: typeof scopedWindow.polivoConnection !== "undefined",
+      hasFarmersBridge: typeof scopedWindow.polivoFarmers !== "undefined",
+      hasBuyersBridge: typeof scopedWindow.polivoBuyers !== "undefined",
       enrollmentKeys:
         scopedWindow.polivoEnrollment && typeof scopedWindow.polivoEnrollment === "object"
           ? Object.keys(scopedWindow.polivoEnrollment as object).sort()
@@ -92,6 +96,14 @@ test("launches Electron with Polivo desktop shell and secure boundaries", async 
       connectionKeys:
         scopedWindow.polivoConnection && typeof scopedWindow.polivoConnection === "object"
           ? Object.keys(scopedWindow.polivoConnection as object).sort()
+          : [],
+      farmersKeys:
+        scopedWindow.polivoFarmers && typeof scopedWindow.polivoFarmers === "object"
+          ? Object.keys(scopedWindow.polivoFarmers as object).sort()
+          : [],
+      buyersKeys:
+        scopedWindow.polivoBuyers && typeof scopedWindow.polivoBuyers === "object"
+          ? Object.keys(scopedWindow.polivoBuyers as object).sort()
           : [],
     };
   });
@@ -103,6 +115,8 @@ test("launches Electron with Polivo desktop shell and secure boundaries", async 
     hasIpcRenderer: false,
     hasEnrollmentBridge: true,
     hasConnectionBridge: true,
+    hasFarmersBridge: true,
+    hasBuyersBridge: true,
     enrollmentKeys: ["enrollTerminal", "getStatus"],
     connectionKeys: [
       "configureOrTestHost",
@@ -113,7 +127,12 @@ test("launches Electron with Polivo desktop shell and secure boundaries", async 
       "signOut",
       "switchStaff",
     ],
+    farmersKeys: ["changeStatus", "create", "get", "list", "update"],
+    buyersKeys: ["changeStatus", "create", "get", "list", "update"],
   });
+
+  await expect(window.getByRole("button", { name: "Farmers" })).toBeVisible();
+  await expect(window.getByRole("button", { name: "Buyers" })).toBeVisible();
 
   const webPreferences = await electronApp.evaluate(({ BrowserWindow }) => {
     const mainWindow = BrowserWindow.getAllWindows()[0];

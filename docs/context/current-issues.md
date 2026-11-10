@@ -215,3 +215,43 @@ Expect `{"ok":true,"staffId":"..."}`. Desktop sign-in requires ADR 0013 producti
 **Acceptance (2026-11-08):** Operator-reported Phase 14–16 single-PC checklist included successful local staff desktop sign-in under the production policy. Treat this login blocker as **resolved for acceptance**.
 
 **Still open for full production readiness (not this blocker):** real DPAPI/`safeStorage` reopen evidence; offline cloud-revoke lag until Phase 33; two-PC LAN (documented in ADR 0013 / ops / progress tracker).
+
+## OWNER1 cannot access Farmers — empty owner snapshot (2026-11-09)
+
+**Symptom:** Signed in as local owner `OWNER1`, Farmers shows “Farmers unavailable — This staff account does not include `parties.register_edit`.”
+
+**Root cause:** Cloud first-owner setup grant and owner permission refresh deliberately return `capabilities: []` (ADR 0009 — cloud ownership is not an operational capability grant). `setupFirstLocalOwner` stored that empty array as the local snapshot. Phase 17 Farmers UI and `/farmers` routes require `parties.register_edit`, and local auth/session only read the snapshot — they did not expand `is_local_owner` to the operational catalog.
+
+**Fix:**
+
+- Domain helper `effectiveLocalCapabilities`: local owner → full `PERMISSION_CAPABILITIES`; others → snapshot.
+- Wired into `createLocalStaffAuthorizationAdapter` and `GET /local-auth/session`.
+- Cloud / stored owner snapshots remain `[]`; expansion is enforcement-time only.
+
+**Operator verify:**
+
+1. Restart or keep running stall-service with the updated code (no DB wipe / remigration).
+2. Desktop: Sign out OWNER1 → Sign in again (session must refresh capabilities).
+3. Open Farmers → expect list + Add Farmer available; create a synthetic farmer (e.g. `TF1` / Test Farmer A).
+4. Sign in as a cashier without `parties.register_edit` → Farmers still unavailable.
+
+## Phase 21 — Farmer account “Device proof is invalid” (2026-11-10)
+
+**Symptom:** Creating and listing farmers works, but opening a farmer’s account shows “Device proof is invalid.” Expected for a new farmer: balance Rs. 0.00, Settled, Not opened. Blocked opening-balance testing.
+
+**Root cause:** Account routes authorized device proofs against Fastify **route templates** (e.g. `/accounts/:partyKind/:partyId/balance`) while the desktop client signed the **concrete** path (e.g. `/accounts/farmer/<id>/balance`). Ed25519 verification failed. Farmer routes already used concrete paths, so CRUD worked on the same session. Integration tests used the test auth adapter and did not exercise real path-bound proofs. A secondary client issue appended movement query strings into the signed path.
+
+**Fix:**
+
+- Stall-service `account-routes.ts`: bind authorize/command proof paths to concrete request paths (farmer/buyer pattern). Verification unchanged — not weakened.
+- Desktop `accounts.ts`: drop `encodeURIComponent` on opaque ids; pass movements `limit`/`cursor` via `query:` so they are not part of the signed path.
+- No database reset or re-enrollment required.
+
+**Operator verify:**
+
+1. Restart stall-service (so updated routes load) and restart/reload desktop. *(Done 2026-11-10: service restarted on `C:\PolivoData\acceptance-01\stall.sqlite`; desktop relaunched.)*
+2. Sign in as staff with `accounts.view` (owner after re-sign-in is enough).
+3. Farmers → Select a farmer with no ledger history → account panel should show **Rs. 0.00**, **Settled**, **Not opened** (not “Device proof is invalid”). Acceptance DB farmer `P21F1` has zero `party_accounts` / drafts / ledger rows.
+4. Optionally open movements; should load without device-proof errors.
+
+**Automated verify (2026-11-10):** `tests/integration/stall-service.accounts-openings.test.ts` — real Ed25519 device proofs: concrete balance/movements paths return Settled / not_opened / empty movements; signing the Fastify template path still returns 401 “Device proof is invalid.”

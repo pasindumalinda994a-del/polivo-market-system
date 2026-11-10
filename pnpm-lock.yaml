@@ -223,6 +223,9 @@ importers:
       '@polivo/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      '@polivo/domain':
+        specifier: workspace:*
+        version: link:../../packages/domain
       '@polivo/ui':
         specifier: workspace:*
         version: link:../../packages/ui
