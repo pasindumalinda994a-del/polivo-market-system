@@ -1,9 +1,13 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { Button, Input, Label } from "@polivo/ui";
 
 type PrintDocumentKind =
-  "buyer_bill" | "farmer_bill" | "payment_receipt" | "account_statement" | "test_page";
+  | "buyer_bill"
+  | "farmer_bill"
+  | "payment_receipt"
+  | "account_statement"
+  | "test_page";
 
 type PrinterConfig = {
   printerSystemName: string;
@@ -36,7 +40,7 @@ export function PrintActions({
   const [showReprint, setShowReprint] = useState(false);
   const [attempts, setAttempts] = useState<AttemptSummary[]>([]);
 
-  async function refresh(): Promise<void> {
+  const refresh = useCallback(async (): Promise<void> => {
     const api = window.polivoPrint;
     if (!api) {
       setStatus("Print bridge unavailable.");
@@ -52,10 +56,42 @@ export function PrintActions({
       const data = history.data as { attempts?: AttemptSummary[] };
       setAttempts(data.attempts ?? []);
     }
-  }
+  }, [documentKind, documentId]);
 
   useEffect(() => {
-    void refresh();
+    let cancelled = false;
+    void (async () => {
+      const api = window.polivoPrint;
+      if (!api) {
+        await Promise.resolve();
+        if (!cancelled) {
+          setStatus("Print bridge unavailable.");
+        }
+        return;
+      }
+      await api.flushPendingOutcome();
+      if (cancelled) {
+        return;
+      }
+      const configResult = await api.getConfig();
+      if (cancelled) {
+        return;
+      }
+      if (configResult.ok) {
+        setConfig((configResult.data as PrinterConfig | null) ?? null);
+      }
+      const history = await api.listAttempts({ documentKind, documentId, limit: 5 });
+      if (cancelled) {
+        return;
+      }
+      if (history.ok) {
+        const data = history.data as { attempts?: AttemptSummary[] };
+        setAttempts(data.attempts ?? []);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [documentKind, documentId]);
 
   async function runPreview(): Promise<void> {

@@ -83,16 +83,6 @@ export function BillHistoryPanel({
   >(null);
 
   useEffect(() => {
-    setItems([]);
-    setDetail(null);
-    setPreview(null);
-    setCommitResult(null);
-    setReason("");
-    setError(null);
-    commitGuardRef.current = false;
-  }, [staffKey]);
-
-  useEffect(() => {
     let cancelled = false;
     async function recover() {
       if (!window.polivoBillCorrections || !signedIn) {

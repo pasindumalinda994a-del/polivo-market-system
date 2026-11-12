@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import {
   Alert,
   AlertDescription,
@@ -122,7 +122,6 @@ export function AccountStatementPanel({
   hostAvailable,
   signedIn,
   canView,
-  staffKey,
   onClose,
 }: AccountStatementPanelProps) {
   const requestGen = useRef(0);
@@ -136,15 +135,6 @@ export function AccountStatementPanel({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [pageBusy, setPageBusy] = useState(false);
-
-  useEffect(() => {
-    setStatement(null);
-    setOutstanding(null);
-    setError(null);
-    setAppliedSearch("");
-    setMovementSearch("");
-    requestGen.current += 1;
-  }, [partyId, partyKind, staffKey]);
 
   async function loadStatement(options?: {
     cursor?: string;

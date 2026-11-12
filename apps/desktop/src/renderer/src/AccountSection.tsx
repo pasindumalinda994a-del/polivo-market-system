@@ -87,13 +87,15 @@ export function AccountSection({
 }: AccountSectionProps) {
   const prepareKeyRef = useRef(newIdempotencyKey("opening-prepare"));
   const postKeyRef = useRef(newIdempotencyKey("opening-post"));
+  const canLoad =
+    signedIn && hostAvailable && canView && Boolean(partyId) && Boolean(window.polivoAccounts);
   const [balance, setBalance] = useState<AccountBalance | null>(null);
   const [movements, setMovements] = useState<AccountMovement[]>([]);
   const [showMovements, setShowMovements] = useState(false);
   const [draft, setDraft] = useState<OpeningDraft | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(canLoad);
   const [busy, setBusy] = useState(false);
   const [direction, setDirection] = useState<OpeningDirection>(directionsFor(partyKind)[0]!);
   const [amountMajor, setAmountMajor] = useState("0.00");
@@ -104,32 +106,16 @@ export function AccountSection({
   const [showStatement, setShowStatement] = useState(false);
 
   useEffect(() => {
-    setBalance(null);
-    setMovements([]);
-    setShowMovements(false);
-    setShowStatement(false);
-    setDraft(null);
-    setError(null);
-    setInfo(null);
-    setReviewMode(false);
-    setDirection(directionsFor(partyKind)[0]!);
-    setAmountMajor("0.00");
-    setReference("");
-    setExplanation("");
-    prepareKeyRef.current = newIdempotencyKey("opening-prepare");
-    postKeyRef.current = newIdempotencyKey("opening-post");
-  }, [staffKey, partyKind, partyId]);
-
-  useEffect(() => {
-    if (!signedIn || !hostAvailable || !canView || !partyId || !window.polivoAccounts) {
-      setBalance(null);
+    if (!canLoad || !partyId) {
       return;
     }
-    setLoading(true);
-    setError(null);
+    let cancelled = false;
     void window.polivoAccounts
-      .getBalance({ partyKind, partyId })
+      ?.getBalance({ partyKind, partyId })
       .then((result) => {
+        if (cancelled) {
+          return;
+        }
         if (!result.ok) {
           setError(result.message);
           setBalance(null);
@@ -141,11 +127,21 @@ export function AccountSection({
         setBalance(result.data);
       })
       .catch((err: unknown) => {
+        if (cancelled) {
+          return;
+        }
         setError(err instanceof Error ? err.message : "Unable to load balance.");
         setBalance(null);
       })
-      .finally(() => setLoading(false));
-  }, [signedIn, hostAvailable, canView, partyKind, partyId]);
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [canLoad, partyKind, partyId]);
 
   if (!partyId) {
     return (
@@ -365,6 +361,7 @@ export function AccountSection({
 
       {showStatement && partyId ? (
         <AccountStatementPanel
+          key={`${staffKey}:${partyKind}:${partyId}`}
           partyKind={partyKind}
           partyId={partyId}
           partyLabel={partyLabel}

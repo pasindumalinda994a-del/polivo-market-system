@@ -473,7 +473,7 @@ function correctOpeningDefinition(
       }
 
       const now = deps.now();
-      let originalPostingId: string | null = account.openingPostingId;
+      const originalPostingId: string | null = account.openingPostingId;
       let reversalPostingId: string | null = null;
       let replacementPostingId: string | null = null;
 

@@ -60,19 +60,17 @@ export function listBillHistory(
   const trader = listTraderHistory(executor, input);
   const farmer = listFarmerHistory(executor, input);
 
-  let items: BillHistoryListItem[] = [];
-  if (input.billType === "trader") {
-    items = trader.items;
-  } else if (input.billType === "farmer") {
-    items = farmer.items;
-  } else {
-    items = [...trader.items, ...farmer.items].sort((a, b) => {
-      if (a.issuedAt === b.issuedAt) {
-        return a.billId < b.billId ? 1 : -1;
-      }
-      return a.issuedAt < b.issuedAt ? 1 : -1;
-    });
-  }
+  const items: BillHistoryListItem[] =
+    input.billType === "trader"
+      ? trader.items
+      : input.billType === "farmer"
+        ? farmer.items
+        : [...trader.items, ...farmer.items].sort((a, b) => {
+            if (a.issuedAt === b.issuedAt) {
+              return a.billId < b.billId ? 1 : -1;
+            }
+            return a.issuedAt < b.issuedAt ? 1 : -1;
+          });
 
   const totalCount =
     input.billType === "trader"

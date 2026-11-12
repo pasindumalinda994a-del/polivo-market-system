@@ -130,25 +130,6 @@ export function loadActiveDomainCommissionPolicy(
   }
 }
 
-function toDraftLineInputs(lines: readonly SaleDraftLineInput[]): PolicySaleLineInput[] {
-  return lines.map((line) => ({
-    lineId: line.lineId,
-    farmerId: line.farmerId,
-    vegetableId: line.vegetableId,
-    packageTypeId: line.packageTypeId,
-    unitPricePerKgMinor: line.unitPricePerKgMinor,
-    notes: line.notes ?? null,
-    weights: {
-      rows: line.weights.rows.map((row) => ({
-        rowKey: row.rowKey,
-        packageTypeId: row.packageTypeId,
-        grossWeightHundredths: row.grossWeightHundredths,
-      })),
-      packagingWeightHundredths: line.weights.packagingWeightHundredths,
-    },
-  }));
-}
-
 function saleLinesToPolicyInputs(lines: readonly SaleLineRecord[]): PolicySaleLineInput[] {
   return lines.map((line) => {
     if (line.farmerId === null || line.packageTypeId === null) {

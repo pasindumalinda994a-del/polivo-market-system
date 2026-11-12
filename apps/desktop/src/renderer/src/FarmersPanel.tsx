@@ -487,6 +487,7 @@ export function FarmersPanel({
       ) : null}
 
       <AccountSection
+        key={`${staffKey}:${selectedId ?? "none"}`}
         partyKind="farmer"
         partyId={selectedId}
         partyLabel={items.find((item) => item.id === selectedId)?.displayName ?? "Selected farmer"}

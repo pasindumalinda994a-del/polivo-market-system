@@ -480,9 +480,8 @@ function loadPricesReport(
   for (const vegetableId of vegetableIds) {
     const vegLines = [...priorLines, ...lines].filter((l) => l.vegetableId === vegetableId);
     const name = vegLines[0]?.vegetableDisplayName ?? vegetableId;
-    let prior: VegetablePriceDay | null = null;
     const priorDayLines = priorLines.filter((l) => l.vegetableId === vegetableId);
-    prior = buildVegetablePriceDay({
+    let prior: VegetablePriceDay | null = buildVegetablePriceDay({
       vegetableId,
       businessDate: lookback,
       sales: priorDayLines.map((l) => ({

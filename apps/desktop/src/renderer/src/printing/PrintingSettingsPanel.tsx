@@ -26,39 +26,53 @@ export function PrintingSettingsPanel({
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  async function refresh(): Promise<void> {
-    const api = window.polivoPrint;
-    if (!api) {
-      setError("Print bridge unavailable.");
-      return;
-    }
-    const listed = await api.listPrinters();
-    if (listed.ok) {
-      setPrinters((listed.data as PrinterOption[]) ?? []);
-    }
-    const current = await api.getConfig();
-    if (current.ok) {
-      setConfig((current.data as PrinterConfig | null) ?? null);
-    }
-    if (signedIn && hostAvailable) {
-      const identity = await api.getStallIdentity();
-      if (identity.ok) {
-        const data = identity.data as {
-          displayName?: string;
-          address?: string | null;
-          configured?: boolean;
-        };
-        setStallName(data.displayName ?? "");
-        setStallAddress(data.address ?? "");
-        setError(null);
-      } else {
-        setError(identity.message);
-      }
-    }
-  }
-
   useEffect(() => {
-    void refresh();
+    let cancelled = false;
+    void (async () => {
+      const api = window.polivoPrint;
+      if (!api) {
+        await Promise.resolve();
+        if (!cancelled) {
+          setError("Print bridge unavailable.");
+        }
+        return;
+      }
+      const listed = await api.listPrinters();
+      if (cancelled) {
+        return;
+      }
+      if (listed.ok) {
+        setPrinters((listed.data as PrinterOption[]) ?? []);
+      }
+      const current = await api.getConfig();
+      if (cancelled) {
+        return;
+      }
+      if (current.ok) {
+        setConfig((current.data as PrinterConfig | null) ?? null);
+      }
+      if (signedIn && hostAvailable) {
+        const identity = await api.getStallIdentity();
+        if (cancelled) {
+          return;
+        }
+        if (identity.ok) {
+          const data = identity.data as {
+            displayName?: string;
+            address?: string | null;
+            configured?: boolean;
+          };
+          setStallName(data.displayName ?? "");
+          setStallAddress(data.address ?? "");
+          setError(null);
+        } else {
+          setError(identity.message);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [hostAvailable, signedIn]);
 
   async function saveConfig(next: PrinterConfig): Promise<void> {
