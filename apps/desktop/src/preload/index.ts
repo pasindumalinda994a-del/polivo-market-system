@@ -371,11 +371,7 @@ export type OpeningDraft = {
   stallId: string;
   partyKind: "farmer" | "trader";
   partyId: string;
-  direction:
-    | "stall_owes_farmer"
-    | "farmer_owes_stall"
-    | "buyer_owes_stall"
-    | "stall_owes_buyer";
+  direction: "stall_owes_farmer" | "farmer_owes_stall" | "buyer_owes_stall" | "stall_owes_buyer";
   amountMinor: number;
   signedAmountMinor: number | null;
   cutoffDate: string;
@@ -414,15 +410,50 @@ contextBridge.exposeInMainWorld("polivoAccounts", {
       nextCursor: string | null;
     }>
   > => ipcRenderer.invoke("accounts:listMovements", input),
+  getStatement: (input: {
+    partyKind: "farmer" | "trader";
+    partyId: string;
+    fromBusinessDate: string;
+    toBusinessDate: string;
+    limit?: number;
+    cursor?: string;
+    snapshotToken?: string;
+    movementSearch?: string;
+    sourceTypeFilter?: string;
+  }): Promise<AccountsApiResult<unknown>> =>
+    ipcRenderer.invoke("accounts:getStatement", input),
+  getSummary: (input: {
+    partyKind: "farmer" | "trader";
+    partyId: string;
+    asOfBusinessDate?: string;
+    snapshotToken?: string;
+  }): Promise<AccountsApiResult<unknown>> => ipcRenderer.invoke("accounts:getSummary", input),
+  listOutstanding: (input: {
+    partyKind: "farmer" | "trader";
+    partyId: string;
+    asOfBusinessDate?: string;
+    historical?: boolean;
+    snapshotToken?: string;
+    limit?: number;
+    cursor?: string;
+  }): Promise<AccountsApiResult<unknown>> =>
+    ipcRenderer.invoke("accounts:listOutstanding", input),
+  listUnappliedPayments: (input: {
+    partyKind: "farmer" | "trader";
+    partyId: string;
+    asOfBusinessDate?: string;
+    snapshotToken?: string;
+    includePaymentMetadata?: boolean;
+    limit?: number;
+    cursor?: string;
+  }): Promise<AccountsApiResult<unknown>> =>
+    ipcRenderer.invoke("accounts:listUnappliedPayments", input),
   prepareOpening: (
     input: {
       partyKind: "farmer" | "trader";
       partyId: string;
       direction:
-        | "stall_owes_farmer"
-        | "farmer_owes_stall"
-        | "buyer_owes_stall"
-        | "stall_owes_buyer";
+        "stall_owes_farmer" | "farmer_owes_stall" | "buyer_owes_stall" | "stall_owes_buyer";
       amountMinor: number;
       cutoffDate: string;
       reference?: string;
@@ -436,10 +467,7 @@ contextBridge.exposeInMainWorld("polivoAccounts", {
     input: {
       expectedRevision: number;
       direction:
-        | "stall_owes_farmer"
-        | "farmer_owes_stall"
-        | "buyer_owes_stall"
-        | "stall_owes_buyer";
+        "stall_owes_farmer" | "farmer_owes_stall" | "buyer_owes_stall" | "stall_owes_buyer";
       amountMinor: number;
       cutoffDate: string;
       reference?: string;
@@ -466,10 +494,7 @@ contextBridge.exposeInMainWorld("polivoAccounts", {
       reason: string;
       replacement?: {
         direction:
-          | "stall_owes_farmer"
-          | "farmer_owes_stall"
-          | "buyer_owes_stall"
-          | "stall_owes_buyer";
+          "stall_owes_farmer" | "farmer_owes_stall" | "buyer_owes_stall" | "stall_owes_buyer";
         amountMinor: number;
         cutoffDate?: string;
         reference?: string;
@@ -485,4 +510,259 @@ contextBridge.exposeInMainWorld("polivoAccounts", {
       originalPostingId: string | null;
     }>
   > => ipcRenderer.invoke("accounts:correctOpening", input, idempotencyKey),
+});
+
+export type SalesBillingApiResult<T> =
+  | { ok: true; data: T; stale?: boolean }
+  | { ok: false; code: string; message: string; conflict?: boolean };
+
+contextBridge.exposeInMainWorld("polivoSalesBilling", {
+  createDraft: (input: unknown, idempotencyKey?: string): Promise<SalesBillingApiResult<unknown>> =>
+    ipcRenderer.invoke("salesBilling:createDraft", input, idempotencyKey),
+  listDrafts: (input?: unknown): Promise<SalesBillingApiResult<unknown>> =>
+    ipcRenderer.invoke("salesBilling:listDrafts", input),
+  getDraft: (saleId: string): Promise<SalesBillingApiResult<unknown>> =>
+    ipcRenderer.invoke("salesBilling:getDraft", saleId),
+  updateDraft: (
+    saleId: string,
+    input: unknown,
+    idempotencyKey?: string,
+  ): Promise<SalesBillingApiResult<unknown>> =>
+    ipcRenderer.invoke("salesBilling:updateDraft", saleId, input, idempotencyKey),
+  abandonDraft: (
+    saleId: string,
+    input: { expectedRevision: number },
+    idempotencyKey?: string,
+  ): Promise<SalesBillingApiResult<unknown>> =>
+    ipcRenderer.invoke("salesBilling:abandonDraft", saleId, input, idempotencyKey),
+  previewDraft: (saleId: string): Promise<SalesBillingApiResult<unknown>> =>
+    ipcRenderer.invoke("salesBilling:previewDraft", saleId),
+  finalizeDraft: (
+    saleId: string,
+    input: unknown,
+    idempotencyKey?: string,
+  ): Promise<SalesBillingApiResult<unknown>> =>
+    ipcRenderer.invoke("salesBilling:finalizeDraft", saleId, input, idempotencyKey),
+  lookupFinalization: (idempotencyKey: string): Promise<SalesBillingApiResult<unknown>> =>
+    ipcRenderer.invoke("salesBilling:lookupFinalization", idempotencyKey),
+  listTraderBills: (input?: unknown): Promise<SalesBillingApiResult<unknown>> =>
+    ipcRenderer.invoke("salesBilling:listTraderBills", input),
+  getTraderBill: (billId: string): Promise<SalesBillingApiResult<unknown>> =>
+    ipcRenderer.invoke("salesBilling:getTraderBill", billId),
+  getFinalizeRecovery: (): Promise<
+    SalesBillingApiResult<{
+      saleId: string;
+      idempotencyKey: string;
+      expectedRevision: number;
+      expectedCalculationFingerprint: string;
+      startedAt: string;
+    } | null>
+  > => ipcRenderer.invoke("salesBilling:getFinalizeRecovery"),
+  setFinalizeRecovery: (input: {
+    saleId: string;
+    idempotencyKey: string;
+    expectedRevision: number;
+    expectedCalculationFingerprint: string;
+    startedAt: string;
+  }): Promise<
+    SalesBillingApiResult<{
+      saleId: string;
+      idempotencyKey: string;
+      expectedRevision: number;
+      expectedCalculationFingerprint: string;
+      startedAt: string;
+    }>
+  > => ipcRenderer.invoke("salesBilling:setFinalizeRecovery", input),
+  clearFinalizeRecovery: (): Promise<SalesBillingApiResult<null>> =>
+    ipcRenderer.invoke("salesBilling:clearFinalizeRecovery"),
+});
+
+export type FarmerBillingApiResult<T> =
+  | { ok: true; data: T; stale?: boolean }
+  | { ok: false; code: string; message: string; conflict?: boolean };
+
+contextBridge.exposeInMainWorld("polivoFarmerBilling", {
+  listSales: (input: unknown): Promise<FarmerBillingApiResult<unknown>> =>
+    ipcRenderer.invoke("farmerBilling:listSales", input),
+  preview: (input: unknown): Promise<FarmerBillingApiResult<unknown>> =>
+    ipcRenderer.invoke("farmerBilling:preview", input),
+  issue: (input: unknown, idempotencyKey?: string): Promise<FarmerBillingApiResult<unknown>> =>
+    ipcRenderer.invoke("farmerBilling:issue", input, idempotencyKey),
+  lookupIssuance: (idempotencyKey: string): Promise<FarmerBillingApiResult<unknown>> =>
+    ipcRenderer.invoke("farmerBilling:lookupIssuance", idempotencyKey),
+  listBills: (input?: unknown): Promise<FarmerBillingApiResult<unknown>> =>
+    ipcRenderer.invoke("farmerBilling:listBills", input),
+  getBill: (billId: string): Promise<FarmerBillingApiResult<unknown>> =>
+    ipcRenderer.invoke("farmerBilling:getBill", billId),
+  getIssueRecovery: (): Promise<
+    FarmerBillingApiResult<{
+      farmerId: string;
+      sourceLineIds: string[];
+      expectedSelectionFingerprint: string;
+      businessDate: string | null;
+      idempotencyKey: string;
+      startedAt: string;
+    } | null>
+  > => ipcRenderer.invoke("farmerBilling:getIssueRecovery"),
+  setIssueRecovery: (input: {
+    farmerId: string;
+    sourceLineIds: string[];
+    expectedSelectionFingerprint: string;
+    businessDate: string | null;
+    idempotencyKey: string;
+    startedAt: string;
+  }): Promise<
+    FarmerBillingApiResult<{
+      farmerId: string;
+      sourceLineIds: string[];
+      expectedSelectionFingerprint: string;
+      businessDate: string | null;
+      idempotencyKey: string;
+      startedAt: string;
+    }>
+  > => ipcRenderer.invoke("farmerBilling:setIssueRecovery", input),
+  clearIssueRecovery: (): Promise<FarmerBillingApiResult<null>> =>
+    ipcRenderer.invoke("farmerBilling:clearIssueRecovery"),
+});
+
+export type BillCorrectionsApiResult<T> =
+  | { ok: true; data: T; stale?: boolean }
+  | { ok: false; code: string; message: string; conflict?: boolean };
+
+contextBridge.exposeInMainWorld("polivoBillCorrections", {
+  listHistory: (input?: unknown): Promise<BillCorrectionsApiResult<unknown>> =>
+    ipcRenderer.invoke("billCorrections:listHistory", input),
+  getDetail: (input: {
+    billType: "trader" | "farmer";
+    billId: string;
+  }): Promise<BillCorrectionsApiResult<unknown>> =>
+    ipcRenderer.invoke("billCorrections:getDetail", input),
+  eligibility: (saleId: string): Promise<BillCorrectionsApiResult<unknown>> =>
+    ipcRenderer.invoke("billCorrections:eligibility", saleId),
+  preview: (input: unknown): Promise<BillCorrectionsApiResult<unknown>> =>
+    ipcRenderer.invoke("billCorrections:preview", input),
+  commit: (input: unknown, idempotencyKey?: string): Promise<BillCorrectionsApiResult<unknown>> =>
+    ipcRenderer.invoke("billCorrections:commit", input, idempotencyKey),
+  lookup: (idempotencyKey: string): Promise<BillCorrectionsApiResult<unknown>> =>
+    ipcRenderer.invoke("billCorrections:lookup", idempotencyKey),
+  getRecovery: (): Promise<
+    BillCorrectionsApiResult<{
+      idempotencyKey: string;
+      saleId: string;
+      action: "correct" | "reverse";
+      savedAt: string;
+    } | null>
+  > => ipcRenderer.invoke("billCorrections:getRecovery"),
+  setRecovery: (input: {
+    idempotencyKey: string;
+    saleId: string;
+    action: "correct" | "reverse";
+    savedAt: string;
+  }): Promise<
+    BillCorrectionsApiResult<{
+      idempotencyKey: string;
+      saleId: string;
+      action: "correct" | "reverse";
+      savedAt: string;
+    } | null>
+  > => ipcRenderer.invoke("billCorrections:setRecovery", input),
+  clearRecovery: (): Promise<BillCorrectionsApiResult<null>> =>
+    ipcRenderer.invoke("billCorrections:clearRecovery"),
+});
+
+export type PaymentsApiResult<T> =
+  | { ok: true; data: T; stale?: boolean }
+  | { ok: false; code: string; message: string; conflict?: boolean };
+
+export type PaymentCommitRecovery = {
+  kind: "post" | "allocate" | "reverse";
+  idempotencyKey: string;
+  startedAt: string;
+  partyKind: "trader" | "farmer" | null;
+  partyId: string | null;
+  direction: "receive" | "pay" | null;
+  paymentId: string | null;
+  previewFingerprint: string;
+  payload: Record<string, unknown>;
+};
+
+contextBridge.exposeInMainWorld("polivoPayments", {
+  listObligations: (input: {
+    partyKind: "trader" | "farmer";
+    partyId: string;
+    direction: "receive" | "pay";
+  }): Promise<PaymentsApiResult<unknown>> => ipcRenderer.invoke("payments:listObligations", input),
+  preview: (input: unknown): Promise<PaymentsApiResult<unknown>> =>
+    ipcRenderer.invoke("payments:preview", input),
+  post: (input: unknown, idempotencyKey?: string): Promise<PaymentsApiResult<unknown>> =>
+    ipcRenderer.invoke("payments:post", input, idempotencyKey),
+  list: (input?: unknown): Promise<PaymentsApiResult<unknown>> =>
+    ipcRenderer.invoke("payments:list", input),
+  get: (paymentId: string): Promise<PaymentsApiResult<unknown>> =>
+    ipcRenderer.invoke("payments:get", paymentId),
+  previewAllocate: (input: unknown): Promise<PaymentsApiResult<unknown>> =>
+    ipcRenderer.invoke("payments:previewAllocate", input),
+  allocate: (input: unknown, idempotencyKey?: string): Promise<PaymentsApiResult<unknown>> =>
+    ipcRenderer.invoke("payments:allocate", input, idempotencyKey),
+  previewReversal: (input: unknown): Promise<PaymentsApiResult<unknown>> =>
+    ipcRenderer.invoke("payments:previewReversal", input),
+  reverse: (input: unknown, idempotencyKey?: string): Promise<PaymentsApiResult<unknown>> =>
+    ipcRenderer.invoke("payments:reverse", input, idempotencyKey),
+  lookupOperation: (
+    idempotencyKey: string,
+    commandType?: "post" | "allocate" | "reverse",
+  ): Promise<PaymentsApiResult<unknown>> =>
+    ipcRenderer.invoke("payments:lookupOperation", idempotencyKey, commandType),
+  getRecovery: (): Promise<PaymentsApiResult<PaymentCommitRecovery | null>> =>
+    ipcRenderer.invoke("payments:getRecovery"),
+  setRecovery: (input: PaymentCommitRecovery): Promise<PaymentsApiResult<PaymentCommitRecovery>> =>
+    ipcRenderer.invoke("payments:setRecovery", input),
+  clearRecovery: (): Promise<PaymentsApiResult<null>> =>
+    ipcRenderer.invoke("payments:clearRecovery"),
+});
+
+export type PrintApiResult<T> =
+  | { ok: true; data: T; stale?: boolean }
+  | { ok: false; code: string; message: string; conflict?: boolean };
+
+contextBridge.exposeInMainWorld("polivoPrint", {
+  listPrinters: (): Promise<PrintApiResult<unknown>> => ipcRenderer.invoke("print:listPrinters"),
+  getConfig: (): Promise<PrintApiResult<unknown>> => ipcRenderer.invoke("print:getConfig"),
+  setConfig: (input: unknown): Promise<PrintApiResult<unknown>> =>
+    ipcRenderer.invoke("print:setConfig", input),
+  getStallIdentity: (): Promise<PrintApiResult<unknown>> =>
+    ipcRenderer.invoke("print:getStallIdentity"),
+  setStallIdentity: (input: unknown): Promise<PrintApiResult<unknown>> =>
+    ipcRenderer.invoke("print:setStallIdentity", input),
+  preview: (input: unknown): Promise<PrintApiResult<unknown>> =>
+    ipcRenderer.invoke("print:preview", input),
+  print: (input: unknown): Promise<PrintApiResult<unknown>> =>
+    ipcRenderer.invoke("print:print", input),
+  listAttempts: (input: {
+    documentKind: string;
+    documentId: string;
+    limit?: number;
+  }): Promise<PrintApiResult<unknown>> => ipcRenderer.invoke("print:listAttempts", input),
+  recoverAttempt: (attemptId: string): Promise<PrintApiResult<unknown>> =>
+    ipcRenderer.invoke("print:recoverAttempt", attemptId),
+  flushPendingOutcome: (): Promise<PrintApiResult<unknown>> =>
+    ipcRenderer.invoke("print:flushPendingOutcome"),
+});
+
+export type ReportsApiResult<T> =
+  | { ok: true; data: T; stale?: boolean }
+  | { ok: false; code: string; message: string; conflict?: boolean; cancelled?: boolean };
+
+contextBridge.exposeInMainWorld("polivoReports", {
+  catalog: (): Promise<ReportsApiResult<unknown>> => ipcRenderer.invoke("reports:catalog"),
+  run: (input: unknown): Promise<ReportsApiResult<unknown>> =>
+    ipcRenderer.invoke("reports:run", input),
+  createExport: (input: unknown, idempotencyKey?: string): Promise<ReportsApiResult<unknown>> =>
+    ipcRenderer.invoke("reports:createExport", input, idempotencyKey),
+  getExportArtifact: (exportJobId: string): Promise<ReportsApiResult<unknown>> =>
+    ipcRenderer.invoke("reports:getExportArtifact", exportJobId),
+  saveExport: (input: {
+    exportJobId: string;
+    defaultFileName?: string;
+  }): Promise<ReportsApiResult<unknown>> => ipcRenderer.invoke("reports:saveExport", input),
 });

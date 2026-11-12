@@ -13,17 +13,23 @@ export type WeightEntryPackageTypeOption = {
   displayName: string;
 };
 
-export type WeightEntryProps = {
-  packageTypes: WeightEntryPackageTypeOption[];
-  selectedPackageTypeId: string;
-  onPackageTypeChange: (packageTypeId: string) => void;
-  onValidated?: (summary: PackageWeightSummary) => void;
-  validateLabel?: string;
-};
-
-type RowState = {
+export type WeightEntryRowState = {
   rowKey: string;
   weightText: string;
+};
+
+export type WeightEntryProps = {
+  packageTypes?: WeightEntryPackageTypeOption[];
+  selectedPackageTypeId?: string;
+  onPackageTypeChange?: (packageTypeId: string) => void;
+  /** When true, the parent owns package-type selection outside this component. */
+  hidePackageTypeSelect?: boolean;
+  rows?: WeightEntryRowState[];
+  onRowsChange?: (rows: WeightEntryRowState[]) => void;
+  onValidated?: (summary: PackageWeightSummary) => void;
+  validateLabel?: string;
+  showValidateButton?: boolean;
+  disabled?: boolean;
 };
 
 function newRowKey(): string {
@@ -33,8 +39,8 @@ function newRowKey(): string {
   return `row-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
-function createRow(): RowState {
-  return { rowKey: newRowKey(), weightText: "" };
+export function createWeightEntryRow(weightText = ""): WeightEntryRowState {
+  return { rowKey: newRowKey(), weightText };
 }
 
 function countCompletedRows(rows: readonly PackageWeightDraftRow[]): number {
@@ -45,18 +51,40 @@ function countCompletedRows(rows: readonly PackageWeightDraftRow[]): number {
 }
 
 export function WeightEntry({
-  packageTypes,
-  selectedPackageTypeId,
+  packageTypes = [],
+  selectedPackageTypeId = "",
   onPackageTypeChange,
+  hidePackageTypeSelect = false,
+  rows: controlledRows,
+  onRowsChange,
   onValidated,
   validateLabel = "Validate entry",
+  showValidateButton = true,
+  disabled = false,
 }: WeightEntryProps) {
   const baseId = useId();
   const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
-  const [rows, setRows] = useState<RowState[]>([createRow()]);
+  const [uncontrolledRows, setUncontrolledRows] = useState<WeightEntryRowState[]>([
+    createWeightEntryRow(),
+  ]);
   const [composingIndex, setComposingIndex] = useState<number | null>(null);
   const [rowErrors, setRowErrors] = useState<Record<string, string>>({});
   const [completionMessage, setCompletionMessage] = useState<string | null>(null);
+
+  const isControlled = controlledRows !== undefined;
+  const rows = isControlled ? controlledRows : uncontrolledRows;
+
+  function setRows(
+    next: WeightEntryRowState[] | ((current: WeightEntryRowState[]) => WeightEntryRowState[]),
+  ) {
+    const resolved = typeof next === "function" ? next(rows) : next;
+    if (isControlled) {
+      onRowsChange?.(resolved);
+    } else {
+      setUncontrolledRows(resolved);
+      onRowsChange?.(resolved);
+    }
+  }
 
   const draftRows: PackageWeightDraftRow[] = rows.map((row) => ({
     rowKey: row.rowKey,
@@ -91,9 +119,13 @@ export function WeightEntry({
   }
 
   function addRow(afterIndex?: number) {
+    if (disabled) {
+      return;
+    }
     setCompletionMessage(null);
+    const insertAt = (afterIndex ?? rows.length - 1) + 1;
     setRows((current) => {
-      const next = createRow();
+      const next = createWeightEntryRow();
       if (afterIndex === undefined) {
         return [...current, next];
       }
@@ -101,14 +133,17 @@ export function WeightEntry({
       copy.splice(afterIndex + 1, 0, next);
       return copy;
     });
-    focusRow((afterIndex ?? rows.length - 1) + 1);
+    focusRow(insertAt);
   }
 
   function removeRow(index: number) {
+    if (disabled) {
+      return;
+    }
     setCompletionMessage(null);
     setRows((current) => {
       if (current.length <= 1) {
-        return [createRow()];
+        return [createWeightEntryRow()];
       }
       return current.filter((_, rowIndex) => rowIndex !== index);
     });
@@ -116,7 +151,7 @@ export function WeightEntry({
   }
 
   function handleEnter(index: number) {
-    if (composingIndex === index) {
+    if (disabled || composingIndex === index) {
       return;
     }
     const row = rows[index];
@@ -167,25 +202,28 @@ export function WeightEntry({
 
   return (
     <div className="space-y-3">
-      <div className="space-y-1">
-        <Label htmlFor={`${baseId}-package-type`}>Package type</Label>
-        <select
-          id={`${baseId}-package-type`}
-          className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
-          value={selectedPackageTypeId}
-          onChange={(event) => {
-            setCompletionMessage(null);
-            onPackageTypeChange(event.target.value);
-          }}
-        >
-          <option value="">Select package type</option>
-          {packageTypes.map((pkg) => (
-            <option key={pkg.id} value={pkg.id}>
-              {pkg.shortCode} — {pkg.displayName}
-            </option>
-          ))}
-        </select>
-      </div>
+      {!hidePackageTypeSelect ? (
+        <div className="space-y-1">
+          <Label htmlFor={`${baseId}-package-type`}>Package type</Label>
+          <select
+            id={`${baseId}-package-type`}
+            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
+            value={selectedPackageTypeId}
+            disabled={disabled}
+            onChange={(event) => {
+              setCompletionMessage(null);
+              onPackageTypeChange?.(event.target.value);
+            }}
+          >
+            <option value="">Select package type</option>
+            {packageTypes.map((pkg) => (
+              <option key={pkg.id} value={pkg.id}>
+                {pkg.shortCode} — {pkg.displayName}
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : null}
 
       <div className="space-y-2">
         {rows.map((row, index) => (
@@ -199,6 +237,7 @@ export function WeightEntry({
                 }}
                 inputMode="decimal"
                 value={row.weightText}
+                disabled={disabled}
                 aria-invalid={Boolean(rowErrors[row.rowKey])}
                 onChange={(event) => updateWeight(index, event.target.value)}
                 onCompositionStart={() => setComposingIndex(index)}
@@ -218,6 +257,8 @@ export function WeightEntry({
               type="button"
               variant="outline"
               className="mt-6"
+              disabled={disabled}
+              aria-label={`Remove package ${index + 1}`}
               onClick={() => removeRow(index)}
             >
               Remove
@@ -227,12 +268,18 @@ export function WeightEntry({
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <Button type="button" variant="outline" onClick={() => addRow()}>
+        <Button type="button" variant="outline" disabled={disabled} onClick={() => addRow()}>
           Add package
         </Button>
-        <Button type="button" onClick={handleValidate} disabled={summary.status !== "complete"}>
-          {validateLabel}
-        </Button>
+        {showValidateButton ? (
+          <Button
+            type="button"
+            onClick={handleValidate}
+            disabled={disabled || summary.status !== "complete"}
+          >
+            {validateLabel}
+          </Button>
+        ) : null}
       </div>
 
       <div className="rounded-md border border-border p-3 text-sm">

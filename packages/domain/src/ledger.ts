@@ -246,3 +246,15 @@ export const OPENING_SOURCE_TYPE = "opening_balance" as const;
 export const OPENING_EVENT_POST = "opening_posted" as const;
 export const OPENING_EVENT_REVERSE = "opening_reversed" as const;
 export const OPENING_EVENT_REPLACE = "opening_replaced" as const;
+
+/** Sale finalization business source types used by Phase 22. */
+export const SALE_SOURCE_TYPE = "sale" as const;
+export const SALE_EVENT_FINALIZED = "sale_finalized" as const;
+/** Sale correction/reversal financial event types used by Phase 25 (ADR 0016). */
+export const SALE_EVENT_REVERSED = "sale_reversed" as const;
+export const SALE_EVENT_REPLACED = "sale_replaced" as const;
+
+/** Payment posting business source types used by Phase 26 (ADR 0017). */
+export const PAYMENT_SOURCE_TYPE = "payment" as const;
+export const PAYMENT_EVENT_POSTED = "payment_posted" as const;
+export const PAYMENT_EVENT_REVERSED = "payment_reversed" as const;

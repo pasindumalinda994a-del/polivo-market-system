@@ -30,6 +30,13 @@ type FarmersPanelProps = {
   canPrepareOpening: boolean;
   canPostOpening: boolean;
   staffKey: string | null;
+  /** When provided, the account area offers "Record payout" for the selected farmer. */
+  onRecordPayout?: (farmer: {
+    id: string;
+    shortCode: string;
+    displayName: string;
+    active: boolean;
+  }) => void;
 };
 
 type EditorMode = "closed" | "create" | "edit";
@@ -63,6 +70,7 @@ export function FarmersPanel({
   canPrepareOpening,
   canPostOpening,
   staffKey,
+  onRecordPayout,
 }: FarmersPanelProps) {
   const searchId = useId();
   const shortCodeRef = useRef<HTMLInputElement>(null);
@@ -490,6 +498,22 @@ export function FarmersPanel({
         canPrepare={canPrepareOpening}
         canPost={canPostOpening}
         staffKey={staffKey}
+        paymentActionLabel={onRecordPayout ? "Record payout" : undefined}
+        onPaymentAction={
+          onRecordPayout
+            ? () => {
+                const farmer = items.find((item) => item.id === selectedId);
+                if (farmer) {
+                  onRecordPayout({
+                    id: farmer.id,
+                    shortCode: farmer.shortCode,
+                    displayName: farmer.displayName,
+                    active: farmer.isActive,
+                  });
+                }
+              }
+            : undefined
+        }
       />
 
       {editorMode !== "closed" ? (

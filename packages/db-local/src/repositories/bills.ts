@@ -26,9 +26,10 @@ export function getBillById(
 ): BillRecord | null {
   const table = BILL_TABLE[kind];
   const partyColumn = PARTY_COLUMN[kind];
+  const saleIdSelect = kind === "farmer" ? "NULL AS sale_id" : "sale_id";
   const row = executor.db
     .prepare(
-      `SELECT id, stall_id, sale_id, ${partyColumn}, bill_number, business_date, status,
+      `SELECT id, stall_id, ${saleIdSelect}, ${partyColumn}, bill_number, business_date, status,
               revision, total_amount_minor, payment_status, created_at, updated_at
        FROM ${table}
        WHERE id = ? AND stall_id = ?`,

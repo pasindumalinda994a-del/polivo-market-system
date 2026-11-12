@@ -30,6 +30,13 @@ type BuyersPanelProps = {
   canPrepareOpening: boolean;
   canPostOpening: boolean;
   staffKey: string | null;
+  /** When provided, the account area offers "Receive payment" for the selected buyer. */
+  onReceivePayment?: (buyer: {
+    id: string;
+    shortCode: string;
+    displayName: string;
+    active: boolean;
+  }) => void;
 };
 
 type EditorMode = "closed" | "create" | "edit";
@@ -63,6 +70,7 @@ export function BuyersPanel({
   canPrepareOpening,
   canPostOpening,
   staffKey,
+  onReceivePayment,
 }: BuyersPanelProps) {
   const searchId = useId();
   const shortCodeRef = useRef<HTMLInputElement>(null);
@@ -488,6 +496,22 @@ export function BuyersPanel({
         canPrepare={canPrepareOpening}
         canPost={canPostOpening}
         staffKey={staffKey}
+        paymentActionLabel={onReceivePayment ? "Receive payment" : undefined}
+        onPaymentAction={
+          onReceivePayment
+            ? () => {
+                const buyer = items.find((item) => item.id === selectedId);
+                if (buyer) {
+                  onReceivePayment({
+                    id: buyer.id,
+                    shortCode: buyer.shortCode,
+                    displayName: buyer.displayName,
+                    active: buyer.isActive,
+                  });
+                }
+              }
+            : undefined
+        }
       />
 
       {editorMode !== "closed" ? (

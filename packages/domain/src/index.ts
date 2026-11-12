@@ -43,6 +43,20 @@ export {
 export { calculateSaleLine, type SaleLineInput, type SaleLineResult } from "./sale-line.js";
 
 export {
+  SALE_DRAFT_MAX_LINES,
+  SALE_LINE_NOTES_MAX_LENGTH,
+  buildSaleCalculationFingerprintMaterial,
+  calculateSaleBillWithPolicy,
+  calculateSaleLineWithPolicy,
+  validateSaleBillForFinalization,
+  type PolicySaleBillResult,
+  type PolicySaleLineInput,
+  type PolicySaleLineResult,
+  type SaleCalculationIssue,
+  type SaleLineWeightInput,
+} from "./sale-calculation.js";
+
+export {
   applyFarmerMoneyDeductions,
   totalSaleLines,
   type MoneyDeduction,
@@ -50,27 +64,93 @@ export {
 } from "./totals.js";
 
 export {
+  aggregateBillSettlement,
   allocatePaymentOldestFirst,
   applyFarmerAdvance,
+  assertPositivePaymentAmount,
+  buildObligationRemainder,
+  obligationRemainingAmountMinor,
+  paymentAvailableAmountMinor,
+  paymentLedgerAmountMinor,
+  paymentReversalReleasedAmountMinor,
   paymentStatusForOutstanding,
+  validateExplicitAllocations,
   type AllocatePaymentResult,
+  type ExplicitAllocationTarget,
+  type ObligationKind,
+  type ObligationRemainder,
   type PaymentAllocation,
   type UnpaidBill,
+  type ValidatedExplicitAllocations,
 } from "./payments.js";
 
 export {
   formatBillNumber,
+  formatPaymentReference,
   isFarmerBillNumber,
+  isPayoutReference,
+  isReceiptReference,
   isTraderBillNumber,
   parseBillNumber,
+  parsePaymentReference,
   type BillType,
+  type PaymentReferenceType,
 } from "./bill-numbers.js";
+
+export {
+  FARMER_BILL_MAX_LINES,
+  aggregateFarmerBillSourceLines,
+  buildFarmerBillSelectionFingerprintMaterial,
+  type FarmerBillAggregation,
+  type FarmerBillSourceLineSnapshot,
+} from "./farmer-bill-aggregation.js";
 
 export {
   summarizePublicPrices,
   type FinalizedSalePricePoint,
   type PublicPriceSummary,
 } from "./public-prices.js";
+
+export {
+  REPORT_DEFINITION_VERSION,
+  REPORT_SNAPSHOT_TTL_MS,
+  REPORT_EXPORT_MAX_ROWS,
+  REPORT_MAX_DATE_RANGE_DAYS,
+  REPORT_TYPES,
+  REPORT_DEFINITIONS,
+  getReportDefinition,
+  assertFiltersAllowed,
+  assertDateRangeWithinLimit,
+  fingerprintReportFilters,
+  encodeReportSnapshotToken,
+  decodeReportSnapshotToken,
+  assertReportSnapshotMatchesBinding,
+  createReportSnapshotPayload,
+  encodeReportPageCursor,
+  decodeReportPageCursor,
+  buildVegetablePriceDay,
+  neutralizeCsvFormulaCell,
+  serializeCsvCell,
+  buildReportCsv,
+  renderReportPdfHtml,
+  formatReportMoneyCell,
+  formatReportWeightCell,
+  defaultReportExportFileName,
+  emptyTotals,
+  addMetric,
+  type ReportType,
+  type ReportDateModel,
+  type ReportFilterKey,
+  type ReportGrouping,
+  type ReportMetricDefinition,
+  type ReportDefinition,
+  type ReportSnapshotWatermarks,
+  type ReportSnapshotPayload,
+  type ReportSnapshotBinding,
+  type VegetablePriceDay,
+  type ReportCsvColumn,
+  type ReportPdfRow,
+} from "./reports.js";
 
 export {
   areKnownCapabilities,
@@ -99,6 +179,13 @@ export {
   OPENING_EVENT_REPLACE,
   OPENING_EVENT_REVERSE,
   OPENING_SOURCE_TYPE,
+  PAYMENT_EVENT_POSTED,
+  PAYMENT_EVENT_REVERSED,
+  PAYMENT_SOURCE_TYPE,
+  SALE_EVENT_FINALIZED,
+  SALE_EVENT_REPLACED,
+  SALE_EVENT_REVERSED,
+  SALE_SOURCE_TYPE,
   assertLedgerCurrency,
   assertNonNegativeMoneyMinor,
   assertValidMoneyMinor,
@@ -121,3 +208,71 @@ export {
   type PostingSourceIdentity,
   type ValidatedOpeningDraft,
 } from "./ledger.js";
+
+export {
+  ACCOUNT_STATEMENT_VIEW_MODEL_VERSION,
+  STATEMENT_SNAPSHOT_TTL_MS,
+  allocationActiveAtCutoff,
+  assertSnapshotMatchesBinding,
+  buildBalancePresentation,
+  buildSnapshotExpiry,
+  computeRunningBalances,
+  computeStatementPeriodTotals,
+  decodeStatementPageCursor,
+  decodeStatementSnapshotToken,
+  encodeStatementPageCursor,
+  encodeStatementSnapshotToken,
+  isSnapshotExpired,
+  reconcileOutstandingWithBalance,
+  settlementStatusForRemaining,
+  splitIncreaseDecrease,
+  type AllocationHistoricalActivity,
+  type SnapshotBinding,
+  type StatementPeriodTotals,
+  type StatementReconciliationInput,
+  type StatementReconciliationResult,
+  type StatementSnapshotPayload,
+  type StatementSnapshotWatermarks,
+} from "./account-statements.js";
+
+export {
+  SALE_CORRECTION_REASON_MAX_LENGTH,
+  assertExactReversalNet,
+  buildSaleCorrectionPreviewFingerprintMaterial,
+  normalizeSaleCorrectionReason,
+  type LedgerEffectPreview,
+  type SaleCorrectionAction,
+  type SaleCorrectionEligibilityCode,
+} from "./sale-correction.js";
+
+export {
+  PRINT_TEMPLATE_VERSION,
+  TERMINAL_PRINT_OUTCOMES,
+  buildPrintPayloadHashMaterial,
+  canReportPrintOutcome,
+  classifyAdditionalPrintAttempt,
+  escapePrintText,
+  formatMoneyMinorForPrint,
+  formatWeightHundredthsForPrint,
+  isTerminalPrintOutcome,
+  reprintLabelFor,
+  templateIdForDocumentKind,
+  type PrintAttemptOutcome,
+  type PrintClassification,
+  type PrintDocumentKind,
+  type PrintTemplateId,
+  type TerminalPrintOutcome,
+} from "./printing.js";
+
+export {
+  buildTestPageRenderInput,
+  moneyCell,
+  renderPrintDocumentHtml,
+  weightCell,
+  type PrintTemplateRenderInput,
+} from "./print-templates.js";
+
+export {
+  printViewModelToRenderInput,
+  type PrintableViewModel,
+} from "./print-view-model-render.js";

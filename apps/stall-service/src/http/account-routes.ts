@@ -1,13 +1,20 @@
 import {
   accountMovementsQuerySchema,
   accountMovementsResponseSchema,
+  accountStatementQuerySchema,
+  accountSummaryQuerySchema,
   correctOpeningRequestSchema,
+  historicalOutstandingQuerySchema,
   idempotencyKeySchema,
   ledgerPartyKindSchema,
   ledgerPostingDetailSchema,
   opaqueIdSchema,
+  outstandingObligationsQuerySchema,
   postOpeningDraftRequestSchema,
   prepareOpeningDraftRequestSchema,
+  statementBillKindSchema,
+  statementSnapshotTokenSchema,
+  unappliedPaymentsQuerySchema,
   updateOpeningDraftRequestSchema,
 } from "@polivo/contracts";
 import {
@@ -21,6 +28,13 @@ import { balanceDirectionLabel } from "@polivo/domain";
 import type { FastifyInstance } from "fastify";
 
 import {
+  loadAccountStatement,
+  loadAccountSummary,
+  loadBillSettlementDetail,
+  loadOutstandingObligations,
+  loadUnappliedPayments,
+} from "../commands/account-statement-commands.js";
+import {
   ACCOUNTS_OPENING_CORRECT_CAPABILITY,
   ACCOUNTS_OPENING_POST_CAPABILITY,
   ACCOUNTS_OPENING_PREPARE_CAPABILITY,
@@ -32,6 +46,10 @@ import {
   runUpdateOpeningDraftCommand,
   toOpeningDraftDto,
 } from "../commands/opening-balance-commands.js";
+import {
+  PAYMENTS_PAY_FARMER_CAPABILITY,
+  PAYMENTS_RECEIVE_TRADER_CAPABILITY,
+} from "../commands/payment-commands.js";
 import { requireCommandDeps, type ServiceDependencies } from "../composition.js";
 import { resolveBoundStall } from "../context/execution-context.js";
 import { AppError, notFoundError, serviceUnavailableError } from "../errors/app-error.js";
@@ -76,6 +94,19 @@ function authorizeCapability(
     });
   }
   return auth;
+}
+
+function nowIso(): string {
+  return new Date().toISOString();
+}
+
+function canViewPaymentMetadata(
+  capabilities: ReadonlySet<string>,
+  partyKind: "farmer" | "trader",
+): boolean {
+  return partyKind === "trader"
+    ? capabilities.has(PAYMENTS_RECEIVE_TRADER_CAPABILITY)
+    : capabilities.has(PAYMENTS_PAY_FARMER_CAPABILITY);
 }
 
 function parseIdempotencyKey(request: { headers: Record<string, unknown> }): string {
@@ -205,6 +236,229 @@ export function registerAccountRoutes(app: FastifyInstance, deps: ServiceDepende
           page.nextCursorSequence === null ? null : String(page.nextCursorSequence),
       }),
     );
+  });
+
+  app.get("/accounts/:partyKind/:partyId/statement", async (request, reply) => {
+    const database = requireDatabase(deps);
+    const requestId = resolveRequestId(request);
+    const authMaterial = readRequestAuthMaterial(request, { requireSession: true });
+    if (authMaterial instanceof AppError) {
+      throw authMaterial;
+    }
+    const params = request.params as { partyKind: string; partyId: string };
+    const partyKind = parseWithSchema(ledgerPartyKindSchema, params.partyKind, "partyKind");
+    const partyId = parseWithSchema(opaqueIdSchema, params.partyId, "partyId");
+    const authPath = `/accounts/${partyKind}/${partyId}/statement`;
+    authorizeCapability(deps, ACCOUNTS_VIEW_CAPABILITY, {
+      requestId,
+      deviceProof: authMaterial.deviceProof,
+      sessionSecret: authMaterial.sessionSecret!,
+      method: "GET",
+      path: authPath,
+    });
+    const binding = resolveBoundStall(database);
+    if (binding instanceof AppError) {
+      throw binding;
+    }
+    const query = parseWithSchema(accountStatementQuerySchema, request.query, "query");
+    const body = loadAccountStatement(
+      database,
+      binding.stallId,
+      partyKind,
+      partyId,
+      query,
+      nowIso(),
+      binding.tenantId,
+    );
+    return reply.code(200).header("x-request-id", requestId).send(body);
+  });
+
+  app.get("/accounts/:partyKind/:partyId/summary", async (request, reply) => {
+    const database = requireDatabase(deps);
+    const requestId = resolveRequestId(request);
+    const authMaterial = readRequestAuthMaterial(request, { requireSession: true });
+    if (authMaterial instanceof AppError) {
+      throw authMaterial;
+    }
+    const params = request.params as { partyKind: string; partyId: string };
+    const partyKind = parseWithSchema(ledgerPartyKindSchema, params.partyKind, "partyKind");
+    const partyId = parseWithSchema(opaqueIdSchema, params.partyId, "partyId");
+    const authPath = `/accounts/${partyKind}/${partyId}/summary`;
+    authorizeCapability(deps, ACCOUNTS_VIEW_CAPABILITY, {
+      requestId,
+      deviceProof: authMaterial.deviceProof,
+      sessionSecret: authMaterial.sessionSecret!,
+      method: "GET",
+      path: authPath,
+    });
+    const binding = resolveBoundStall(database);
+    if (binding instanceof AppError) {
+      throw binding;
+    }
+    const query = parseWithSchema(accountSummaryQuerySchema, request.query, "query");
+    const body = loadAccountSummary(
+      database,
+      binding.stallId,
+      partyKind,
+      partyId,
+      query,
+      nowIso(),
+    );
+    return reply.code(200).header("x-request-id", requestId).send(body);
+  });
+
+  app.get("/accounts/:partyKind/:partyId/outstanding", async (request, reply) => {
+    const database = requireDatabase(deps);
+    const requestId = resolveRequestId(request);
+    const authMaterial = readRequestAuthMaterial(request, { requireSession: true });
+    if (authMaterial instanceof AppError) {
+      throw authMaterial;
+    }
+    const params = request.params as { partyKind: string; partyId: string };
+    const partyKind = parseWithSchema(ledgerPartyKindSchema, params.partyKind, "partyKind");
+    const partyId = parseWithSchema(opaqueIdSchema, params.partyId, "partyId");
+    const authPath = `/accounts/${partyKind}/${partyId}/outstanding`;
+    authorizeCapability(deps, ACCOUNTS_VIEW_CAPABILITY, {
+      requestId,
+      deviceProof: authMaterial.deviceProof,
+      sessionSecret: authMaterial.sessionSecret!,
+      method: "GET",
+      path: authPath,
+    });
+    const binding = resolveBoundStall(database);
+    if (binding instanceof AppError) {
+      throw binding;
+    }
+    const query = parseWithSchema(outstandingObligationsQuerySchema, request.query, "query");
+    const body = loadOutstandingObligations(
+      database,
+      binding.stallId,
+      partyKind,
+      partyId,
+      query,
+      nowIso(),
+      false,
+    );
+    return reply.code(200).header("x-request-id", requestId).send(body);
+  });
+
+  app.get("/accounts/:partyKind/:partyId/outstanding/historical", async (request, reply) => {
+    const database = requireDatabase(deps);
+    const requestId = resolveRequestId(request);
+    const authMaterial = readRequestAuthMaterial(request, { requireSession: true });
+    if (authMaterial instanceof AppError) {
+      throw authMaterial;
+    }
+    const params = request.params as { partyKind: string; partyId: string };
+    const partyKind = parseWithSchema(ledgerPartyKindSchema, params.partyKind, "partyKind");
+    const partyId = parseWithSchema(opaqueIdSchema, params.partyId, "partyId");
+    const authPath = `/accounts/${partyKind}/${partyId}/outstanding/historical`;
+    authorizeCapability(deps, ACCOUNTS_VIEW_CAPABILITY, {
+      requestId,
+      deviceProof: authMaterial.deviceProof,
+      sessionSecret: authMaterial.sessionSecret!,
+      method: "GET",
+      path: authPath,
+    });
+    const binding = resolveBoundStall(database);
+    if (binding instanceof AppError) {
+      throw binding;
+    }
+    const query = parseWithSchema(historicalOutstandingQuerySchema, request.query, "query");
+    const body = loadOutstandingObligations(
+      database,
+      binding.stallId,
+      partyKind,
+      partyId,
+      query,
+      nowIso(),
+      true,
+    );
+    return reply.code(200).header("x-request-id", requestId).send(body);
+  });
+
+  app.get("/accounts/:partyKind/:partyId/unapplied-payments", async (request, reply) => {
+    const database = requireDatabase(deps);
+    const requestId = resolveRequestId(request);
+    const authMaterial = readRequestAuthMaterial(request, { requireSession: true });
+    if (authMaterial instanceof AppError) {
+      throw authMaterial;
+    }
+    const params = request.params as { partyKind: string; partyId: string };
+    const partyKind = parseWithSchema(ledgerPartyKindSchema, params.partyKind, "partyKind");
+    const partyId = parseWithSchema(opaqueIdSchema, params.partyId, "partyId");
+    const authPath = `/accounts/${partyKind}/${partyId}/unapplied-payments`;
+    const principal = authorizeCapability(deps, ACCOUNTS_VIEW_CAPABILITY, {
+      requestId,
+      deviceProof: authMaterial.deviceProof,
+      sessionSecret: authMaterial.sessionSecret!,
+      method: "GET",
+      path: authPath,
+    });
+    const binding = resolveBoundStall(database);
+    if (binding instanceof AppError) {
+      throw binding;
+    }
+    const query = parseWithSchema(unappliedPaymentsQuerySchema, request.query, "query");
+    const includePaymentMetadata =
+      query.includePaymentMetadata && canViewPaymentMetadata(principal.capabilities, partyKind);
+    const body = loadUnappliedPayments(
+      database,
+      binding.stallId,
+      partyKind,
+      partyId,
+      query,
+      nowIso(),
+      includePaymentMetadata,
+    );
+    return reply.code(200).header("x-request-id", requestId).send(body);
+  });
+
+  app.get("/accounts/:partyKind/:partyId/bills/:billKind/:billId/settlement", async (request, reply) => {
+    const database = requireDatabase(deps);
+    const requestId = resolveRequestId(request);
+    const authMaterial = readRequestAuthMaterial(request, { requireSession: true });
+    if (authMaterial instanceof AppError) {
+      throw authMaterial;
+    }
+    const params = request.params as {
+      partyKind: string;
+      partyId: string;
+      billKind: string;
+      billId: string;
+    };
+    const partyKind = parseWithSchema(ledgerPartyKindSchema, params.partyKind, "partyKind");
+    const partyId = parseWithSchema(opaqueIdSchema, params.partyId, "partyId");
+    const billKind = parseWithSchema(statementBillKindSchema, params.billKind, "billKind");
+    const billId = parseWithSchema(opaqueIdSchema, params.billId, "billId");
+    const authPath = `/accounts/${partyKind}/${partyId}/bills/${billKind}/${billId}/settlement`;
+    authorizeCapability(deps, ACCOUNTS_VIEW_CAPABILITY, {
+      requestId,
+      deviceProof: authMaterial.deviceProof,
+      sessionSecret: authMaterial.sessionSecret!,
+      method: "GET",
+      path: authPath,
+    });
+    const binding = resolveBoundStall(database);
+    if (binding instanceof AppError) {
+      throw binding;
+    }
+    const rawSnapshot = (request.query as { snapshotToken?: string }).snapshotToken;
+    const snapshotToken =
+      rawSnapshot === undefined
+        ? undefined
+        : parseWithSchema(statementSnapshotTokenSchema, rawSnapshot, "snapshotToken");
+    const body = loadBillSettlementDetail(
+      database,
+      binding.stallId,
+      partyKind,
+      partyId,
+      billKind,
+      billId,
+      snapshotToken,
+      nowIso(),
+    );
+    return reply.code(200).header("x-request-id", requestId).send(body);
   });
 
   app.get("/ledger/postings/:postingId", async (request, reply) => {

@@ -58,7 +58,8 @@ test("launches Electron with Polivo desktop shell and secure boundaries", async 
   await expect(
     window.getByRole("heading", { name: "Desktop application shell", level: 1 }),
   ).toBeVisible();
-  await expect(window.getByText("Billing workspace reserved")).toBeVisible();
+  await expect(window.getByRole("heading", { name: "Buyer billing", level: 1 })).toBeVisible();
+  await expect(window.getByText("Sign in to bill")).toBeVisible();
   await expect(window.getByText("Service connection not configured")).toBeVisible();
   await expect(window.getByText("Terminal enrollment")).toBeVisible();
   await expect(window.getByRole("button", { name: "Pair this terminal" })).toBeVisible();
@@ -131,6 +132,7 @@ test("launches Electron with Polivo desktop shell and secure boundaries", async 
     buyersKeys: ["changeStatus", "create", "get", "list", "update"],
   });
 
+  await expect(window.getByRole("button", { name: "Billing" })).toBeVisible();
   await expect(window.getByRole("button", { name: "Farmers" })).toBeVisible();
   await expect(window.getByRole("button", { name: "Buyers" })).toBeVisible();
 

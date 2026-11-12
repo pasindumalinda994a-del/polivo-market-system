@@ -255,3 +255,151 @@ Expect `{"ok":true,"staffId":"..."}`. Desktop sign-in requires ADR 0013 producti
 4. Optionally open movements; should load without device-proof errors.
 
 **Automated verify (2026-11-10):** `tests/integration/stall-service.accounts-openings.test.ts` — real Ed25519 device proofs: concrete balance/movements paths return Settled / not_opened / empty movements; signing the Fastify template path still returns 401 “Device proof is invalid.”
+
+## Buyer finalize stuck on “Still checking…” after account-not-ready (2026-11-11)
+
+**Symptom:** Buyer billing shows “Still checking whether the bill was finalized” after initially failing with “Farmer account is not ready for operational posting.” Completing the farmer’s opening and retrying does not clear it. `GET /sales/finalizations/:key` returns 404; `GET /sales/drafts/:id` returns 200 (still draft). Status remains unconfirmed.
+
+**Root cause:** Desktop wrote finalize recovery metadata **before** POST. Finalize rejected with CONFLICT before commit (no idempotency row). The conflict branch always called `resolveFinalization`; lookup 404 + draft still present set `finalization_outcome_unknown` and **never cleared** recovery. Remount re-entered the trap from `userData/billing-recovery/finalize-in-flight.json`. Opening the farmer account fixed the server gate only.
+
+**Fix:**
+
+- Classify completed finalize failures: clear recovery on definite pre-commit rejects (account not ready, stale calculation, validation); keep recovery + lookup only for ambiguous outcomes (timeout/network, idempotency key already in use, already-finalized races).
+- Helpers in `apps/desktop/src/renderer/src/billing/finalize-failure.ts`; wired in `BillingPanel.tsx`.
+
+**Operator unblock (already stuck before this fix):**
+
+1. Quit desktop fully.
+2. Delete or empty `%APPDATA%\<desktop app userData>\billing-recovery\finalize-in-flight.json`.
+3. Relaunch, sign in, open the draft, ensure farmer (and buyer) accounts are opened, Review → Finalize.
+
+**Operator verify (after update):**
+
+1. Restart/reload desktop with the new build.
+2. Draft a bill whose farmer account is **not** opened → Finalize → expect the account-not-ready message and return to review (not “Still checking…”).
+3. Open the farmer account → same draft Review → Finalize → bill issues; recovery file cleared.
+4. Timeout/network simulation (if available) should still enter the check-finalization path.
+
+---
+
+## Phase 24 — Cannot open Farmer bills (2026-11-11)
+
+**Symptom:** Buyer billing opens, but clicking the second sidebar icon (**Farmer bills**) does nothing. Phase 24 UI unreachable.
+
+**Root cause:** `FarmerBillingPanel` and the nav item (`id: "farmer-bills"`) were implemented, but `App.tsx` `onNavigate` used a hardcoded allowlist that omitted `farmer-bills`, so `setActiveView` never ran.
+
+**Fix:** Navigate via a type-safe `DesktopView` membership check (`isDesktopView`) so all registered views, including `farmer-bills`, switch correctly.
+
+**Operator verify:**
+
+1. Reload/restart desktop (`pnpm dev:desktop`).
+2. Sign in with billing capabilities.
+3. Click **Farmer bills** in the left rail → expect the farmer sales / bill workspace (not stuck on Billing).
+4. If unsigned or missing `bills.*`, the panel still opens but may show its host/permission empty state — that is separate from the nav no-op.
+
+## Phase 27 migration 013 — FOREIGN KEY constraint failed (2026-11-11) — resolved
+
+**Symptom:** On acceptance DB with existing Phase 26 payments:
+
+```powershell
+$env:POLIVO_LOCAL_DB_PATH = "C:\PolivoData\acceptance-01\stall.sqlite"
+pnpm --filter @polivo/db-local db:migrate
+```
+
+failed with `Migration "013" (cheque_payments_and_handover) failed and was rolled back: FOREIGN KEY constraint failed`.
+
+**Root cause:** The migration runner wraps each migration in `BEGIN IMMEDIATE`. SQLite ignores `PRAGMA foreign_keys = OFF` inside an open transaction, so FK enforcement stayed ON. The original 013 rebuilt `payments` then `DROP TABLE payments` while `payment_allocations` still referenced it. Empty/fresh DBs passed; acceptance data did not. Rollback meant 013 was never recorded, so rewriting the unapplied SQL was safe.
+
+**Fix:** Rewrote `013_cheque_payments_and_handover.sql` to copy into `payments_new` + `payment_allocations_new`, drop the **child** table first, then the parent, rename both, and recreate indexes/triggers — without relying on mid-transaction FK disable. Added a db-local regression test that seeds a payment+allocation under migrations through 012, then applies 013.
+
+**Operator verify (done 2026-11-11):** Rebuilt `@polivo/db-local`, re-ran migrate on `C:\PolivoData\acceptance-01\stall.sqlite` → `013` newly applied; `db:status` shows pending `[]`. Restart stall-service + desktop before Phase 27 cheque smoke. 
+
+
+---
+
+## Desktop white screen — Phase 29 `node:crypto` in `@polivo/domain` (2026-11-12) — resolved
+
+**Symptom:** `pnpm dev:desktop` opened a full white screen. Console:
+
+```
+Uncaught Error: Module "node:crypto" has been externalized for browser compatibility.
+Cannot access "node:crypto.createHash" in client code.
+    at printing.ts:1:28
+```
+
+**Root cause:** Phase 29 `packages/domain/src/printing.ts` imported `node:crypto` for `hashPrintPayload` and re-exported it from the `@polivo/domain` barrel. The Electron renderer already imports that barrel for billing/weight/commission helpers, so Vite evaluated `printing.ts` in browser context and crashed before React mounted.
+
+**Fix:**
+
+- Domain keeps browser-safe `buildPrintPayloadHashMaterial` (stable JSON only).
+- Stall-service `print-commands.ts` hashes with local `createHash("sha256")` (same pattern as sale/payment fingerprints).
+- Domain barrel no longer imports Node builtins for printing.
+
+**Operator verify (done 2026-11-12):** Rebuilt `@polivo/domain`; domain printing tests + stall-service print-commands tests passed; service/desktop typecheck clean. Running `pnpm dev:desktop` HMR-reloaded renderer panels without the `node:crypto` crash.
+
+
+
+---
+
+## Settings → Printing — Invalid stall print identity response (2026-11-12) — resolved
+
+**Symptom:** Settings → Printing showed `Invalid stall print identity response.` on Save and after reopen; name/address stayed empty. Stall-service logged `GET`/`PUT` `/print/stall-identity` → 200.
+
+**Root cause:** Stall-service returns `{ identity: { displayName, address, updatedAt } | null }`. Desktop main `parseStallPrintIdentity` expected a flat body with top-level `displayName` and `configured`, so every successful HTTP response failed client-side parsing. PUT could still write SQLite; the UI never accepted the body.
+
+**Fix:**
+
+- Shared `upsertStallPrintIdentityRequestSchema` / `stallPrintIdentityResponseSchema` in `@polivo/contracts`.
+- Stall-service uses those schemas (no local duplicates).
+- Desktop maps nested `identity` to UI fields (`configured = identity !== null`).
+- Parse failures return `INVALID_RESPONSE` (not `SERVICE_UNAVAILABLE`); Printing settings surfaces load errors and applies saved identity after Save.
+
+**Operator verify (dev checks 2026-11-12):** Rebuilt `@polivo/contracts`; contracts printing tests (5) + stall-service print-commands (14) passed; stall-service + desktop typecheck clean. Restart/reload desktop main (Electron) so `printing.ts` picks up the nested parser, then Settings → Printing → save name/address → reopen → fields should persist.
+
+
+
+## Desktop `spawn UNKNOWN` — Device Guard / WDAC blocks `electron.exe` (2026-11-12) — open (policy)
+
+**Symptom:** `pnpm dev:desktop` builds main + preload and starts Vite (`http://localhost:5173/`), then fails before the Electron window:
+
+```
+error during start dev server and electron app:
+Error: spawn UNKNOWN
+    at ChildProcess.spawn (node:internal/child_process:486:11)
+    at startElectron (.../electron-vite/.../lib-DoUt4oMD.js:287:16)
+```
+
+**Not the cause:** Phase 30 report code, missing `path.txt`, or “Electron uninstall”. Main/preload compile successfully; `apps/desktop/node_modules/electron` resolves to `electron@45.1.0` with `dist/electron.exe` present (~250 MB).
+
+**Root cause:** Windows **Device Guard / WDAC** (user-mode Code Integrity **enforced**) blocks launching the Electron binary. Direct evidence:
+
+- `Start-Process` / `cmd` → `An Application Control policy has blocked this file` / `blocked by your organization's Device Guard policy`
+- `Get-AuthenticodeSignature` on `electron.exe` → `NotSigned` (does not meet **Enterprise signing level**)
+- `Win32_DeviceGuard`: `CodeIntegrityPolicyEnforcementStatus = 2`, `UsermodeCodeIntegrityPolicyEnforcementStatus = 2`
+- Event log `Microsoft-Windows-CodeIntegrity/Operational` Id **3033/3077**: `node.exe` / `powershell.exe` attempted to load `...\electron@45.1.0\...\dist\electron.exe` that **did not meet the Enterprise signing level requirements**
+
+Node `spawn UNKNOWN` (`errno: -4094`) is the opaque wrapper around that CreateProcess / Code Integrity denial.
+
+**Tried (insufficient without policy change):**
+
+1. Cleared `ELECTRON_EXEC_PATH`; no leftover Electron processes
+2. Forced Electron re-download via `node node_modules/electron/install.js` (binary restored; still blocked)
+3. `Unblock-File` on `dist\*` (Mark-of-the-Web only — does not bypass WDAC)
+4. Copy to `C:\PolivoData\tools\electron-dist` — still blocked by the same Enterprise signing rule
+
+**Remediation (operator / IT — required to run desktop again):**
+
+1. Ask IT for a **WDAC / Application Control** exception so local Electron can run, for example:
+   - Allow publisher / path for  
+     `...\node_modules\.pnpm\electron@45.1.0\node_modules\electron\dist\electron.exe`  
+     (and DLLs in that `dist` folder), or
+   - A developer supplemental policy that permits Electron / Node toolchain binaries under this repo
+2. After the policy update, verify:
+   ```powershell
+   & ".\node_modules\.pnpm\electron@45.1.0\node_modules\electron\dist\electron.exe" --version
+   pnpm --filter @polivo/desktop exec electron --version
+   pnpm dev:desktop
+   ```
+3. Do **not** treat this as a Phase 30 application bug; stall-service and web can continue while desktop is blocked.
+
+**Operator verify (pending policy allow):** Electron `--version` prints; `pnpm dev:desktop` opens a window without `spawn UNKNOWN`. 

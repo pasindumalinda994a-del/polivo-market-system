@@ -15,7 +15,7 @@ export function createTestAuthorizationAdapter(options: {
       const principal = options.principal ?? {
         actorRef: "test-actor",
         deviceRef: "test-device",
-        // Include party, catalog, and commission capabilities so Phase 17–20 management routes work with the legacy test adapter.
+        // Include party, catalog, commission, accounts, and bills capabilities so Phase 17–22 routes work with the legacy test adapter.
         capabilities: new Set([
           "test.fixture",
           "parties.register_edit",
@@ -25,6 +25,15 @@ export function createTestAuthorizationAdapter(options: {
           "accounts.opening_prepare",
           "accounts.opening_post",
           "accounts.opening_correct",
+          "bills.create",
+          "bills.edit_draft",
+          "bills.finalize",
+          "bills.correct_finalized",
+          "bills.cancel_finalized",
+          "payments.receive_trader",
+          "payments.pay_farmer",
+          "payments.record_cheque",
+          "payments.reverse",
         ]),
       };
       if (!principal.capabilities.has(request.requiredCapability)) {

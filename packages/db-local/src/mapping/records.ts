@@ -192,7 +192,8 @@ export type PaymentStatus = "unpaid" | "partially_paid" | "fully_paid";
 export type BillRecord = {
   id: string;
   stallId: string;
-  saleId: string;
+  /** Present for trader bills; null for multi-source farmer bills (migration 010+). */
+  saleId: string | null;
   partyId: string;
   billNumber: string | null;
   businessDate: string;
@@ -637,7 +638,10 @@ export function mapBillRow(row: Record<string, unknown>, kind: BillType): BillRe
   return {
     id: requireString(row["id"], `${table}.id`),
     stallId: requireString(row["stall_id"], `${table}.stall_id`),
-    saleId: requireString(row["sale_id"], `${table}.sale_id`),
+    saleId:
+      kind === "farmer"
+        ? optionalString(row["sale_id"], `${table}.sale_id`)
+        : requireString(row["sale_id"], `${table}.sale_id`),
     partyId: requireString(row[partyColumn], `${table}.${partyColumn}`),
     billNumber: optionalString(row["bill_number"], `${table}.bill_number`),
     businessDate: requireCalendarDate(row["business_date"], `${table}.business_date`),

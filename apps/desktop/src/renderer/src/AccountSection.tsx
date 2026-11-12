@@ -17,6 +17,7 @@ import {
 } from "@polivo/ui";
 
 import type { AccountBalance, AccountMovement, OpeningDraft } from "../../preload/index";
+import { AccountStatementPanel } from "./AccountStatementPanel";
 
 type PartyKind = "farmer" | "trader";
 type OpeningDirection =
@@ -35,6 +36,9 @@ type AccountSectionProps = {
   canPrepare: boolean;
   canPost: boolean;
   staffKey: string | null;
+  /** Optional shortcut into the Payments workspace with this party preselected. */
+  paymentActionLabel?: string;
+  onPaymentAction?: () => void;
 };
 
 function newIdempotencyKey(prefix: string): string {
@@ -81,6 +85,8 @@ export function AccountSection({
   canPrepare,
   canPost,
   staffKey,
+  paymentActionLabel,
+  onPaymentAction,
 }: AccountSectionProps) {
   const prepareKeyRef = useRef(newIdempotencyKey("opening-prepare"));
   const postKeyRef = useRef(newIdempotencyKey("opening-post"));
@@ -98,11 +104,13 @@ export function AccountSection({
   const [reference, setReference] = useState("");
   const [explanation, setExplanation] = useState("");
   const [reviewMode, setReviewMode] = useState(false);
+  const [showStatement, setShowStatement] = useState(false);
 
   useEffect(() => {
     setBalance(null);
     setMovements([]);
     setShowMovements(false);
+    setShowStatement(false);
     setDraft(null);
     setError(null);
     setInfo(null);
@@ -336,7 +344,36 @@ export function AccountSection({
         >
           {showMovements ? "Refresh movements" : "View movements"}
         </Button>
+        {partyId && canView ? (
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            disabled={!balance}
+            onClick={() => setShowStatement((value) => !value)}
+          >
+            {showStatement ? "Hide statement" : "Open statement"}
+          </Button>
+        ) : null}
+        {onPaymentAction && paymentActionLabel && partyId ? (
+          <Button type="button" size="sm" onClick={onPaymentAction}>
+            {paymentActionLabel}
+          </Button>
+        ) : null}
       </div>
+
+      {showStatement && partyId ? (
+        <AccountStatementPanel
+          partyKind={partyKind}
+          partyId={partyId}
+          partyLabel={partyLabel}
+          hostAvailable={hostAvailable}
+          signedIn={signedIn}
+          canView={canView}
+          staffKey={staffKey}
+          onClose={() => setShowStatement(false)}
+        />
+      ) : null}
 
       {showMovements ? (
         movements.length === 0 ? (

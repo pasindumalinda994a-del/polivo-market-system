@@ -24,6 +24,12 @@ import { registerPackageTypeRoutes } from "./http/package-type-routes.js";
 import { registerVegetableRoutes } from "./http/vegetable-routes.js";
 import { registerCommissionPolicyRoutes } from "./http/commission-policy-routes.js";
 import { registerAccountRoutes } from "./http/account-routes.js";
+import { registerSalesBillingRoutes } from "./http/sales-billing-routes.js";
+import { registerFarmerBillingRoutes } from "./http/farmer-billing-routes.js";
+import { registerBillCorrectionRoutes } from "./http/bill-correction-routes.js";
+import { registerPaymentRoutes } from "./http/payment-routes.js";
+import { registerPrintRoutes } from "./http/print-routes.js";
+import { registerReportRoutes } from "./http/report-routes.js";
 import { assertLoopbackOnly } from "./http/loopback-guard.js";
 import { registerLocalStaffRoutes } from "./http/local-staff-routes.js";
 import type { TlsMaterial } from "./security/tls-material.js";
@@ -146,6 +152,12 @@ export function buildApp(options: BuildAppOptions = {}) {
   registerPackageTypeRoutes(app, deps);
   registerCommissionPolicyRoutes(app, deps);
   registerAccountRoutes(app, deps);
+  registerSalesBillingRoutes(app, deps);
+  registerFarmerBillingRoutes(app, deps);
+  registerBillCorrectionRoutes(app, deps);
+  registerPaymentRoutes(app, deps);
+  registerPrintRoutes(app, deps);
+  registerReportRoutes(app, deps);
 
   return Object.assign(app, {
     getLocalDatabase: (): LocalDatabase | undefined => deps.database,

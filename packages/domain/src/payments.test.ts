@@ -4,7 +4,11 @@ import { DomainError } from "./money.js";
 import {
   allocatePaymentOldestFirst,
   applyFarmerAdvance,
+  obligationRemainingAmountMinor,
+  paymentAvailableAmountMinor,
+  paymentLedgerAmountMinor,
   paymentStatusForOutstanding,
+  validateExplicitAllocations,
 } from "./payments.js";
 
 describe("allocatePaymentOldestFirst", () => {
@@ -84,5 +88,67 @@ describe("paymentStatusForOutstanding", () => {
     expect(paymentStatusForOutstanding(100, 100)).toBe("unpaid");
     expect(paymentStatusForOutstanding(100, 40)).toBe("partially_paid");
     expect(paymentStatusForOutstanding(100, 0)).toBe("fully_paid");
+  });
+});
+
+describe("Phase 26 exact allocation calculations", () => {
+  it("reduces a 10000 obligation by a 4000 payment to 6000 remaining", () => {
+    const remaining = obligationRemainingAmountMinor(1_000_000, 400_000);
+    expect(remaining).toBe(600_000);
+    expect(paymentAvailableAmountMinor(400_000, 400_000)).toBe(0);
+  });
+
+  it("settles remaining 6000 with a second 6000 payment", () => {
+    expect(obligationRemainingAmountMinor(1_000_000, 1_000_000)).toBe(0);
+  });
+
+  it("validates explicit split across 3000 and 7000 obligations for a 5000 payment", () => {
+    const result = validateExplicitAllocations({
+      paymentAmountMinor: 500_000,
+      allocations: [
+        { obligationKind: "trader_bill", targetId: "a", appliedMinor: 300_000 },
+        { obligationKind: "trader_bill", targetId: "b", appliedMinor: 200_000 },
+      ],
+      remaindersByTargetId: { a: 300_000, b: 700_000 },
+    });
+    expect(result.allocatedTotalMinor).toBe(500_000);
+    expect(result.unappliedMinor).toBe(0);
+    expect(result.remainingByTargetId).toEqual({ a: 0, b: 500_000 });
+  });
+
+  it("allows unapplied remainder as credit without changing allocation targets", () => {
+    const result = validateExplicitAllocations({
+      paymentAmountMinor: 500_000,
+      allocations: [{ obligationKind: "trader_bill", targetId: "a", appliedMinor: 300_000 }],
+      remaindersByTargetId: { a: 300_000 },
+    });
+    expect(result.unappliedMinor).toBe(200_000);
+  });
+
+  it("rejects duplicate targets and over-allocation", () => {
+    expect(() =>
+      validateExplicitAllocations({
+        paymentAmountMinor: 100_000,
+        allocations: [
+          { obligationKind: "trader_bill", targetId: "a", appliedMinor: 40_000 },
+          { obligationKind: "trader_bill", targetId: "a", appliedMinor: 40_000 },
+        ],
+        remaindersByTargetId: { a: 100_000 },
+      }),
+    ).toThrow(DomainError);
+
+    expect(() =>
+      validateExplicitAllocations({
+        paymentAmountMinor: 100_000,
+        allocations: [{ obligationKind: "trader_bill", targetId: "a", appliedMinor: 150_000 }],
+        remaindersByTargetId: { a: 100_000 },
+      }),
+    ).toThrow(DomainError);
+
+    expect(() => obligationRemainingAmountMinor(100, 150)).toThrow(DomainError);
+  });
+
+  it("posts a negative ledger amount for receipts and payouts", () => {
+    expect(paymentLedgerAmountMinor(400_000)).toBe(-400_000);
   });
 });

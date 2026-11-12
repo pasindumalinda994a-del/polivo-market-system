@@ -54,7 +54,8 @@ afterEach(() => {
 describe("enrollment repositories", () => {
   it("keeps migration 001 checksum stable and applies 002", () => {
     const bundled = loadBundledMigrations();
-    expect(bundled.map((m) => m.id)).toEqual(["001", "002", "003", "004", "005", "006"]);
+    expect(bundled.map((m) => m.id).slice(0, 2)).toEqual(["001", "002"]);
+    expect(bundled.some((m) => m.id === "012")).toBe(true);
     expect(bundled[0]?.checksum).toBe(
       "b518df58515339e1b90fbc3be4456dc58feb5908798fe75aef0204b96995f286",
     );

@@ -6,10 +6,11 @@
     "moduleResolution": "bundler",
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "jsx": "react-jsx",
-    "types": ["vite/client"],
+    "types": ["vite/client", "@testing-library/jest-dom"],
     "noEmit": true,
     "declaration": false,
     "declarationMap": false
   },
-  "include": ["src/renderer/src/**/*"]
+  "include": ["src/renderer/src/**/*"],
+  "exclude": ["src/renderer/src/**/*.test.ts", "src/renderer/src/**/*.test.tsx"]
 }

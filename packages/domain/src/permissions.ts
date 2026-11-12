@@ -24,6 +24,8 @@ export const PERMISSION_CAPABILITIES = [
   "accounts.opening_prepare",
   "accounts.opening_post",
   "accounts.opening_correct",
+  "documents.print",
+  "documents.reprint",
   "inventory.manage_arrivals",
   "inventory.adjust",
   "data.export",
@@ -74,6 +76,7 @@ export type CapabilityGroupId =
   | "catalog"
   | "commission"
   | "accounts"
+  | "documents"
   | "inventory"
   | "administration";
 
@@ -140,6 +143,11 @@ export const CAPABILITY_GROUPS: readonly CapabilityGroup[] = [
     ],
   },
   {
+    id: "documents",
+    label: "Document printing",
+    capabilities: ["documents.print", "documents.reprint"],
+  },
+  {
     id: "inventory",
     label: "Inventory",
     capabilities: ["inventory.manage_arrivals", "inventory.adjust"],
@@ -162,6 +170,8 @@ export const BILLING_STAFF_DEFAULT_CAPABILITIES: readonly PermissionCapability[]
   "commission.manage",
   "accounts.view",
   "accounts.opening_prepare",
+  "documents.print",
+  "documents.reprint",
   "inventory.manage_arrivals",
 ];
 
@@ -172,6 +182,7 @@ export const CASHIER_DEFAULT_CAPABILITIES: readonly PermissionCapability[] = [
   "payments.record_cheque",
   "reports.view_financial",
   "accounts.view",
+  "documents.print",
 ];
 
 export function recommendedCapabilitiesForProfile(

@@ -7,37 +7,102 @@ import {
   AppShell,
   BrandMark,
   Button,
-  EmptyState,
   Input,
   Label,
   PageHeader,
   StatusIndicator,
   type SidebarNavItem,
 } from "@polivo/ui";
-import { ClipboardList, LayoutDashboard, Settings, Sprout, Users } from "lucide-react";
+import {
+  Banknote,
+  BarChart3,
+  ClipboardList,
+  FileText,
+  History,
+  Settings,
+  Sprout,
+  Users,
+} from "lucide-react";
 
+import { BillingPanel } from "./billing/BillingPanel";
+import { BillHistoryPanel } from "./bill-history/BillHistoryPanel";
 import { BuyersPanel } from "./BuyersPanel";
 import { CatalogPanel } from "./CatalogPanel";
 import { CommissionSettingsPanel } from "./CommissionSettingsPanel";
+import { FarmerBillingPanel } from "./farmer-billing/FarmerBillingPanel";
 import { FarmersPanel } from "./FarmersPanel";
+import { PaymentsPanel, type PaymentsInitialContext } from "./payments/PaymentsPanel";
+import { PrintingSettingsPanel } from "./printing/PrintingSettingsPanel";
+import { ReportsPanel } from "./ReportsPanel";
 
-type DesktopView = "workspace" | "farmers" | "buyers" | "catalog" | "settings";
+type DesktopView =
+  | "billing"
+  | "farmer-bills"
+  | "bill-history"
+  | "payments"
+  | "reports"
+  | "farmers"
+  | "buyers"
+  | "catalog"
+  | "settings";
+
+const DESKTOP_VIEWS = [
+  "billing",
+  "farmer-bills",
+  "bill-history",
+  "payments",
+  "reports",
+  "farmers",
+  "buyers",
+  "catalog",
+  "settings",
+] as const satisfies readonly DesktopView[];
+
+function isDesktopView(id: string): id is DesktopView {
+  return (DESKTOP_VIEWS as readonly string[]).includes(id);
+}
 
 function buildNavigation(activeView: DesktopView): SidebarNavItem[] {
   return [
     {
-      id: "workspace",
-      label: "Workspace",
-      href: "#workspace",
-      available: true,
-      active: activeView === "workspace",
-      icon: <LayoutDashboard className="h-5 w-5" aria-hidden="true" />,
-    },
-    {
       id: "billing",
       label: "Billing",
-      available: false,
+      href: "#billing",
+      available: true,
+      active: activeView === "billing",
       icon: <ClipboardList className="h-5 w-5" aria-hidden="true" />,
+    },
+    {
+      id: "farmer-bills",
+      label: "Farmer bills",
+      href: "#farmer-bills",
+      available: true,
+      active: activeView === "farmer-bills",
+      icon: <FileText className="h-5 w-5" aria-hidden="true" />,
+    },
+    {
+      id: "bill-history",
+      label: "Bill history",
+      href: "#bill-history",
+      available: true,
+      active: activeView === "bill-history",
+      icon: <History className="h-5 w-5" aria-hidden="true" />,
+    },
+    {
+      id: "payments",
+      label: "Payments",
+      href: "#payments",
+      available: true,
+      active: activeView === "payments",
+      icon: <Banknote className="h-5 w-5" aria-hidden="true" />,
+    },
+    {
+      id: "reports",
+      label: "Reports",
+      href: "#reports",
+      available: true,
+      active: activeView === "reports",
+      icon: <BarChart3 className="h-5 w-5" aria-hidden="true" />,
     },
     {
       id: "farmers",
@@ -154,7 +219,7 @@ function statusLabel(
 
 export default function App() {
   const [pending, startTransition] = useTransition();
-  const [activeView, setActiveView] = useState<DesktopView>("workspace");
+  const [activeView, setActiveView] = useState<DesktopView>("billing");
   const [enrollment, setEnrollment] = useState<EnrollmentStatus | null>(null);
   const [connection, setConnection] = useState<ConnectionStatus | null>(null);
   const [enrollmentSecret, setEnrollmentSecret] = useState("");
@@ -165,6 +230,8 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [staffEpoch, setStaffEpoch] = useState(0);
+  const [paymentsContext, setPaymentsContext] = useState<PaymentsInitialContext | null>(null);
+  const paymentsNonceRef = useRef(0);
   const staffCodeRef = useRef<HTMLInputElement>(null);
   const staffSecretRef = useRef<HTMLInputElement>(null);
 
@@ -302,7 +369,8 @@ export default function App() {
       setStaffCode("");
       setStaffSecret("");
       setStaffEpoch((value) => value + 1);
-      setActiveView("workspace");
+      setActiveView("billing");
+      setPaymentsContext(null);
       setInfo(
         result.serverRevocationAcknowledged
           ? "Signed out on this terminal and on the stall host."
@@ -324,7 +392,8 @@ export default function App() {
       setStaffCode("");
       setStaffSecret("");
       setStaffEpoch((value) => value + 1);
-      setActiveView("workspace");
+      setActiveView("billing");
+      setPaymentsContext(null);
       queueMicrotask(() => staffCodeRef.current?.focus());
     });
   }
@@ -345,6 +414,25 @@ export default function App() {
   const canViewAccounts = Boolean(connection?.capabilities.includes("accounts.view"));
   const canPrepareOpening = Boolean(connection?.capabilities.includes("accounts.opening_prepare"));
   const canPostOpening = Boolean(connection?.capabilities.includes("accounts.opening_post"));
+  const canCreateBill = Boolean(connection?.capabilities.includes("bills.create"));
+  const canEditDraft = Boolean(connection?.capabilities.includes("bills.edit_draft"));
+  const canFinalizeBill = Boolean(connection?.capabilities.includes("bills.finalize"));
+  const canCorrectFinalized = Boolean(
+    connection?.capabilities.includes("bills.correct_finalized"),
+  );
+  const canCancelFinalized = Boolean(connection?.capabilities.includes("bills.cancel_finalized"));
+  const canReceivePayment = Boolean(connection?.capabilities.includes("payments.receive_trader"));
+  const canPayFarmer = Boolean(connection?.capabilities.includes("payments.pay_farmer"));
+  const canReversePayment = Boolean(connection?.capabilities.includes("payments.reverse"));
+  const canViewReports = Boolean(connection?.capabilities.includes("reports.view_financial"));
+  const canExportData = Boolean(connection?.capabilities.includes("data.export"));
+
+  function openPayments(context: Omit<PaymentsInitialContext, "nonce">) {
+    paymentsNonceRef.current += 1;
+    setPaymentsContext({ ...context, nonce: paymentsNonceRef.current });
+    setActiveView("payments");
+  }
+
   const staffSessionKey = signedIn ? `${connection?.staffCode ?? "staff"}:${staffEpoch}` : null;
   const navigation = buildNavigation(activeView);
 
@@ -354,14 +442,8 @@ export default function App() {
       brand={<BrandMark compact />}
       navigation={navigation}
       onNavigate={(item) => {
-        if (
-          item.id === "farmers" ||
-          item.id === "buyers" ||
-          item.id === "catalog" ||
-          item.id === "settings" ||
-          item.id === "workspace"
-        ) {
-          setActiveView(item.id as DesktopView);
+        if (isDesktopView(item.id)) {
+          setActiveView(item.id);
         }
       }}
       header={<AppHeader title="Desktop workspace" />}
@@ -549,7 +631,57 @@ export default function App() {
         </section>
       ) : null}
 
-      {activeView === "farmers" ? (
+      {activeView === "farmer-bills" ? (
+        <FarmerBillingPanel
+          key={staffSessionKey ?? "signed-out"}
+          hostAvailable={hostAvailable}
+          signedIn={signedIn}
+          canRead={canCreateBill || canEditDraft || canFinalizeBill}
+          canIssue={canFinalizeBill}
+          staffKey={staffSessionKey}
+        />
+      ) : activeView === "bill-history" ? (
+        <BillHistoryPanel
+          key={staffSessionKey ?? "signed-out"}
+          hostAvailable={hostAvailable}
+          signedIn={signedIn}
+          canRead={
+            canCreateBill ||
+            canEditDraft ||
+            canFinalizeBill ||
+            canCorrectFinalized ||
+            canCancelFinalized
+          }
+          canCorrect={canCorrectFinalized}
+          canCancel={canCancelFinalized}
+          staffKey={staffSessionKey}
+          paymentKinds={[
+            ...(canReceivePayment ? (["trader"] as const) : []),
+            ...(canPayFarmer ? (["farmer"] as const) : []),
+          ]}
+          onRecordPayment={(context) =>
+            openPayments({
+              partyKind: context.partyKind,
+              party: { ...context.party, active: true },
+              bill: context.bill,
+            })
+          }
+        />
+      ) : activeView === "reports" ? (
+        <ReportsPanel canView={canViewReports} canExport={canExportData} />
+      ) : activeView === "payments" ? (
+        <PaymentsPanel
+          key={staffSessionKey ?? "signed-out"}
+          hostAvailable={hostAvailable}
+          signedIn={signedIn}
+          canReceive={canReceivePayment}
+          canPay={canPayFarmer}
+          canReverse={canReversePayment}
+          staffKey={staffSessionKey}
+          initialContext={paymentsContext}
+          onInitialContextConsumed={() => setPaymentsContext(null)}
+        />
+      ) : activeView === "farmers" ? (
         <FarmersPanel
           hostAvailable={hostAvailable}
           signedIn={signedIn}
@@ -558,6 +690,11 @@ export default function App() {
           canPrepareOpening={canPrepareOpening}
           canPostOpening={canPostOpening}
           staffKey={staffSessionKey}
+          onRecordPayout={
+            canPayFarmer
+              ? (farmer) => openPayments({ partyKind: "farmer", party: farmer })
+              : undefined
+          }
         />
       ) : activeView === "buyers" ? (
         <BuyersPanel
@@ -568,6 +705,11 @@ export default function App() {
           canPrepareOpening={canPrepareOpening}
           canPostOpening={canPostOpening}
           staffKey={staffSessionKey}
+          onReceivePayment={
+            canReceivePayment
+              ? (buyer) => openPayments({ partyKind: "trader", party: buyer })
+              : undefined
+          }
         />
       ) : activeView === "catalog" ? (
         <CatalogPanel
@@ -577,22 +719,25 @@ export default function App() {
           staffKey={staffSessionKey}
         />
       ) : activeView === "settings" ? (
-        <CommissionSettingsPanel
+        <div className="space-y-6">
+          <CommissionSettingsPanel
+            key={staffSessionKey ?? "signed-out"}
+            hostAvailable={hostAvailable}
+            signedIn={signedIn}
+            canManage={canManageCommission}
+            staffKey={staffSessionKey}
+          />
+          <PrintingSettingsPanel hostAvailable={hostAvailable} signedIn={signedIn} />
+        </div>
+      ) : (
+        <BillingPanel
           key={staffSessionKey ?? "signed-out"}
           hostAvailable={hostAvailable}
           signedIn={signedIn}
-          canManage={canManageCommission}
+          canCreate={canCreateBill}
+          canEditDraft={canEditDraft}
+          canFinalize={canFinalizeBill}
           staffKey={staffSessionKey}
-        />
-      ) : signedIn ? (
-        <EmptyState
-          title="Billing workspace reserved"
-          description={`Signed in to ${connection?.verifiedStallDisplayName ?? "the stall"}. Party selection, line entry, and totals will appear here in a later phase.`}
-        />
-      ) : (
-        <EmptyState
-          title="Billing workspace reserved"
-          description="Verify the stall host and sign in to unlock the workspace. No financial data is shown."
         />
       )}
     </AppShell>

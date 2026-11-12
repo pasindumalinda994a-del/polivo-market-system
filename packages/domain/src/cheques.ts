@@ -19,7 +19,11 @@ export type FarmerChequePaymentResult = {
 
 /**
  * Farmer cheque policy: when a cheque is handed to a farmer, record it as paid
- * immediately. No cheque number, bank details, or clearance status required.
+ * immediately. No clearance, deposit, bounce, or maturity workflow.
+ *
+ * Operational metadata (cheque number, issuing bank, cheque date, handover date)
+ * is required by Phase 27 contracts/service (ADR 0018); this helper encodes only
+ * the immediate-settlement recognition rule.
  *
  * Trader cheque balance effects are not confirmed and must not use this helper.
  */

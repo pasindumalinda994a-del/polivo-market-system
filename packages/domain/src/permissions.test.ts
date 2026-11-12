@@ -30,12 +30,16 @@ describe("permission capability helpers", () => {
     expect(recommendedCapabilitiesForProfile("billing_staff")).toContain("commission.manage");
     expect(recommendedCapabilitiesForProfile("billing_staff")).toContain("accounts.view");
     expect(recommendedCapabilitiesForProfile("billing_staff")).toContain("accounts.opening_prepare");
+    expect(recommendedCapabilitiesForProfile("billing_staff")).toContain("documents.print");
+    expect(recommendedCapabilitiesForProfile("billing_staff")).toContain("documents.reprint");
     expect(recommendedCapabilitiesForProfile("billing_staff")).not.toContain("accounts.opening_post");
     expect(recommendedCapabilitiesForProfile("billing_staff")).not.toContain(
       "accounts.opening_correct",
     );
     expect(recommendedCapabilitiesForProfile("cashier")).toContain("payments.receive_trader");
     expect(recommendedCapabilitiesForProfile("cashier")).toContain("accounts.view");
+    expect(recommendedCapabilitiesForProfile("cashier")).toContain("documents.print");
+    expect(recommendedCapabilitiesForProfile("cashier")).not.toContain("documents.reprint");
     expect(recommendedCapabilitiesForProfile("cashier")).not.toContain("catalog.manage");
     expect(recommendedCapabilitiesForProfile("cashier")).not.toContain("commission.manage");
     expect(recommendedCapabilitiesForProfile("cashier")).not.toContain("accounts.opening_prepare");
