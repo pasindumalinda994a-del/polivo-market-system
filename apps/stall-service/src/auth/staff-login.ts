@@ -14,6 +14,7 @@ import {
   upsertLoginAttempt,
   type LocalDatabase,
 } from "@polivo/db-local";
+import { effectiveLocalCapabilities } from "@polivo/domain";
 
 import {
   forbiddenError,
@@ -299,15 +300,20 @@ export function lookupCurrentSession(
   if (policyOk !== true) {
     return policyOk;
   }
-  let capabilities: string[] = [];
+  let snapshotCapabilities: string[] = [];
   try {
     const parsed = JSON.parse(snapshot.capabilitiesJson) as unknown;
     if (Array.isArray(parsed) && parsed.every((v) => typeof v === "string")) {
-      capabilities = parsed;
+      snapshotCapabilities = parsed;
     }
   } catch {
     return forbiddenError("Local permission snapshot is invalid.");
   }
+
+  const capabilities = effectiveLocalCapabilities({
+    isLocalOwner: staff.isLocalOwner,
+    snapshotCapabilities,
+  });
 
   return {
     sessionId: session.id,

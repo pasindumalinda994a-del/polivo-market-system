@@ -18,6 +18,14 @@ export const PERMISSION_CAPABILITIES = [
   "payments.reverse",
   "reports.view_financial",
   "parties.register_edit",
+  "catalog.manage",
+  "commission.manage",
+  "accounts.view",
+  "accounts.opening_prepare",
+  "accounts.opening_post",
+  "accounts.opening_correct",
+  "documents.print",
+  "documents.reprint",
   "inventory.manage_arrivals",
   "inventory.adjust",
   "data.export",
@@ -61,7 +69,16 @@ export function normalizeCapabilitySet(values: readonly string[]): PermissionCap
 }
 
 export type CapabilityGroupId =
-  "bills" | "payments" | "reports" | "parties" | "inventory" | "administration";
+  | "bills"
+  | "payments"
+  | "reports"
+  | "parties"
+  | "catalog"
+  | "commission"
+  | "accounts"
+  | "documents"
+  | "inventory"
+  | "administration";
 
 export type CapabilityGroup = {
   id: CapabilityGroupId;
@@ -106,6 +123,31 @@ export const CAPABILITY_GROUPS: readonly CapabilityGroup[] = [
     capabilities: ["parties.register_edit"],
   },
   {
+    id: "catalog",
+    label: "Vegetables and packages",
+    capabilities: ["catalog.manage"],
+  },
+  {
+    id: "commission",
+    label: "Commission",
+    capabilities: ["commission.manage"],
+  },
+  {
+    id: "accounts",
+    label: "Accounts and openings",
+    capabilities: [
+      "accounts.view",
+      "accounts.opening_prepare",
+      "accounts.opening_post",
+      "accounts.opening_correct",
+    ],
+  },
+  {
+    id: "documents",
+    label: "Document printing",
+    capabilities: ["documents.print", "documents.reprint"],
+  },
+  {
     id: "inventory",
     label: "Inventory",
     capabilities: ["inventory.manage_arrivals", "inventory.adjust"],
@@ -124,6 +166,12 @@ export const BILLING_STAFF_DEFAULT_CAPABILITIES: readonly PermissionCapability[]
   "bills.finalize",
   "bills.change_selling_price",
   "parties.register_edit",
+  "catalog.manage",
+  "commission.manage",
+  "accounts.view",
+  "accounts.opening_prepare",
+  "documents.print",
+  "documents.reprint",
   "inventory.manage_arrivals",
 ];
 
@@ -133,6 +181,8 @@ export const CASHIER_DEFAULT_CAPABILITIES: readonly PermissionCapability[] = [
   "payments.pay_farmer",
   "payments.record_cheque",
   "reports.view_financial",
+  "accounts.view",
+  "documents.print",
 ];
 
 export function recommendedCapabilitiesForProfile(
@@ -141,4 +191,20 @@ export function recommendedCapabilitiesForProfile(
   return profile === "billing_staff"
     ? BILLING_STAFF_DEFAULT_CAPABILITIES
     : CASHIER_DEFAULT_CAPABILITIES;
+}
+
+/**
+ * Effective operational capabilities for local stall enforcement.
+ * Cloud owners store an empty capability list by design (ADR 0009); local owners
+ * still need the full operational catalog at the host. Non-owners use the snapshot.
+ */
+export function effectiveLocalCapabilities(input: {
+  isLocalOwner: boolean;
+  snapshotCapabilities: readonly string[];
+}): PermissionCapability[] {
+  if (input.isLocalOwner) {
+    return [...PERMISSION_CAPABILITIES];
+  }
+  const normalized = normalizeCapabilitySet(input.snapshotCapabilities);
+  return normalized ?? [];
 }

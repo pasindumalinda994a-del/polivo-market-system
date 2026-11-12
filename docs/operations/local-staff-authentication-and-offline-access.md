@@ -55,6 +55,8 @@ pnpm --filter @polivo/stall-service staff-cli setup-owner OWNER1
 
 Prefer pasting the setup grant secret at the prompt. Prompt also asks for the local owner secret (do not put secrets on argv). Device enrollment grants must not be reused.
 
+Cloud setup redeem stores an **empty** capability snapshot for the local owner (same as cloud owner memberships). Local authorization and session responses expand `is_local_owner` to the full operational catalog at enforcement time, so the owner can use Farmers and other operational routes without seeding `parties.register_edit` into the snapshot. Sign out and sign in again after upgrading the stall-service so the desktop receives the expanded session capabilities.
+
 ### Activate billing staff / cashier (local)
 
 Capabilities are a JSON array of capability ids. Prefer matching the cloud membership’s current capabilities and `capabilities_revision`. On **PowerShell + pnpm**, use a double-quoted argument with escaped inner quotes. Do **not** pass bash-style `'["cap"]'` through pnpm.

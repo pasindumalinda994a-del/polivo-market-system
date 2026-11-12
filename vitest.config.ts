@@ -8,6 +8,7 @@ export default defineConfig({
       "packages/db-local/vitest.config.ts",
       "packages/db-cloud/vitest.config.ts",
       "apps/web/vitest.config.mts",
+      "apps/desktop/vitest.config.ts",
       "apps/stall-service/vitest.config.ts",
       "tests/integration/vitest.config.ts",
     ],

@@ -936,4 +936,147 @@ describe("stall-service local staff authentication (phase 15)", () => {
       message: "Stall access needs an online refresh.",
     });
   });
+
+  it("expands empty owner snapshot to full operational capabilities for session and authz", async () => {
+    const local = initBoundDatabase(createTempDbPath("polivo-staff-", "owner-caps.sqlite"));
+    const secureStorage = createMemorySecureStorage();
+    seedActivatedHost(local, secureStorage);
+    const terminal = seedAcceptedTerminal(local);
+    const clock = "2026-11-09T12:00:00.000Z";
+
+    const ownerSetup = setupFirstLocalOwner(
+      { database: local, now: () => clock, createId: () => "staff-owner" },
+      {
+        staffCode: "OWNER1",
+        secret: "owner-secret-test",
+        proof: {
+          tenantId: "tenant-1",
+          cloudMembershipId: "mem_owner",
+          ownerDisplayName: "Owner",
+          capabilities: [],
+          sourceRevision: 1,
+          grantId: "lsg_owner_caps",
+        },
+      },
+    );
+    expect("staffId" in ownerSetup).toBe(true);
+
+    activateLocalStaff(
+      { database: local, now: () => clock, createId: () => "staff-cashier" },
+      {
+        actorStaffId: "staff-owner",
+        staffCode: "CASH1",
+        secret: "cashier-secret-test",
+        displayName: "Cashier",
+        cloudMembershipId: "mem_cashier",
+        capabilities: ["reports.view_financial"],
+        sourceRevision: 1,
+      },
+    );
+
+    const app = trackApp(
+      buildTestApp({
+        database: local,
+        useLegacyTestAuth: false,
+        secureStorage,
+        offlinePolicy: testPolicy(),
+        authorization: createLocalStaffAuthorizationAdapter({
+          database: local,
+          secureStorage,
+          offlinePolicy: testPolicy(),
+          now: () => clock,
+        }),
+        now: () => clock,
+        createId: () => `id-${Math.random().toString(16).slice(2)}`,
+      }),
+    );
+
+    const ownerSignIn = await app.inject({
+      method: "POST",
+      url: "/local-auth/sign-in",
+      payload: {
+        staffCode: "OWNER1",
+        secret: "owner-secret-test",
+        deviceProof: {
+          deviceId: terminal.terminalDeviceId,
+          signedAt: clock,
+          signature: signDeviceAuthMessage(terminal.privateKeyPkcs8, {
+            deviceId: terminal.terminalDeviceId,
+            signedAt: clock,
+            method: "POST",
+            path: "/local-auth/sign-in",
+          }),
+        },
+      },
+    });
+    expect(ownerSignIn.statusCode).toBe(200);
+    const ownerSession = (ownerSignIn.json() as { sessionSecret: string }).sessionSecret;
+
+    const ownerSessionLookup = await app.inject({
+      method: "GET",
+      url: "/local-auth/session",
+      headers: deviceHeaders({
+        deviceId: terminal.terminalDeviceId,
+        privateKeyPkcs8: terminal.privateKeyPkcs8,
+        method: "GET",
+        path: "/local-auth/session",
+        signedAt: clock,
+        sessionSecret: ownerSession,
+      }),
+    });
+    expect(ownerSessionLookup.statusCode).toBe(200);
+    const ownerCaps = (ownerSessionLookup.json() as { capabilities: string[] }).capabilities;
+    expect(ownerCaps).toContain("parties.register_edit");
+    expect(ownerCaps).toContain("bills.create");
+    expect(ownerCaps.length).toBeGreaterThan(5);
+
+    const ownerFarmers = await app.inject({
+      method: "GET",
+      url: "/farmers",
+      headers: deviceHeaders({
+        deviceId: terminal.terminalDeviceId,
+        privateKeyPkcs8: terminal.privateKeyPkcs8,
+        method: "GET",
+        path: "/farmers",
+        signedAt: clock,
+        sessionSecret: ownerSession,
+      }),
+    });
+    expect(ownerFarmers.statusCode).toBe(200);
+
+    const cashierSignIn = await app.inject({
+      method: "POST",
+      url: "/local-auth/sign-in",
+      payload: {
+        staffCode: "CASH1",
+        secret: "cashier-secret-test",
+        deviceProof: {
+          deviceId: terminal.terminalDeviceId,
+          signedAt: clock,
+          signature: signDeviceAuthMessage(terminal.privateKeyPkcs8, {
+            deviceId: terminal.terminalDeviceId,
+            signedAt: clock,
+            method: "POST",
+            path: "/local-auth/sign-in",
+          }),
+        },
+      },
+    });
+    expect(cashierSignIn.statusCode).toBe(200);
+    const cashierSession = (cashierSignIn.json() as { sessionSecret: string }).sessionSecret;
+
+    const cashierFarmers = await app.inject({
+      method: "GET",
+      url: "/farmers",
+      headers: deviceHeaders({
+        deviceId: terminal.terminalDeviceId,
+        privateKeyPkcs8: terminal.privateKeyPkcs8,
+        method: "GET",
+        path: "/farmers",
+        signedAt: clock,
+        sessionSecret: cashierSession,
+      }),
+    });
+    expect(cashierFarmers.statusCode).toBe(403);
+  });
 });

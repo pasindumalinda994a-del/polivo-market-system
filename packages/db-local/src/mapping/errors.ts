@@ -66,6 +66,13 @@ export function requireAbsoluteTimestamp(value: unknown, field: string): string 
   return text;
 }
 
+export function optionalAbsoluteTimestamp(value: unknown, field: string): string | null {
+  if (value === null || value === undefined) {
+    return null;
+  }
+  return requireAbsoluteTimestamp(value, field);
+}
+
 export function requireBoolean01(value: unknown, field: string): boolean {
   const n = requireInteger(value, field);
   if (n !== 0 && n !== 1) {

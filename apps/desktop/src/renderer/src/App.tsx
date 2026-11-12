@@ -7,49 +7,137 @@ import {
   AppShell,
   BrandMark,
   Button,
-  EmptyState,
   Input,
   Label,
   PageHeader,
   StatusIndicator,
   type SidebarNavItem,
 } from "@polivo/ui";
-import { ClipboardList, LayoutDashboard, Settings, Users } from "lucide-react";
+import {
+  Banknote,
+  BarChart3,
+  ClipboardList,
+  FileText,
+  History,
+  Settings,
+  Sprout,
+  Users,
+} from "lucide-react";
 
-const navigation: SidebarNavItem[] = [
-  {
-    id: "workspace",
-    label: "Workspace",
-    href: "#workspace",
-    available: true,
-    active: true,
-    icon: <LayoutDashboard className="h-5 w-5" aria-hidden="true" />,
-  },
-  {
-    id: "billing",
-    label: "Billing",
-    available: false,
-    icon: <ClipboardList className="h-5 w-5" aria-hidden="true" />,
-  },
-  {
-    id: "farmers",
-    label: "Farmers",
-    available: false,
-    icon: <Users className="h-5 w-5" aria-hidden="true" />,
-  },
-  {
-    id: "buyers",
-    label: "Buyers",
-    available: false,
-    icon: <Users className="h-5 w-5" aria-hidden="true" />,
-  },
-  {
-    id: "settings",
-    label: "Settings",
-    available: false,
-    icon: <Settings className="h-5 w-5" aria-hidden="true" />,
-  },
-];
+import { BillingPanel } from "./billing/BillingPanel";
+import { BillHistoryPanel } from "./bill-history/BillHistoryPanel";
+import { BuyersPanel } from "./BuyersPanel";
+import { CatalogPanel } from "./CatalogPanel";
+import { CommissionSettingsPanel } from "./CommissionSettingsPanel";
+import { FarmerBillingPanel } from "./farmer-billing/FarmerBillingPanel";
+import { FarmersPanel } from "./FarmersPanel";
+import { PaymentsPanel, type PaymentsInitialContext } from "./payments/PaymentsPanel";
+import { PrintingSettingsPanel } from "./printing/PrintingSettingsPanel";
+import { ReportsPanel } from "./ReportsPanel";
+
+type DesktopView =
+  | "billing"
+  | "farmer-bills"
+  | "bill-history"
+  | "payments"
+  | "reports"
+  | "farmers"
+  | "buyers"
+  | "catalog"
+  | "settings";
+
+const DESKTOP_VIEWS = [
+  "billing",
+  "farmer-bills",
+  "bill-history",
+  "payments",
+  "reports",
+  "farmers",
+  "buyers",
+  "catalog",
+  "settings",
+] as const satisfies readonly DesktopView[];
+
+function isDesktopView(id: string): id is DesktopView {
+  return (DESKTOP_VIEWS as readonly string[]).includes(id);
+}
+
+function buildNavigation(activeView: DesktopView): SidebarNavItem[] {
+  return [
+    {
+      id: "billing",
+      label: "Billing",
+      href: "#billing",
+      available: true,
+      active: activeView === "billing",
+      icon: <ClipboardList className="h-5 w-5" aria-hidden="true" />,
+    },
+    {
+      id: "farmer-bills",
+      label: "Farmer bills",
+      href: "#farmer-bills",
+      available: true,
+      active: activeView === "farmer-bills",
+      icon: <FileText className="h-5 w-5" aria-hidden="true" />,
+    },
+    {
+      id: "bill-history",
+      label: "Bill history",
+      href: "#bill-history",
+      available: true,
+      active: activeView === "bill-history",
+      icon: <History className="h-5 w-5" aria-hidden="true" />,
+    },
+    {
+      id: "payments",
+      label: "Payments",
+      href: "#payments",
+      available: true,
+      active: activeView === "payments",
+      icon: <Banknote className="h-5 w-5" aria-hidden="true" />,
+    },
+    {
+      id: "reports",
+      label: "Reports",
+      href: "#reports",
+      available: true,
+      active: activeView === "reports",
+      icon: <BarChart3 className="h-5 w-5" aria-hidden="true" />,
+    },
+    {
+      id: "farmers",
+      label: "Farmers",
+      href: "#farmers",
+      available: true,
+      active: activeView === "farmers",
+      icon: <Users className="h-5 w-5" aria-hidden="true" />,
+    },
+    {
+      id: "buyers",
+      label: "Buyers",
+      href: "#buyers",
+      available: true,
+      active: activeView === "buyers",
+      icon: <Users className="h-5 w-5" aria-hidden="true" />,
+    },
+    {
+      id: "catalog",
+      label: "Catalog",
+      href: "#catalog",
+      available: true,
+      active: activeView === "catalog",
+      icon: <Sprout className="h-5 w-5" aria-hidden="true" />,
+    },
+    {
+      id: "settings",
+      label: "Settings",
+      href: "#settings",
+      available: true,
+      active: activeView === "settings",
+      icon: <Settings className="h-5 w-5" aria-hidden="true" />,
+    },
+  ];
+}
 
 type EnrollmentStatus = {
   installationId: string;
@@ -131,6 +219,7 @@ function statusLabel(
 
 export default function App() {
   const [pending, startTransition] = useTransition();
+  const [activeView, setActiveView] = useState<DesktopView>("billing");
   const [enrollment, setEnrollment] = useState<EnrollmentStatus | null>(null);
   const [connection, setConnection] = useState<ConnectionStatus | null>(null);
   const [enrollmentSecret, setEnrollmentSecret] = useState("");
@@ -140,6 +229,9 @@ export default function App() {
   const [staffSecret, setStaffSecret] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+  const [staffEpoch, setStaffEpoch] = useState(0);
+  const [paymentsContext, setPaymentsContext] = useState<PaymentsInitialContext | null>(null);
+  const paymentsNonceRef = useRef(0);
   const staffCodeRef = useRef<HTMLInputElement>(null);
   const staffSecretRef = useRef<HTMLInputElement>(null);
 
@@ -241,6 +333,7 @@ export default function App() {
           queueMicrotask(() => staffSecretRef.current?.focus());
           return;
         }
+        setStaffEpoch((value) => value + 1);
         setInfo(null);
       } catch (err) {
         setStaffSecret("");
@@ -275,6 +368,9 @@ export default function App() {
       setConnection(result.status);
       setStaffCode("");
       setStaffSecret("");
+      setStaffEpoch((value) => value + 1);
+      setActiveView("billing");
+      setPaymentsContext(null);
       setInfo(
         result.serverRevocationAcknowledged
           ? "Signed out on this terminal and on the stall host."
@@ -295,6 +391,9 @@ export default function App() {
       setConnection(status);
       setStaffCode("");
       setStaffSecret("");
+      setStaffEpoch((value) => value + 1);
+      setActiveView("billing");
+      setPaymentsContext(null);
       queueMicrotask(() => staffCodeRef.current?.focus());
     });
   }
@@ -308,12 +407,43 @@ export default function App() {
   const signedIn = connection?.state === "signed_in";
   const hostDown = connection?.state === "unreachable";
   const identityFailed = connection?.state === "identity_failed";
+  const hostAvailable = signedIn && !hostDown && !identityFailed;
+  const canManageParties = Boolean(connection?.capabilities.includes("parties.register_edit"));
+  const canManageCatalog = Boolean(connection?.capabilities.includes("catalog.manage"));
+  const canManageCommission = Boolean(connection?.capabilities.includes("commission.manage"));
+  const canViewAccounts = Boolean(connection?.capabilities.includes("accounts.view"));
+  const canPrepareOpening = Boolean(connection?.capabilities.includes("accounts.opening_prepare"));
+  const canPostOpening = Boolean(connection?.capabilities.includes("accounts.opening_post"));
+  const canCreateBill = Boolean(connection?.capabilities.includes("bills.create"));
+  const canEditDraft = Boolean(connection?.capabilities.includes("bills.edit_draft"));
+  const canFinalizeBill = Boolean(connection?.capabilities.includes("bills.finalize"));
+  const canCorrectFinalized = Boolean(connection?.capabilities.includes("bills.correct_finalized"));
+  const canCancelFinalized = Boolean(connection?.capabilities.includes("bills.cancel_finalized"));
+  const canReceivePayment = Boolean(connection?.capabilities.includes("payments.receive_trader"));
+  const canPayFarmer = Boolean(connection?.capabilities.includes("payments.pay_farmer"));
+  const canReversePayment = Boolean(connection?.capabilities.includes("payments.reverse"));
+  const canViewReports = Boolean(connection?.capabilities.includes("reports.view_financial"));
+  const canExportData = Boolean(connection?.capabilities.includes("data.export"));
+
+  function openPayments(context: Omit<PaymentsInitialContext, "nonce">) {
+    paymentsNonceRef.current += 1;
+    setPaymentsContext({ ...context, nonce: paymentsNonceRef.current });
+    setActiveView("payments");
+  }
+
+  const staffSessionKey = signedIn ? `${connection?.staffCode ?? "staff"}:${staffEpoch}` : null;
+  const navigation = buildNavigation(activeView);
 
   return (
     <AppShell
       compactNav
       brand={<BrandMark compact />}
       navigation={navigation}
+      onNavigate={(item) => {
+        if (isDesktopView(item.id)) {
+          setActiveView(item.id);
+        }
+      }}
       header={<AppHeader title="Desktop workspace" />}
       statusArea={
         <StatusIndicator
@@ -499,15 +629,113 @@ export default function App() {
         </section>
       ) : null}
 
-      {signedIn ? (
-        <EmptyState
-          title="Billing workspace reserved"
-          description={`Signed in to ${connection?.verifiedStallDisplayName ?? "the stall"}. Party selection, line entry, and totals will appear here in a later phase.`}
+      {activeView === "farmer-bills" ? (
+        <FarmerBillingPanel
+          key={staffSessionKey ?? "signed-out"}
+          hostAvailable={hostAvailable}
+          signedIn={signedIn}
+          canRead={canCreateBill || canEditDraft || canFinalizeBill}
+          canIssue={canFinalizeBill}
+          staffKey={staffSessionKey}
         />
+      ) : activeView === "bill-history" ? (
+        <BillHistoryPanel
+          key={staffSessionKey ?? "signed-out"}
+          hostAvailable={hostAvailable}
+          signedIn={signedIn}
+          canRead={
+            canCreateBill ||
+            canEditDraft ||
+            canFinalizeBill ||
+            canCorrectFinalized ||
+            canCancelFinalized
+          }
+          canCorrect={canCorrectFinalized}
+          canCancel={canCancelFinalized}
+          staffKey={staffSessionKey}
+          paymentKinds={[
+            ...(canReceivePayment ? (["trader"] as const) : []),
+            ...(canPayFarmer ? (["farmer"] as const) : []),
+          ]}
+          onRecordPayment={(context) =>
+            openPayments({
+              partyKind: context.partyKind,
+              party: { ...context.party, active: true },
+              bill: context.bill,
+            })
+          }
+        />
+      ) : activeView === "reports" ? (
+        <ReportsPanel canView={canViewReports} canExport={canExportData} />
+      ) : activeView === "payments" ? (
+        <PaymentsPanel
+          key={staffSessionKey ?? "signed-out"}
+          hostAvailable={hostAvailable}
+          signedIn={signedIn}
+          canReceive={canReceivePayment}
+          canPay={canPayFarmer}
+          canReverse={canReversePayment}
+          staffKey={staffSessionKey}
+          initialContext={paymentsContext}
+          onInitialContextConsumed={() => setPaymentsContext(null)}
+        />
+      ) : activeView === "farmers" ? (
+        <FarmersPanel
+          hostAvailable={hostAvailable}
+          signedIn={signedIn}
+          canManage={canManageParties}
+          canViewAccounts={canViewAccounts}
+          canPrepareOpening={canPrepareOpening}
+          canPostOpening={canPostOpening}
+          staffKey={staffSessionKey}
+          onRecordPayout={
+            canPayFarmer
+              ? (farmer) => openPayments({ partyKind: "farmer", party: farmer })
+              : undefined
+          }
+        />
+      ) : activeView === "buyers" ? (
+        <BuyersPanel
+          hostAvailable={hostAvailable}
+          signedIn={signedIn}
+          canManage={canManageParties}
+          canViewAccounts={canViewAccounts}
+          canPrepareOpening={canPrepareOpening}
+          canPostOpening={canPostOpening}
+          staffKey={staffSessionKey}
+          onReceivePayment={
+            canReceivePayment
+              ? (buyer) => openPayments({ partyKind: "trader", party: buyer })
+              : undefined
+          }
+        />
+      ) : activeView === "catalog" ? (
+        <CatalogPanel
+          hostAvailable={hostAvailable}
+          signedIn={signedIn}
+          canManage={canManageCatalog}
+          staffKey={staffSessionKey}
+        />
+      ) : activeView === "settings" ? (
+        <div className="space-y-6">
+          <CommissionSettingsPanel
+            key={staffSessionKey ?? "signed-out"}
+            hostAvailable={hostAvailable}
+            signedIn={signedIn}
+            canManage={canManageCommission}
+            staffKey={staffSessionKey}
+          />
+          <PrintingSettingsPanel hostAvailable={hostAvailable} signedIn={signedIn} />
+        </div>
       ) : (
-        <EmptyState
-          title="Billing workspace reserved"
-          description="Verify the stall host and sign in to unlock the workspace. No financial data is shown."
+        <BillingPanel
+          key={staffSessionKey ?? "signed-out"}
+          hostAvailable={hostAvailable}
+          signedIn={signedIn}
+          canCreate={canCreateBill}
+          canEditDraft={canEditDraft}
+          canFinalize={canFinalizeBill}
+          staffKey={staffSessionKey}
         />
       )}
     </AppShell>

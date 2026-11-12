@@ -75,6 +75,7 @@ Initialization creates `local_installation` identity only. It does not fabricate
 - Copied into `dist/migrations/sql/` on package build so compiled services do not depend on the source tree.
 - History table `schema_migrations`: `id`, `name`, `checksum` (SHA-256 of file contents), `applied_at`.
 - Pending migrations apply under `BEGIN IMMEDIATE` with recheck after lock.
+- `PRAGMA foreign_keys = OFF` inside a migration body is a no-op while that transaction is open. Table rebuilds that drop a parent must copy and drop dependent child tables first (see migration `013`).
 - Checksum mismatches and newer unsupported schemas refuse to open.
 - No automatic down-migrations or database resets.
 
@@ -95,7 +96,7 @@ Do not store authoritative money or weights as REAL. Adapters in `@polivo/db-loc
 - One sale foundation: `sales` / `sale_lines` / package weights / farmer allocations; `farmer_bills` and `trader_bills` reference the same sale rather than duplicating independent financial transactions.
 - Commission: stall-level band sets only ([0005](../decisions/0005-commission-configuration-v1.md)); snapshot rate/amount columns on sale lines; no production seeds.
 - Bill sequences: `bill_sequences` keyed by `(stall_id, bill_type)`; no `MAX(number)+1`; starting numbers not seeded until numbering policy is finalized.
-- Payments: method `cash` \| `bank_transfer` \| `cheque`; no cheque-clearance columns.
+- Payments: method `cash` \| `bank_transfer` \| `cheque`; cheque metadata columns added in migration `013` (`cheque_number`, `issuing_bank_label`, `cheque_date`, `physical_handover_date`); no cheque-clearance columns.
 - Audit / idempotency / sync outbox scaffolding for later phases.
 
 Restrictive deletes: referenced farmers, traders, sales, and bills cannot be deleted while dependents exist (`ON DELETE RESTRICT`).

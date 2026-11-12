@@ -21,6 +21,9 @@
     "db:migrate": "node ./dist/cli.js migrate",
     "db:status": "node ./dist/cli.js status"
   },
+  "dependencies": {
+    "@polivo/domain": "workspace:*"
+  },
   "devDependencies": {
     "@types/node": "26.6.6",
     "typescript": "5.9.3"

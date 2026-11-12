@@ -10,5 +10,6 @@
     "declaration": false,
     "declarationMap": false
   },
-  "include": ["electron.vite.config.ts", "src/main/**/*", "src/preload/**/*"]
+  "include": ["electron.vite.config.ts", "src/main/**/*", "src/preload/**/*"],
+  "exclude": ["src/main/**/*.test.ts"]
 }
