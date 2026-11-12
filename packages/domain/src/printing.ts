@@ -1,18 +1,10 @@
 export const PRINT_TEMPLATE_VERSION = "1" as const;
 
 export type PrintTemplateId =
-  | "buyer_bill"
-  | "farmer_bill"
-  | "payment_receipt"
-  | "account_statement"
-  | "test_page";
+  "buyer_bill" | "farmer_bill" | "payment_receipt" | "account_statement" | "test_page";
 
 export type PrintDocumentKind =
-  | "buyer_bill"
-  | "farmer_bill"
-  | "payment_receipt"
-  | "account_statement"
-  | "test_page";
+  "buyer_bill" | "farmer_bill" | "payment_receipt" | "account_statement" | "test_page";
 
 export type PrintClassification = "initial" | "reprint";
 

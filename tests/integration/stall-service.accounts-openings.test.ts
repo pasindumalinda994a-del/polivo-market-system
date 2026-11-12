@@ -14,11 +14,7 @@ import { generateDeviceKeyPair } from "../../apps/stall-service/src/security/ed2
 import { createMemorySecureStorage } from "../../apps/stall-service/src/security/secure-storage.ts";
 import { buildTestApp } from "../../apps/stall-service/src/testing/build-test-app.ts";
 import { createTestAuthorizationAdapter } from "../../apps/stall-service/src/testing/test-auth.ts";
-import {
-  cleanupTempDatabases,
-  createTempDbPath,
-  initBoundDatabase,
-} from "./helpers/temp-db.ts";
+import { cleanupTempDatabases, createTempDbPath, initBoundDatabase } from "./helpers/temp-db.ts";
 
 type StallApp = ReturnType<typeof buildApp>;
 

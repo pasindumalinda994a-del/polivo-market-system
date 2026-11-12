@@ -3,11 +3,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { buildTestApp } from "../../apps/stall-service/src/testing/build-test-app.ts";
 import { createTestAuthorizationAdapter } from "../../apps/stall-service/src/testing/test-auth.ts";
 import { countFinancialArtifacts } from "../../apps/stall-service/src/commands/account-statement-commands.ts";
-import {
-  cleanupTempDatabases,
-  createTempDbPath,
-  initBoundDatabase,
-} from "./helpers/temp-db.ts";
+import { cleanupTempDatabases, createTempDbPath, initBoundDatabase } from "./helpers/temp-db.ts";
 
 type StallApp = ReturnType<typeof buildTestApp>;
 

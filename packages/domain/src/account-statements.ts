@@ -212,7 +212,10 @@ export function allocationActiveAtCutoff(
   return { active: true, usedLegacyReleaseProxy: false };
 }
 
-export function buildSnapshotExpiry(capturedAtIso: string, ttlMs = STATEMENT_SNAPSHOT_TTL_MS): string {
+export function buildSnapshotExpiry(
+  capturedAtIso: string,
+  ttlMs = STATEMENT_SNAPSHOT_TTL_MS,
+): string {
   const capturedMs = Date.parse(capturedAtIso);
   if (Number.isNaN(capturedMs)) {
     throw new DomainError("INVALID_TIMESTAMP", "capturedAt must be an absolute timestamp");

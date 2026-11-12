@@ -5,7 +5,10 @@ import { describe, expect, it } from "vitest";
  * (logout, party switch, or filter apply). This mirrors AccountStatementPanel's
  * requestGen guard without mounting Electron.
  */
-function shouldApplyStatementResponse(activeGeneration: number, responseGeneration: number): boolean {
+function shouldApplyStatementResponse(
+  activeGeneration: number,
+  responseGeneration: number,
+): boolean {
   return activeGeneration === responseGeneration;
 }
 

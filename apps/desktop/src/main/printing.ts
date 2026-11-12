@@ -38,11 +38,7 @@ import {
 } from "@polivo/domain";
 import { app, BrowserWindow } from "electron";
 
-import {
-  authenticatedHostRequest,
-  isStaffSignedIn,
-  mapHostApiError,
-} from "./connection.js";
+import { authenticatedHostRequest, isStaffSignedIn, mapHostApiError } from "./connection.js";
 
 export type PrintApiError = {
   ok: false;
@@ -109,8 +105,7 @@ function parsePrintDocumentRequest(input: unknown): {
   if (typeof record.documentId !== "string" || record.documentId.length === 0) {
     throw new Error("documentId is required.");
   }
-  const classification =
-    record.classification === "reprint" ? "reprint" : ("initial" as const);
+  const classification = record.classification === "reprint" ? "reprint" : ("initial" as const);
   const paperProfile =
     record.paperProfile === undefined
       ? undefined
@@ -120,9 +115,7 @@ function parsePrintDocumentRequest(input: unknown): {
       ? undefined
       : printReprintReasonSchema.parse(record.reprintReason);
   const statementSnapshotToken =
-    typeof record.statementSnapshotToken === "string"
-      ? record.statementSnapshotToken
-      : undefined;
+    typeof record.statementSnapshotToken === "string" ? record.statementSnapshotToken : undefined;
   return {
     documentKind,
     documentId: record.documentId,
@@ -286,9 +279,7 @@ export function getTerminalPrinterConfig(): PrintApiResult<TerminalPrinterConfig
   }
 }
 
-export function setTerminalPrinterConfig(
-  input: unknown,
-): PrintApiResult<TerminalPrinterConfigDto> {
+export function setTerminalPrinterConfig(input: unknown): PrintApiResult<TerminalPrinterConfigDto> {
   assertSafePrintIpcPayload(input);
   const parsed = terminalPrinterConfigSchema.parse(input);
   writeFileSync(configPath(), JSON.stringify(parsed, null, 2), "utf8");
@@ -313,7 +304,7 @@ export async function listSystemPrinters(): Promise<PrintApiResult<DiscoveredPri
         displayName: printer.displayName || printer.name,
         isDefault: Boolean(
           (printer as { isDefault?: boolean; isdefault?: boolean }).isDefault ??
-            (printer as { isdefault?: boolean }).isdefault,
+          (printer as { isdefault?: boolean }).isdefault,
         ),
       }),
     );
@@ -329,9 +320,7 @@ export async function listSystemPrinters(): Promise<PrintApiResult<DiscoveredPri
   }
 }
 
-export async function getStallPrintIdentity(): Promise<
-  PrintApiResult<StallPrintIdentityView>
-> {
+export async function getStallPrintIdentity(): Promise<PrintApiResult<StallPrintIdentityView>> {
   return hostCall({
     method: "GET",
     path: "/print/stall-identity",
@@ -541,9 +530,9 @@ async function openPrintWindow(html: string, show: boolean): Promise<BrowserWind
   return window;
 }
 
-export async function previewDocument(input: unknown): Promise<
-  PrintApiResult<{ attemptId: string; viewModel: PrintViewModelDto }>
-> {
+export async function previewDocument(
+  input: unknown,
+): Promise<PrintApiResult<{ attemptId: string; viewModel: PrintViewModelDto }>> {
   assertSafePrintIpcPayload(input);
   const parsed = parsePrintDocumentRequest(input);
 
@@ -623,9 +612,7 @@ async function submitToPrinter(args: {
     window = await openPrintWindow(html, false);
 
     const outcome = await new Promise<
-      | "accepted_by_print_system"
-      | "failed_before_submission"
-      | "outcome_unknown"
+      "accepted_by_print_system" | "failed_before_submission" | "outcome_unknown"
     >((resolve) => {
       const timer = setTimeout(() => resolve("outcome_unknown"), 60_000);
       try {
@@ -681,9 +668,9 @@ async function submitToPrinter(args: {
   }
 }
 
-export async function printDocument(input: unknown): Promise<
-  PrintApiResult<{ attemptId: string; outcome: string }>
-> {
+export async function printDocument(
+  input: unknown,
+): Promise<PrintApiResult<{ attemptId: string; outcome: string }>> {
   assertSafePrintIpcPayload(input);
   const parsed = parsePrintDocumentRequest(input);
 

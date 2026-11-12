@@ -6,11 +6,7 @@ import {
   paginationCursorSchema,
   paginationLimitQuerySchema,
 } from "./pagination.js";
-import {
-  absoluteTimestampSchema,
-  calendarDateSchema,
-  opaqueIdSchema,
-} from "./primitives.js";
+import { absoluteTimestampSchema, calendarDateSchema, opaqueIdSchema } from "./primitives.js";
 import { farmerRevisionSchema } from "./farmers.js";
 
 export const ledgerPartyKindSchema = z.enum(["farmer", "trader"]);
@@ -36,11 +32,7 @@ export const balanceDirectionLabelSchema = z.enum([
 ]);
 export type BalanceDirectionLabelDto = z.infer<typeof balanceDirectionLabelSchema>;
 
-export const partyAccountOpeningStatusSchema = z.enum([
-  "not_opened",
-  "opened",
-  "opened_zero",
-]);
+export const partyAccountOpeningStatusSchema = z.enum(["not_opened", "opened", "opened_zero"]);
 export type PartyAccountOpeningStatusDto = z.infer<typeof partyAccountOpeningStatusSchema>;
 
 export const openingDraftStatusSchema = z.enum(["draft", "posted", "discarded"]);

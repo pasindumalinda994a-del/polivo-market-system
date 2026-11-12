@@ -3,11 +3,7 @@ import { useEffect, useState } from "react";
 import { Button, Input, Label } from "@polivo/ui";
 
 type PrintDocumentKind =
-  | "buyer_bill"
-  | "farmer_bill"
-  | "payment_receipt"
-  | "account_statement"
-  | "test_page";
+  "buyer_bill" | "farmer_bill" | "payment_receipt" | "account_statement" | "test_page";
 
 type PrinterConfig = {
   printerSystemName: string;

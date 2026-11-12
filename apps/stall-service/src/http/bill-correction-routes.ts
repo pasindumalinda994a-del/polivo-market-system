@@ -45,7 +45,11 @@ function requireDatabase(deps: ServiceDependencies) {
 }
 
 function parseIdempotencyKey(request: { headers: Record<string, unknown> }): string {
-  return parseWithSchema(idempotencyKeySchema, request.headers["idempotency-key"], "Idempotency-Key");
+  return parseWithSchema(
+    idempotencyKeySchema,
+    request.headers["idempotency-key"],
+    "Idempotency-Key",
+  );
 }
 
 function authorizeCapability(
@@ -138,7 +142,10 @@ function decodeOffsetCursor(cursor: string | undefined): number {
   throw new AppError({ code: "VALIDATION_ERROR", message: "Invalid pagination cursor." });
 }
 
-export function registerBillCorrectionRoutes(app: FastifyInstance, deps: ServiceDependencies): void {
+export function registerBillCorrectionRoutes(
+  app: FastifyInstance,
+  deps: ServiceDependencies,
+): void {
   app.get("/bill-history", async (request, reply) => {
     const database = requireDatabase(deps);
     const requestId = resolveRequestId(request);
@@ -239,9 +246,7 @@ export function registerBillCorrectionRoutes(app: FastifyInstance, deps: Service
           activity: detail.activity,
           ledgerPostingId: detail.sale?.postingId ?? detail.traderBill?.postingId ?? null,
           reversalPostingId:
-            detail.sale?.reversalPostingId ??
-            detail.correctionOperation?.reversalPostingId ??
-            null,
+            detail.sale?.reversalPostingId ?? detail.correctionOperation?.reversalPostingId ?? null,
           traderId: detail.sale?.traderId ?? detail.traderBill?.traderId ?? null,
           saleLines: detail.sale?.lines
             .filter(

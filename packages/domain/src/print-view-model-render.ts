@@ -1,6 +1,4 @@
-import type {
-  PrintTemplateRenderInput,
-} from "./print-templates.js";
+import type { PrintTemplateRenderInput } from "./print-templates.js";
 import { moneyCell, weightCell } from "./print-templates.js";
 
 /** Minimal view-model shape accepted by the renderer (mirrors contracts PrintViewModelDto). */
@@ -19,11 +17,7 @@ export type PrintableViewModel = {
     attemptReference: string;
     paperProfile: "thermal-80mm-test" | "a4-paged-test";
     templateId:
-      | "buyer_bill"
-      | "farmer_bill"
-      | "payment_receipt"
-      | "account_statement"
-      | "test_page";
+      "buyer_bill" | "farmer_bill" | "payment_receipt" | "account_statement" | "test_page";
     templateVersion: "1";
   };
   content: {
@@ -101,7 +95,9 @@ function provenanceLabel(provenance: "historical" | "current_unverified"): strin
     : "Stall identity from current local print settings (not a verified historical snapshot)";
 }
 
-export function printViewModelToRenderInput(viewModel: PrintableViewModel): PrintTemplateRenderInput {
+export function printViewModelToRenderInput(
+  viewModel: PrintableViewModel,
+): PrintTemplateRenderInput {
   const meta = viewModel.printMetadata;
   const base = {
     templateId: meta.templateId,
@@ -124,7 +120,10 @@ export function printViewModelToRenderInput(viewModel: PrintableViewModel): Prin
       title: "Buyer / trader bill",
       subtitle: bill.billNumber,
       metaRows: [
-        { label: "Buyer", value: `${bill.traderDisplayName ?? ""} (${bill.traderShortCode ?? ""})` },
+        {
+          label: "Buyer",
+          value: `${bill.traderDisplayName ?? ""} (${bill.traderShortCode ?? ""})`,
+        },
         { label: "Business date", value: bill.businessDate },
         { label: "Issued", value: bill.finalizedAt },
       ],
@@ -148,7 +147,10 @@ export function printViewModelToRenderInput(viewModel: PrintableViewModel): Prin
       title: "Farmer bill",
       subtitle: bill.billNumber,
       metaRows: [
-        { label: "Farmer", value: `${bill.farmerDisplayName ?? ""} (${bill.farmerShortCode ?? ""})` },
+        {
+          label: "Farmer",
+          value: `${bill.farmerDisplayName ?? ""} (${bill.farmerShortCode ?? ""})`,
+        },
         {
           label: "Covered sales",
           value: `${bill.coveredBusinessDateFrom ?? ""} → ${bill.coveredBusinessDateTo ?? ""}`,
@@ -166,7 +168,10 @@ export function printViewModelToRenderInput(viewModel: PrintableViewModel): Prin
       totals: [
         { label: "Gross", value: moneyCell(bill.totalSaleAmountMinor ?? 0) },
         { label: "Commission", value: moneyCell(bill.totalCommissionMinor ?? 0) },
-        { label: "Net entitlement", value: moneyCell(bill.totalFarmerReceivesMinor ?? bill.totalAmountMinor) },
+        {
+          label: "Net entitlement",
+          value: moneyCell(bill.totalFarmerReceivesMinor ?? bill.totalAmountMinor),
+        },
       ],
       footnotes: [],
     };
@@ -176,7 +181,8 @@ export function printViewModelToRenderInput(viewModel: PrintableViewModel): Prin
     const payment = content.payment;
     return {
       ...base,
-      title: payment.direction === "payout" ? "Farmer payout acknowledgement" : "Buyer payment receipt",
+      title:
+        payment.direction === "payout" ? "Farmer payout acknowledgement" : "Buyer payment receipt",
       subtitle: payment.referenceNumber,
       metaRows: [
         { label: "Method", value: payment.method },
@@ -184,7 +190,12 @@ export function printViewModelToRenderInput(viewModel: PrintableViewModel): Prin
         { label: "Status", value: payment.status },
         { label: "Paid at", value: payment.paidAt },
         ...(payment.chequeNumber
-          ? [{ label: "Cheque", value: `${payment.chequeNumber} / ${payment.issuingBankLabel ?? ""}` }]
+          ? [
+              {
+                label: "Cheque",
+                value: `${payment.chequeNumber} / ${payment.issuingBankLabel ?? ""}`,
+              },
+            ]
           : []),
       ],
       columns: ["Allocation", "Amount"],
@@ -234,7 +245,10 @@ export function printViewModelToRenderInput(viewModel: PrintableViewModel): Prin
         { label: "Period −", value: moneyCell(statement.summary.periodDecreaseMinor) },
         { label: "Closing", value: moneyCell(statement.summary.closingBalanceMinor) },
       ],
-      footnotes: ["Statements do not receive bill numbers.", "Full snapshot — not only the on-screen page."],
+      footnotes: [
+        "Statements do not receive bill numbers.",
+        "Full snapshot — not only the on-screen page.",
+      ],
     };
   }
 

@@ -417,9 +417,7 @@ export default function App() {
   const canCreateBill = Boolean(connection?.capabilities.includes("bills.create"));
   const canEditDraft = Boolean(connection?.capabilities.includes("bills.edit_draft"));
   const canFinalizeBill = Boolean(connection?.capabilities.includes("bills.finalize"));
-  const canCorrectFinalized = Boolean(
-    connection?.capabilities.includes("bills.correct_finalized"),
-  );
+  const canCorrectFinalized = Boolean(connection?.capabilities.includes("bills.correct_finalized"));
   const canCancelFinalized = Boolean(connection?.capabilities.includes("bills.cancel_finalized"));
   const canReceivePayment = Boolean(connection?.capabilities.includes("payments.receive_trader"));
   const canPayFarmer = Boolean(connection?.capabilities.includes("payments.pay_farmer"));

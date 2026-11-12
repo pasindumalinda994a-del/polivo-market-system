@@ -4,10 +4,10 @@ Phase 30 operator and development guide for authorized local reporting over the 
 
 ## Capabilities
 
-| Capability | Use |
-|---|---|
+| Capability               | Use                                              |
+| ------------------------ | ------------------------------------------------ |
 | `reports.view_financial` | Open Reports workspace, catalog, and run reports |
-| `data.export` | Create and save CSV/PDF export jobs |
+| `data.export`            | Create and save CSV/PDF export jobs              |
 
 Bill creation alone does not grant reporting or export access.
 

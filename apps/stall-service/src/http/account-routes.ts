@@ -232,8 +232,7 @@ export function registerAccountRoutes(app: FastifyInstance, deps: ServiceDepende
       accountMovementsResponseSchema.parse({
         precedingBalanceMinor: page.precedingBalanceMinor,
         items,
-        nextCursor:
-          page.nextCursorSequence === null ? null : String(page.nextCursorSequence),
+        nextCursor: page.nextCursorSequence === null ? null : String(page.nextCursorSequence),
       }),
     );
   });
@@ -296,14 +295,7 @@ export function registerAccountRoutes(app: FastifyInstance, deps: ServiceDepende
       throw binding;
     }
     const query = parseWithSchema(accountSummaryQuerySchema, request.query, "query");
-    const body = loadAccountSummary(
-      database,
-      binding.stallId,
-      partyKind,
-      partyId,
-      query,
-      nowIso(),
-    );
+    const body = loadAccountSummary(database, binding.stallId, partyKind, partyId, query, nowIso());
     return reply.code(200).header("x-request-id", requestId).send(body);
   });
 
@@ -414,52 +406,55 @@ export function registerAccountRoutes(app: FastifyInstance, deps: ServiceDepende
     return reply.code(200).header("x-request-id", requestId).send(body);
   });
 
-  app.get("/accounts/:partyKind/:partyId/bills/:billKind/:billId/settlement", async (request, reply) => {
-    const database = requireDatabase(deps);
-    const requestId = resolveRequestId(request);
-    const authMaterial = readRequestAuthMaterial(request, { requireSession: true });
-    if (authMaterial instanceof AppError) {
-      throw authMaterial;
-    }
-    const params = request.params as {
-      partyKind: string;
-      partyId: string;
-      billKind: string;
-      billId: string;
-    };
-    const partyKind = parseWithSchema(ledgerPartyKindSchema, params.partyKind, "partyKind");
-    const partyId = parseWithSchema(opaqueIdSchema, params.partyId, "partyId");
-    const billKind = parseWithSchema(statementBillKindSchema, params.billKind, "billKind");
-    const billId = parseWithSchema(opaqueIdSchema, params.billId, "billId");
-    const authPath = `/accounts/${partyKind}/${partyId}/bills/${billKind}/${billId}/settlement`;
-    authorizeCapability(deps, ACCOUNTS_VIEW_CAPABILITY, {
-      requestId,
-      deviceProof: authMaterial.deviceProof,
-      sessionSecret: authMaterial.sessionSecret!,
-      method: "GET",
-      path: authPath,
-    });
-    const binding = resolveBoundStall(database);
-    if (binding instanceof AppError) {
-      throw binding;
-    }
-    const rawSnapshot = (request.query as { snapshotToken?: string }).snapshotToken;
-    const snapshotToken =
-      rawSnapshot === undefined
-        ? undefined
-        : parseWithSchema(statementSnapshotTokenSchema, rawSnapshot, "snapshotToken");
-    const body = loadBillSettlementDetail(
-      database,
-      binding.stallId,
-      partyKind,
-      partyId,
-      billKind,
-      billId,
-      snapshotToken,
-      nowIso(),
-    );
-    return reply.code(200).header("x-request-id", requestId).send(body);
-  });
+  app.get(
+    "/accounts/:partyKind/:partyId/bills/:billKind/:billId/settlement",
+    async (request, reply) => {
+      const database = requireDatabase(deps);
+      const requestId = resolveRequestId(request);
+      const authMaterial = readRequestAuthMaterial(request, { requireSession: true });
+      if (authMaterial instanceof AppError) {
+        throw authMaterial;
+      }
+      const params = request.params as {
+        partyKind: string;
+        partyId: string;
+        billKind: string;
+        billId: string;
+      };
+      const partyKind = parseWithSchema(ledgerPartyKindSchema, params.partyKind, "partyKind");
+      const partyId = parseWithSchema(opaqueIdSchema, params.partyId, "partyId");
+      const billKind = parseWithSchema(statementBillKindSchema, params.billKind, "billKind");
+      const billId = parseWithSchema(opaqueIdSchema, params.billId, "billId");
+      const authPath = `/accounts/${partyKind}/${partyId}/bills/${billKind}/${billId}/settlement`;
+      authorizeCapability(deps, ACCOUNTS_VIEW_CAPABILITY, {
+        requestId,
+        deviceProof: authMaterial.deviceProof,
+        sessionSecret: authMaterial.sessionSecret!,
+        method: "GET",
+        path: authPath,
+      });
+      const binding = resolveBoundStall(database);
+      if (binding instanceof AppError) {
+        throw binding;
+      }
+      const rawSnapshot = (request.query as { snapshotToken?: string }).snapshotToken;
+      const snapshotToken =
+        rawSnapshot === undefined
+          ? undefined
+          : parseWithSchema(statementSnapshotTokenSchema, rawSnapshot, "snapshotToken");
+      const body = loadBillSettlementDetail(
+        database,
+        binding.stallId,
+        partyKind,
+        partyId,
+        billKind,
+        billId,
+        snapshotToken,
+        nowIso(),
+      );
+      return reply.code(200).header("x-request-id", requestId).send(body);
+    },
+  );
 
   app.get("/ledger/postings/:postingId", async (request, reply) => {
     const database = requireDatabase(deps);

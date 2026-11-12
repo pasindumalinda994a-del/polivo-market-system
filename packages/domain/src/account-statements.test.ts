@@ -29,12 +29,11 @@ describe("account statement math", () => {
   });
 
   it("returns 1,200,000 after reversing the 400,000 receipt", () => {
-    const afterReverse = computeStatementPeriodTotals("trader", 0, [
-      200_000,
-      1_000_000,
-      -400_000,
-      400_000,
-    ]);
+    const afterReverse = computeStatementPeriodTotals(
+      "trader",
+      0,
+      [200_000, 1_000_000, -400_000, 400_000],
+    );
     expect(afterReverse.closingBalanceMinor).toBe(1_200_000);
   });
 

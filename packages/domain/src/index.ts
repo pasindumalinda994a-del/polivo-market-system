@@ -272,7 +272,4 @@ export {
   type PrintTemplateRenderInput,
 } from "./print-templates.js";
 
-export {
-  printViewModelToRenderInput,
-  type PrintableViewModel,
-} from "./print-view-model-render.js";
+export { printViewModelToRenderInput, type PrintableViewModel } from "./print-view-model-render.js";

@@ -79,7 +79,12 @@ import {
 } from "@polivo/domain";
 
 import type { CommandDeps } from "./command-runner.js";
-import { conflictError, forbiddenError, notFoundError, validationError } from "../errors/app-error.js";
+import {
+  conflictError,
+  forbiddenError,
+  notFoundError,
+  validationError,
+} from "../errors/app-error.js";
 import type { ExecutionContext } from "../context/execution-context.js";
 
 export const REPORTS_VIEW_CAPABILITY = "reports.view_financial";
@@ -219,8 +224,7 @@ function paymentToRow(payment: ReportPaymentRow): ReportRowDto {
       payment_count: 1,
       payment_gross_minor: payment.status === "posted" ? payment.amountMinor : 0,
       payment_reversal_minor: payment.status === "reversed" ? payment.amountMinor : 0,
-      payment_net_minor:
-        payment.status === "posted" ? payment.amountMinor : -payment.amountMinor,
+      payment_net_minor: payment.status === "posted" ? payment.amountMinor : -payment.amountMinor,
       allocated_minor: payment.allocatedTotalMinor,
       unapplied_minor: payment.unappliedAmountMinor,
     },
@@ -602,7 +606,12 @@ function loadOutstandingReport(
   watermarks: ReportingWatermarks,
   limit: number,
   offset: number,
-): { rows: ReportRowDto[]; summary: ReportSummaryTotalsDto; totalCount: number; limitations: string[] } {
+): {
+  rows: ReportRowDto[];
+  summary: ReportSummaryTotalsDto;
+  totalCount: number;
+  limitations: string[];
+} {
   const asOf = filters.asOfBusinessDate!;
   const limitations: string[] = [
     "Outstanding reuses Phase 28 obligation and unapplied queries at the same cutoff.",
@@ -778,15 +787,7 @@ export function loadReport(
       result = loadOutstandingReport(database, stallId, filters, watermarks, limit, offset);
       break;
     default:
-      result = loadSalesReport(
-        database,
-        stallId,
-        reportType,
-        filters,
-        watermarks,
-        limit,
-        offset,
-      );
+      result = loadSalesReport(database, stallId, reportType, filters, watermarks, limit, offset);
   }
 
   const nextOffset = offset + result.rows.length;
@@ -937,7 +938,13 @@ export function createReportExportJob(
   });
 
   const def = getReportDefinition(reportType);
-  const rows = buildExportRows(deps.database, context.stallId, input.reportType, filters, watermarks);
+  const rows = buildExportRows(
+    deps.database,
+    context.stallId,
+    input.reportType,
+    filters,
+    watermarks,
+  );
   const asOfOrFrom =
     filters.asOfBusinessDate ?? filters.fromBusinessDate ?? payload.capturedAt.slice(0, 10);
   const defaultFileName = defaultReportExportFileName({
@@ -1008,7 +1015,10 @@ export function createReportExportJob(
           }
           return acc;
         }, emptyTotals()),
-      ).map(([k, v]) => `${k}: ${typeof v === "number" && k.includes("minor") ? formatReportMoneyCell(v) : k.includes("weight") ? formatReportWeightCell(v) : String(v)}`),
+      ).map(
+        ([k, v]) =>
+          `${k}: ${typeof v === "number" && k.includes("minor") ? formatReportMoneyCell(v) : k.includes("weight") ? formatReportWeightCell(v) : String(v)}`,
+      ),
       columnHeaders: ["Date", "Label", "Status", "Source", "Metrics"],
       rows: rows.map((r) => ({
         cells: [

@@ -487,9 +487,7 @@ export function BuyersPanel({
       <AccountSection
         partyKind="trader"
         partyId={selectedId}
-        partyLabel={
-          items.find((item) => item.id === selectedId)?.displayName ?? "Selected buyer"
-        }
+        partyLabel={items.find((item) => item.id === selectedId)?.displayName ?? "Selected buyer"}
         hostAvailable={hostAvailable}
         signedIn={signedIn}
         canView={canViewAccounts}

@@ -155,7 +155,9 @@ export function sumStatementOpeningBalanceMinor(
     .get(stallId, partyKind, partyId, maxPostingSequence, fromBusinessDate) as {
     balance_minor: number | bigint;
   };
-  return typeof row.balance_minor === "bigint" ? Number(row.balance_minor) : Number(row.balance_minor);
+  return typeof row.balance_minor === "bigint"
+    ? Number(row.balance_minor)
+    : Number(row.balance_minor);
 }
 
 /** All period movement amounts (unfiltered) for totals — bounded by watermark. */
@@ -179,7 +181,14 @@ export function listStatementPeriodAmounts(
          AND p.business_date >= ? AND p.business_date <= ?
        ORDER BY p.business_date ASC, e.posting_sequence ASC, e.id ASC`,
     )
-    .all(stallId, partyKind, partyId, maxPostingSequence, fromBusinessDate, toBusinessDate) as Array<{
+    .all(
+      stallId,
+      partyKind,
+      partyId,
+      maxPostingSequence,
+      fromBusinessDate,
+      toBusinessDate,
+    ) as Array<{
     amount_minor: number | bigint;
   }>;
   return rows.map((row) => moneyMinorFromSqliteInteger(row.amount_minor));
@@ -408,7 +417,9 @@ export function sumAccountBalanceAtWatermark(
           .get(stallId, partyKind, partyId, maxPostingSequence, asOfBusinessDate) as {
           balance_minor: number | bigint;
         });
-  return typeof row.balance_minor === "bigint" ? Number(row.balance_minor) : Number(row.balance_minor);
+  return typeof row.balance_minor === "bigint"
+    ? Number(row.balance_minor)
+    : Number(row.balance_minor);
 }
 
 /**
@@ -489,8 +500,14 @@ export function listAllocationsForHistoricalOutstanding(
       createdAt: requireAbsoluteTimestamp(row["created_at"], "created_at"),
       releasedAt,
       legacyReleaseRecordedAt: releasedAt === null ? reversalRecordedAt : null,
-      paymentBusinessDate: requireCalendarDate(row["payment_business_date"], "payment_business_date"),
-      paymentRecordedAt: requireAbsoluteTimestamp(row["payment_recorded_at"], "payment_recorded_at"),
+      paymentBusinessDate: requireCalendarDate(
+        row["payment_business_date"],
+        "payment_business_date",
+      ),
+      paymentRecordedAt: requireAbsoluteTimestamp(
+        row["payment_recorded_at"],
+        "payment_recorded_at",
+      ),
       paymentStatus,
       reversesPaymentId: optionalString(row["reverses_payment_id"], "reverses_payment_id"),
     };

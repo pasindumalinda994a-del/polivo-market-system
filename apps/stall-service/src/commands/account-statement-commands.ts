@@ -340,7 +340,10 @@ function rebuildHistoricalOutstanding(input: {
     const activeAllocatedMinor = allocatedByTarget.get(key) ?? 0;
     let remainingMinor: number;
     try {
-      remainingMinor = obligationRemainingAmountMinor(row.effectiveAmountMinor, activeAllocatedMinor);
+      remainingMinor = obligationRemainingAmountMinor(
+        row.effectiveAmountMinor,
+        activeAllocatedMinor,
+      );
     } catch {
       remainingMinor = 0;
     }
@@ -397,7 +400,12 @@ export function loadAccountStatement(
   });
 
   let cursorDecoded:
-    | { snapshotToken: string; afterBusinessDate: string; afterPostingSequence: number; afterEntryId: string }
+    | {
+        snapshotToken: string;
+        afterBusinessDate: string;
+        afterPostingSequence: number;
+        afterEntryId: string;
+      }
     | undefined;
   if (query.cursor !== undefined) {
     try {
@@ -648,8 +656,7 @@ export function loadOutstandingObligations(
     : outstandingObligationsQuerySchema.parse(rawQuery);
   loadParty(database, stallId, partyKind, partyId);
 
-  const asOfBusinessDate =
-    "asOfBusinessDate" in query ? (query.asOfBusinessDate ?? null) : null;
+  const asOfBusinessDate = "asOfBusinessDate" in query ? (query.asOfBusinessDate ?? null) : null;
   const isHistorical = forceHistorical || asOfBusinessDate !== null;
 
   const { payload, token } = resolveOrCreateSnapshot({
@@ -729,9 +736,7 @@ export function loadOutstandingObligations(
     currency: "LKR",
     asOfBusinessDate,
     isHistorical,
-    reconstructionBasis: isHistorical
-      ? "effective_and_recording_cutoff"
-      : "current_status",
+    reconstructionBasis: isHistorical ? "effective_and_recording_cutoff" : "current_status",
     legacyReleaseTimestampLimitation,
     remainingObligationsMinor,
     unappliedPaymentsMinor,

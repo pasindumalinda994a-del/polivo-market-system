@@ -444,18 +444,12 @@ export function AccountStatementPanel({
                             {item.reversesEntryId ? " · reversal" : ""}
                             {item.reversedByEntryId ? " · reversed" : ""}
                           </TableCell>
-                          <TableCell>
-                            {item.description ?? item.documentReference ?? "—"}
+                          <TableCell>{item.description ?? item.documentReference ?? "—"}</TableCell>
+                          <TableCell className="text-right">
+                            {item.increaseMinor > 0 ? formatMoneyMinor(item.increaseMinor) : "—"}
                           </TableCell>
                           <TableCell className="text-right">
-                            {item.increaseMinor > 0
-                              ? formatMoneyMinor(item.increaseMinor)
-                              : "—"}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {item.decreaseMinor > 0
-                              ? formatMoneyMinor(item.decreaseMinor)
-                              : "—"}
+                            {item.decreaseMinor > 0 ? formatMoneyMinor(item.decreaseMinor) : "—"}
                           </TableCell>
                           <TableCell className="text-right">
                             {formatMoneyMinor(item.runningBalanceMinor)}

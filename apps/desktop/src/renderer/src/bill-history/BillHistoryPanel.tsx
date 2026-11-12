@@ -78,9 +78,9 @@ export function BillHistoryPanel({
   const [editedPrices, setEditedPrices] = useState<Record<string, string>>({});
   const [preview, setPreview] = useState<SaleCorrectionPreviewResponse | null>(null);
   const [commitResult, setCommitResult] = useState<SaleCorrectionCommitResponse | null>(null);
-  const [busyAction, setBusyAction] = useState<"preview-correct" | "preview-reverse" | "commit" | null>(
-    null,
-  );
+  const [busyAction, setBusyAction] = useState<
+    "preview-correct" | "preview-reverse" | "commit" | null
+  >(null);
 
   useEffect(() => {
     setItems([]);
@@ -209,8 +209,7 @@ export function BillHistoryPanel({
       setError("A reason is required before preview.");
       return;
     }
-    const replacement =
-      action === "correct" ? buildReplacementPayload(detail) : undefined;
+    const replacement = action === "correct" ? buildReplacementPayload(detail) : undefined;
     if (action === "correct" && replacement === null) {
       setError("Sale lines are unavailable for correction.");
       return;
@@ -254,8 +253,7 @@ export function BillHistoryPanel({
       setError("Missing bills.cancel_finalized capability.");
       return;
     }
-    const replacement =
-      preview.action === "correct" ? buildReplacementPayload(detail) : undefined;
+    const replacement = preview.action === "correct" ? buildReplacementPayload(detail) : undefined;
     if (preview.action === "correct" && replacement === null) {
       setError("Sale lines are unavailable for correction commit.");
       return;
@@ -371,9 +369,7 @@ export function BillHistoryPanel({
         </div>
       </section>
 
-      {error ? (
-        <ErrorState title="Bill history error" description={error} />
-      ) : null}
+      {error ? <ErrorState title="Bill history error" description={error} /> : null}
       {loading ? <LoadingState label="Loading bill history" /> : null}
 
       <div className="grid gap-4 lg:grid-cols-2">
@@ -472,7 +468,9 @@ export function BillHistoryPanel({
                 </ul>
               </div>
 
-              {detail.billType === "trader" && detail.saleId && detail.correctionStatus === "active" ? (
+              {detail.billType === "trader" &&
+              detail.saleId &&
+              detail.correctionStatus === "active" ? (
                 <div className="space-y-2 rounded-md border p-3">
                   <h3 className="text-sm font-medium">Correction / reversal</h3>
                   <p className="text-sm text-muted-foreground">
@@ -541,15 +539,14 @@ export function BillHistoryPanel({
                       {preview.eligibility.farmerBillInclusions.length > 0 ? (
                         <Alert>
                           <AlertTitle>Farmer bill inclusion blocks this action</AlertTitle>
-                          <AlertDescription>
-                            {preview.eligibility.message}
-                          </AlertDescription>
+                          <AlertDescription>{preview.eligibility.message}</AlertDescription>
                         </Alert>
                       ) : null}
                       <p>Reversal effects: {preview.reversalEffects.length} ledger line(s)</p>
                       {preview.proposedTotals ? (
                         <p>
-                          Proposed buyer total {formatMoney(preview.proposedTotals.totalTraderPaysMinor)}
+                          Proposed buyer total{" "}
+                          {formatMoney(preview.proposedTotals.totalTraderPaysMinor)}
                         </p>
                       ) : null}
                       {preview.eligibility.allowed ? (

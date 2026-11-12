@@ -6,7 +6,12 @@ import {
   requireString,
 } from "../mapping/errors.js";
 import { findOriginalFarmerBillInclusion } from "./farmer-bills.js";
-import { getSaleById, getTraderBillBySaleId, type SaleCorrectionStatus, type SaleRecord } from "./sales.js";
+import {
+  getSaleById,
+  getTraderBillBySaleId,
+  type SaleCorrectionStatus,
+  type SaleRecord,
+} from "./sales.js";
 import { RevisionConflictError, RepositoryError, type DbExecutor } from "./types.js";
 
 export type SaleCorrectionAction = "correct" | "reverse";
@@ -135,7 +140,8 @@ export function isTraderBillAllocatable(
     return false;
   }
   const status = requireString(row["status"], "trader_bills.status");
-  const correctionStatus = optionalString(row["correction_status"], "correction_status") ?? "active";
+  const correctionStatus =
+    optionalString(row["correction_status"], "correction_status") ?? "active";
   return status === "finalized" && correctionStatus === "active";
 }
 
@@ -482,7 +488,10 @@ export function markTraderBillCorrected(
 }
 
 function mapAllocationHit(row: Record<string, unknown>): ObligationAllocationHit {
-  const obligationKind = requireString(row["obligation_kind"], "payment_allocations.obligation_kind");
+  const obligationKind = requireString(
+    row["obligation_kind"],
+    "payment_allocations.obligation_kind",
+  );
   if (
     obligationKind !== "trader_bill" &&
     obligationKind !== "farmer_sale_line" &&

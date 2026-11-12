@@ -77,9 +77,7 @@ export const printDocumentStatusAnnotationSchema = z.strictObject({
   replacementDocumentId: opaqueIdSchema.nullable(),
   replacementBillNumber: z.string().min(1).max(32).nullable(),
 });
-export type PrintDocumentStatusAnnotationDto = z.infer<
-  typeof printDocumentStatusAnnotationSchema
->;
+export type PrintDocumentStatusAnnotationDto = z.infer<typeof printDocumentStatusAnnotationSchema>;
 
 /**
  * Stall identity for print headers.
@@ -98,9 +96,7 @@ export const upsertStallPrintIdentityRequestSchema = z.strictObject({
   displayName: z.string().trim().min(1).max(200),
   address: z.string().trim().max(500).nullable().optional(),
 });
-export type UpsertStallPrintIdentityRequest = z.infer<
-  typeof upsertStallPrintIdentityRequestSchema
->;
+export type UpsertStallPrintIdentityRequest = z.infer<typeof upsertStallPrintIdentityRequestSchema>;
 
 export const stallPrintIdentityRecordSchema = z.strictObject({
   displayName: z.string().min(1).max(200),
@@ -148,9 +144,7 @@ export const accountStatementPrintContentSchema = z.strictObject({
   kind: z.literal("account_statement"),
   statement: accountStatementViewModelSchema,
 });
-export type AccountStatementPrintContentDto = z.infer<
-  typeof accountStatementPrintContentSchema
->;
+export type AccountStatementPrintContentDto = z.infer<typeof accountStatementPrintContentSchema>;
 
 export const testPagePrintContentSchema = z.strictObject({
   kind: z.literal("test_page"),
@@ -378,9 +372,7 @@ export const printAttemptOutcomeEventPayloadSchema = z.strictObject({
   deviceId: opaqueIdSchema,
   reportedAt: absoluteTimestampSchema,
 });
-export type PrintAttemptOutcomeEventPayload = z.infer<
-  typeof printAttemptOutcomeEventPayloadSchema
->;
+export type PrintAttemptOutcomeEventPayload = z.infer<typeof printAttemptOutcomeEventPayloadSchema>;
 
 /** Terminal-local printer configuration (desktop-only; not stall-wide). */
 export const terminalPrinterConfigSchema = z.strictObject({

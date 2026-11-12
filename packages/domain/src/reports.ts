@@ -5,7 +5,11 @@ import {
   isSnapshotExpired,
   type StatementSnapshotWatermarks,
 } from "./account-statements.js";
-import { escapePrintText, formatMoneyMinorForPrint, formatWeightHundredthsForPrint } from "./printing.js";
+import {
+  escapePrintText,
+  formatMoneyMinorForPrint,
+  formatWeightHundredthsForPrint,
+} from "./printing.js";
 import { summarizePublicPrices, type FinalizedSalePricePoint } from "./public-prices.js";
 
 /** Pure fingerprint for filter binding (no Node crypto — safe for Electron renderer). */
@@ -61,12 +65,7 @@ export type ReportFilterKey =
   | "sort";
 
 export type ReportGrouping =
-  | "business_date"
-  | "vegetable"
-  | "farmer"
-  | "buyer"
-  | "payment_method"
-  | "none";
+  "business_date" | "vegetable" | "farmer" | "buyer" | "payment_method" | "none";
 
 export type ReportMetricDefinition = {
   key: string;
@@ -110,9 +109,11 @@ const SALES_METRICS: readonly ReportMetricDefinition[] = [
     key: "package_count",
     sourceRecords: "Finalized sale package weight rows for eligible sale lines",
     unit: "count",
-    includedLifecycleStates: "finalized sales; activity includes reversed/superseded and replacements by effective date",
+    includedLifecycleStates:
+      "finalized sales; activity includes reversed/superseded and replacements by effective date",
     dateBasis: "sale business_date",
-    correctionTreatment: "Activity: signed events on their effective dates; do not rewrite earlier periods",
+    correctionTreatment:
+      "Activity: signed events on their effective dates; do not rewrite earlier periods",
     currencyOrWeight: "count",
     rounding: "integer count",
     applicableFilters: COMMON_SALES_FILTERS,
@@ -156,7 +157,8 @@ const SALES_METRICS: readonly ReportMetricDefinition[] = [
   },
   {
     key: "farmer_entitlement_minor",
-    sourceRecords: "sale_lines.farmer_receives_minor; identity gross − commission where model applies",
+    sourceRecords:
+      "sale_lines.farmer_receives_minor; identity gross − commission where model applies",
     unit: "money_minor",
     includedLifecycleStates: "finalized",
     dateBasis: "sale business_date",
@@ -204,7 +206,14 @@ export const REPORT_DEFINITIONS: readonly ReportDefinition[] = [
     description: "Quantity and amount breakdown by vegetable",
     dateModel: "activity_range",
     dateBasisLabel: "Activity by sale business date",
-    supportedFilters: ["fromBusinessDate", "toBusinessDate", "vegetableId", "farmerId", "buyerId", "sort"],
+    supportedFilters: [
+      "fromBusinessDate",
+      "toBusinessDate",
+      "vegetableId",
+      "farmerId",
+      "buyerId",
+      "sort",
+    ],
     supportedGroupings: ["vegetable", "business_date", "none"],
     available: true,
     unavailableReason: null,
@@ -243,7 +252,14 @@ export const REPORT_DEFINITIONS: readonly ReportDefinition[] = [
     description: "Recorded commission by date and source",
     dateModel: "activity_range",
     dateBasisLabel: "Activity by sale business date",
-    supportedFilters: ["fromBusinessDate", "toBusinessDate", "farmerId", "vegetableId", "grouping", "sort"],
+    supportedFilters: [
+      "fromBusinessDate",
+      "toBusinessDate",
+      "farmerId",
+      "vegetableId",
+      "grouping",
+      "sort",
+    ],
     supportedGroupings: ["business_date", "vegetable", "farmer", "none"],
     available: true,
     unavailableReason: null,
@@ -362,7 +378,8 @@ export const REPORT_DEFINITIONS: readonly ReportDefinition[] = [
     metrics: [
       {
         key: "remaining_obligations_minor",
-        sourceRecords: "Phase 28 obligation queries (trader_bill, farmer_sale_line, opening_balance)",
+        sourceRecords:
+          "Phase 28 obligation queries (trader_bill, farmer_sale_line, opening_balance)",
         unit: "money_minor",
         includedLifecycleStates: "remaining at as-of + cutoff",
         dateBasis: "as-of business date + recording cutoff",
@@ -671,10 +688,7 @@ export function createReportSnapshotPayload(input: {
   };
 }
 
-export function encodeReportPageCursor(input: {
-  snapshotToken: string;
-  offset: number;
-}): string {
+export function encodeReportPageCursor(input: { snapshotToken: string; offset: number }): string {
   return Buffer.from(JSON.stringify(input), "utf8").toString("base64url");
 }
 
@@ -770,7 +784,14 @@ export function buildVegetablePriceDay(input: {
 export function neutralizeCsvFormulaCell(value: string): string {
   if (value.length === 0) return value;
   const first = value[0]!;
-  if (first === "=" || first === "+" || first === "-" || first === "@" || first === "\t" || first === "\r") {
+  if (
+    first === "=" ||
+    first === "+" ||
+    first === "-" ||
+    first === "@" ||
+    first === "\t" ||
+    first === "\r"
+  ) {
     return `'${value}`;
   }
   // Control-character variants that some spreadsheet apps treat as formulas.
@@ -780,7 +801,10 @@ export function neutralizeCsvFormulaCell(value: string): string {
   return value;
 }
 
-export function serializeCsvCell(value: string | number | null | undefined, options?: { numeric?: boolean }): string {
+export function serializeCsvCell(
+  value: string | number | null | undefined,
+  options?: { numeric?: boolean },
+): string {
   if (value === null || value === undefined) {
     return "";
   }
@@ -870,14 +894,9 @@ export function renderReportPdfHtml(input: {
   columnHeaders: readonly string[];
   rows: readonly ReportPdfRow[];
 }): string {
-  const headerCells = input.columnHeaders
-    .map((h) => `<th>${escapePrintText(h)}</th>`)
-    .join("");
+  const headerCells = input.columnHeaders.map((h) => `<th>${escapePrintText(h)}</th>`).join("");
   const bodyRows = input.rows
-    .map(
-      (row) =>
-        `<tr>${row.cells.map((c) => `<td>${escapePrintText(c)}</td>`).join("")}</tr>`,
-    )
+    .map((row) => `<tr>${row.cells.map((c) => `<td>${escapePrintText(c)}</td>`).join("")}</tr>`)
     .join("\n");
   const summaryHtml = input.summaryLines
     .map((line) => `<li>${escapePrintText(line)}</li>`)

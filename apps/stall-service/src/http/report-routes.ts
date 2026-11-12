@@ -16,10 +16,7 @@ import {
 } from "../commands/report-commands.js";
 import type { AuthorizedPrincipal } from "../auth/authorization.js";
 import { requireCommandDeps, type ServiceDependencies } from "../composition.js";
-import {
-  buildExecutionContext,
-  resolveBoundStall,
-} from "../context/execution-context.js";
+import { buildExecutionContext, resolveBoundStall } from "../context/execution-context.js";
 import {
   AppError,
   forbiddenError,

@@ -1,6 +1,4 @@
-import {
-  moneyMinorFromSqliteInteger,
-} from "../numeric.js";
+import { moneyMinorFromSqliteInteger } from "../numeric.js";
 import {
   optionalString,
   requireAbsoluteTimestamp,
@@ -84,9 +82,7 @@ export function listBillHistory(
         : trader.totalCount + farmer.totalCount;
 
   const paged =
-    input.billType === undefined
-      ? items.slice(input.offset, input.offset + input.limit)
-      : items;
+    input.billType === undefined ? items.slice(input.offset, input.offset + input.limit) : items;
 
   return { items: paged, totalCount };
 }

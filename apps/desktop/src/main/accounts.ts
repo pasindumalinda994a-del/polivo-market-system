@@ -133,7 +133,11 @@ export async function listAccountMovements(input: {
       },
     });
     if (response.requestGeneration !== generation) {
-      return { ok: true, data: { precedingBalanceMinor: 0, items: [], nextCursor: null }, stale: true };
+      return {
+        ok: true,
+        data: { precedingBalanceMinor: 0, items: [], nextCursor: null },
+        stale: true,
+      };
     }
     if (response.status < 200 || response.status >= 300) {
       return parseError(response.status, response.bodyText, "Unable to load account movements.");
@@ -432,7 +436,11 @@ export async function listOutstandingObligations(input: {
       return { ok: false, code: "STALE", message: "Stale response ignored." };
     }
     if (response.status < 200 || response.status >= 300) {
-      return parseError(response.status, response.bodyText, "Unable to load outstanding obligations.");
+      return parseError(
+        response.status,
+        response.bodyText,
+        "Unable to load outstanding obligations.",
+      );
     }
     return {
       ok: true,
@@ -503,10 +511,7 @@ export async function correctOpening(
     reason: string;
     replacement?: {
       direction:
-        | "stall_owes_farmer"
-        | "farmer_owes_stall"
-        | "buyer_owes_stall"
-        | "stall_owes_buyer";
+        "stall_owes_farmer" | "farmer_owes_stall" | "buyer_owes_stall" | "stall_owes_buyer";
       amountMinor: number;
       cutoffDate?: string;
       reference?: string;

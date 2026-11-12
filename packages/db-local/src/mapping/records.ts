@@ -119,10 +119,7 @@ export type LedgerPartyKind = "farmer" | "trader";
 export type PartyAccountOpeningStatus = "not_opened" | "opened" | "opened_zero";
 export type OpeningDraftStatus = "draft" | "posted" | "discarded";
 export type OpeningBalanceDirection =
-  | "stall_owes_farmer"
-  | "farmer_owes_stall"
-  | "buyer_owes_stall"
-  | "stall_owes_buyer";
+  "stall_owes_farmer" | "farmer_owes_stall" | "buyer_owes_stall" | "stall_owes_buyer";
 
 export type PartyAccountRecord = {
   id: string;

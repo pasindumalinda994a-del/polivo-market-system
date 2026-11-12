@@ -20,22 +20,20 @@ describe("printing helpers", () => {
 
   it("classifies additional attempts conservatively", () => {
     expect(classifyAdditionalPrintAttempt({ priorOutcomes: [] })).toBe("initial");
-    expect(
-      classifyAdditionalPrintAttempt({ priorOutcomes: ["failed_before_submission"] }),
-    ).toBe("initial");
-    expect(
-      classifyAdditionalPrintAttempt({ priorOutcomes: ["accepted_by_print_system"] }),
-    ).toBe("reprint");
-    expect(classifyAdditionalPrintAttempt({ priorOutcomes: ["outcome_unknown"] })).toBe(
+    expect(classifyAdditionalPrintAttempt({ priorOutcomes: ["failed_before_submission"] })).toBe(
+      "initial",
+    );
+    expect(classifyAdditionalPrintAttempt({ priorOutcomes: ["accepted_by_print_system"] })).toBe(
       "reprint",
     );
+    expect(classifyAdditionalPrintAttempt({ priorOutcomes: ["outcome_unknown"] })).toBe("reprint");
     expect(classifyAdditionalPrintAttempt({ priorOutcomes: ["submitting"] })).toBe("reprint");
   });
 
   it("allows outcome reporting only from prepared/submitting unless repeating same terminal", () => {
-    expect(
-      canReportPrintOutcome({ current: "prepared", next: "accepted_by_print_system" }),
-    ).toBe(true);
+    expect(canReportPrintOutcome({ current: "prepared", next: "accepted_by_print_system" })).toBe(
+      true,
+    );
     expect(
       canReportPrintOutcome({
         current: "accepted_by_print_system",

@@ -479,475 +479,472 @@ function executeSaleCorrectionCommit(
   context: ExecutionContext,
   input: SaleCorrectionCommitRequest,
 ): SaleCorrectionCommitResponse {
-      const reason = normalizeSaleCorrectionReason(input.reason);
-      if (input.action === "correct" && input.replacement === undefined) {
-        throw validationError("Correction commit requires replacement values.", [
+  const reason = normalizeSaleCorrectionReason(input.reason);
+  if (input.action === "correct" && input.replacement === undefined) {
+    throw validationError("Correction commit requires replacement values.", [
+      {
+        path: "replacement",
+        code: "REPLACEMENT_REQUIRED",
+        message: "Provide replacement buyer and lines for a correction.",
+      },
+    ]);
+  }
+  if (input.action === "reverse" && input.replacement !== undefined) {
+    throw validationError("Reversal commit must not include replacement values.", [
+      {
+        path: "replacement",
+        code: "REPLACEMENT_FORBIDDEN",
+        message: "Omit replacement when reversing without replacement.",
+      },
+    ]);
+  }
+
+  const { sale, traderBillId, eligibility } = requireEligibleSale(
+    tx,
+    context.stallId,
+    input.saleId,
+    input.expectedRevision,
+  );
+  if (sale.postingId === null) {
+    throw conflictError("Sale has no ledger posting to reverse.");
+  }
+
+  const now = deps.now();
+  const businessDate = todayUtcCalendarDate(now);
+  const reversalEffects = buildReversalEffects(tx, context.stallId, sale.postingId);
+  assertExactReversalNet(
+    reversalEffects.map((effect) => ({
+      partyKind: effect.partyKind,
+      partyId: effect.partyId,
+      amountMinor: effect.originalAmountMinor,
+    })),
+    reversalEffects,
+  );
+
+  let replacementEffects: Array<{
+    partyKind: "farmer" | "trader";
+    partyId: string;
+    amountMinor: number;
+  }> = [];
+  let calculatedBill: ReturnType<typeof calculateSaleBillWithPolicy> | null = null;
+  let policy: CommissionPolicy | null = null;
+
+  if (input.action === "correct" && input.replacement !== undefined) {
+    if (sale.commissionVersionId === null) {
+      throw conflictError("Original sale is missing commission version identity.");
+    }
+    assertActiveRefs(tx, context.stallId, input.replacement.traderId, input.replacement.lines);
+    policy = loadHistoricalCommissionPolicy(tx, context.stallId, sale.commissionVersionId);
+    try {
+      calculatedBill = calculateSaleBillWithPolicy(policy, toPolicyInputs(input.replacement.lines));
+      const readiness = validateSaleBillForFinalization(
+        policy,
+        toPolicyInputs(input.replacement.lines),
+      );
+      if (!readiness.ready) {
+        throw validationError(readiness.issues[0]?.message ?? "Replacement sale is not valid.", [
           {
-            path: "replacement",
-            code: "REPLACEMENT_REQUIRED",
-            message: "Provide replacement buyer and lines for a correction.",
+            path: "replacement.lines",
+            code: readiness.issues[0]?.code ?? "INVALID_REPLACEMENT",
+            message: readiness.issues[0]?.message ?? "Replacement sale is not valid.",
           },
         ]);
       }
-      if (input.action === "reverse" && input.replacement !== undefined) {
-        throw validationError("Reversal commit must not include replacement values.", [
-          {
-            path: "replacement",
-            code: "REPLACEMENT_FORBIDDEN",
-            message: "Omit replacement when reversing without replacement.",
-          },
-        ]);
+    } catch (error) {
+      if (error instanceof AppError) {
+        throw error;
       }
+      mapDomainError(error);
+    }
+    replacementEffects = [
+      {
+        partyKind: "trader",
+        partyId: input.replacement.traderId,
+        amountMinor: calculatedBill.totalTraderPaysMinor,
+      },
+      ...[...calculatedBill.farmerEntitlements.entries()].map(([farmerId, amountMinor]) => ({
+        partyKind: "farmer" as const,
+        partyId: farmerId,
+        amountMinor,
+      })),
+    ];
+  }
 
-      const { sale, traderBillId, eligibility } = requireEligibleSale(
-        tx,
-        context.stallId,
-        input.saleId,
-        input.expectedRevision,
-      );
-      if (sale.postingId === null) {
-        throw conflictError("Sale has no ledger posting to reverse.");
-      }
+  const expectedFingerprint = hashFingerprint(
+    buildSaleCorrectionPreviewFingerprintMaterial({
+      action: input.action,
+      sourceSaleId: sale.id,
+      sourceRevision: sale.revision,
+      reason,
+      replacementPayload: input.replacement ?? null,
+      reversalEffects: reversalEffects.map((effect) => ({
+        partyKind: effect.partyKind,
+        partyId: effect.partyId,
+        amountMinor: effect.amountMinor,
+        reversesEntryId: effect.reversesEntryId,
+      })),
+      replacementEffects,
+    }),
+  );
+  if (expectedFingerprint !== input.previewFingerprint) {
+    throw conflictError("Correction preview is stale. Review the impact and preview again.");
+  }
 
-      const now = deps.now();
-      const businessDate = todayUtcCalendarDate(now);
-      const reversalEffects = buildReversalEffects(tx, context.stallId, sale.postingId);
-      assertExactReversalNet(
-        reversalEffects.map((effect) => ({
-          partyKind: effect.partyKind,
-          partyId: effect.partyId,
-          amountMinor: effect.originalAmountMinor,
-        })),
-        reversalEffects,
-      );
+  const operationId = deps.createId();
+  const reversalPostingId = deps.createId();
 
-      let replacementEffects: Array<{
-        partyKind: "farmer" | "trader";
-        partyId: string;
-        amountMinor: number;
-      }> = [];
-      let calculatedBill: ReturnType<typeof calculateSaleBillWithPolicy> | null = null;
-      let policy: CommissionPolicy | null = null;
+  try {
+    postLedgerEntries(tx, {
+      postingId: reversalPostingId,
+      stallId: context.stallId,
+      sourceType: SALE_SOURCE_TYPE,
+      sourceId: sale.id,
+      financialEventType: SALE_EVENT_REVERSED,
+      eventSequence: 1,
+      businessDate,
+      recordedAt: now,
+      actorStaffId: context.actorRef,
+      description: `Sale ${input.action} reverse ${sale.id}`,
+      currency: "LKR",
+      entries: reversalEffects.map((effect) => ({
+        entryId: deps.createId(),
+        partyKind: effect.partyKind,
+        partyId: effect.partyId,
+        amountMinor: effect.amountMinor,
+        reversesEntryId: effect.reversesEntryId,
+      })),
+    });
+  } catch (error) {
+    if (error instanceof DuplicateFinancialEventError) {
+      throw conflictError(error.message);
+    }
+    throw error;
+  }
 
-      if (input.action === "correct" && input.replacement !== undefined) {
-        if (sale.commissionVersionId === null) {
-          throw conflictError("Original sale is missing commission version identity.");
-        }
-        assertActiveRefs(tx, context.stallId, input.replacement.traderId, input.replacement.lines);
-        policy = loadHistoricalCommissionPolicy(tx, context.stallId, sale.commissionVersionId);
-        try {
-          calculatedBill = calculateSaleBillWithPolicy(
-            policy,
-            toPolicyInputs(input.replacement.lines),
-          );
-          const readiness = validateSaleBillForFinalization(
-            policy,
-            toPolicyInputs(input.replacement.lines),
-          );
-          if (!readiness.ready) {
-            throw validationError(readiness.issues[0]?.message ?? "Replacement sale is not valid.", [
-              {
-                path: "replacement.lines",
-                code: readiness.issues[0]?.code ?? "INVALID_REPLACEMENT",
-                message: readiness.issues[0]?.message ?? "Replacement sale is not valid.",
-              },
-            ]);
-          }
-        } catch (error) {
-          if (error instanceof AppError) {
-            throw error;
-          }
-          mapDomainError(error);
-        }
-        replacementEffects = [
+  let replacementSaleId: string | null = null;
+  let replacementPostingId: string | null = null;
+  let replacementTraderBillId: string | null = null;
+  let replacementTraderBillNumber: string | null = null;
+
+  if (
+    input.action === "correct" &&
+    input.replacement !== undefined &&
+    calculatedBill !== null &&
+    policy !== null
+  ) {
+    const buyer = getBuyerById(tx, context.stallId, input.replacement.traderId);
+    if (buyer === null) {
+      throw notFoundError("Replacement buyer was not found.");
+    }
+
+    replacementSaleId = deps.createId();
+    // Replacement lines always get new identities; never reuse original sale_line ids.
+    const draftLines = input.replacement.lines.map((line) => ({
+      id: deps.createId(),
+      farmerId: line.farmerId,
+      vegetableId: line.vegetableId,
+      packageTypeId: line.packageTypeId,
+      unitPricePerKgMinor: line.unitPricePerKgMinor,
+      packagingWeightHundredths: line.weights.packagingWeightHundredths ?? 0,
+      notes: line.notes ?? null,
+      weights: line.weights.rows.map((row, index) => ({
+        id: deps.createId(),
+        rowKey: row.rowKey,
+        packageIndex: index + 1,
+        packageTypeId: row.packageTypeId ?? null,
+        grossWeightHundredths: row.grossWeightHundredths,
+      })),
+    }));
+
+    const lineInputs = toPolicyInputs(
+      input.replacement.lines.map((line, index) => ({
+        ...line,
+        lineId: draftLines[index]!.id,
+      })),
+    );
+    calculatedBill = calculateSaleBillWithPolicy(policy, lineInputs);
+
+    insertSaleDraft(tx, {
+      id: replacementSaleId,
+      stallId: context.stallId,
+      traderId: input.replacement.traderId,
+      businessDate,
+      correctsSaleId: sale.id,
+      lines: draftLines,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    const draft = getSaleById(tx, context.stallId, replacementSaleId);
+    if (draft === null) {
+      throw conflictError("Failed to create replacement sale draft.");
+    }
+
+    const calcFingerprint = hashFingerprint(
+      buildSaleCalculationFingerprintMaterial({
+        draftRevision: draft.revision,
+        policyId: policy.policyId,
+        versionId: policy.versionId,
+        traderId: input.replacement.traderId,
+        businessDate,
+        lines: calculatedBill.lines,
+      }),
+    );
+
+    replacementPostingId = deps.createId();
+    ensurePartyAccount(tx, {
+      id: deps.createId(),
+      stallId: context.stallId,
+      partyKind: "trader",
+      partyId: buyer.id,
+      createdAt: now,
+      updatedAt: now,
+    });
+    for (const farmerId of calculatedBill.farmerEntitlements.keys()) {
+      ensurePartyAccount(tx, {
+        id: deps.createId(),
+        stallId: context.stallId,
+        partyKind: "farmer",
+        partyId: farmerId,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+
+    try {
+      postLedgerEntries(tx, {
+        postingId: replacementPostingId,
+        stallId: context.stallId,
+        sourceType: SALE_SOURCE_TYPE,
+        sourceId: replacementSaleId,
+        financialEventType: SALE_EVENT_REPLACED,
+        eventSequence: 1,
+        businessDate,
+        recordedAt: now,
+        actorStaffId: context.actorRef,
+        description: `Sale correction replacement ${replacementSaleId}`,
+        currency: "LKR",
+        entries: [
           {
+            entryId: deps.createId(),
             partyKind: "trader",
-            partyId: input.replacement.traderId,
+            partyId: buyer.id,
             amountMinor: calculatedBill.totalTraderPaysMinor,
           },
           ...[...calculatedBill.farmerEntitlements.entries()].map(([farmerId, amountMinor]) => ({
+            entryId: deps.createId(),
             partyKind: "farmer" as const,
             partyId: farmerId,
             amountMinor,
           })),
-        ];
+        ],
+      });
+    } catch (error) {
+      if (error instanceof DuplicateFinancialEventError) {
+        throw conflictError(error.message);
       }
+      throw error;
+    }
 
-      const expectedFingerprint = hashFingerprint(
-        buildSaleCorrectionPreviewFingerprintMaterial({
-          action: input.action,
-          sourceSaleId: sale.id,
-          sourceRevision: sale.revision,
-          reason,
-          replacementPayload: input.replacement ?? null,
-          reversalEffects: reversalEffects.map((effect) => ({
-            partyKind: effect.partyKind,
-            partyId: effect.partyId,
-            amountMinor: effect.amountMinor,
-            reversesEntryId: effect.reversesEntryId,
-          })),
-          replacementEffects,
-        }),
-      );
-      if (expectedFingerprint !== input.previewFingerprint) {
-        throw conflictError("Correction preview is stale. Review the impact and preview again.");
-      }
+    const lineSnapshots = calculatedBill.lines.map((line) => {
+      const farmer = getFarmerById(tx, context.stallId, line.farmerId)!;
+      const vegetable = getVegetableById(tx, context.stallId, line.vegetableId)!;
+      const packageType = getPackageTypeById(tx, context.stallId, line.packageTypeId)!;
+      return {
+        lineId: line.lineId!,
+        farmerId: farmer.id,
+        farmerShortCode: farmer.shortCode,
+        farmerDisplayName: farmer.displayName,
+        vegetableShortCode: vegetable.shortCode,
+        vegetableDisplayName: vegetable.displayName,
+        packageTypeId: packageType.id,
+        packageTypeShortCode: packageType.shortCode,
+        packageTypeDisplayName: packageType.displayName,
+        grossWeightHundredths: line.grossWeightHundredths,
+        netWeightHundredths: line.netWeightHundredths,
+        lineSaleAmountMinor: line.saleAmountMinor,
+        appliedCommissionRatePerKgMinor: line.commission.appliedRatePerKgMinor,
+        appliedCommissionAmountMinor: line.commission.commissionMinor,
+        commissionPolicyId: line.commission.policyId,
+        commissionVersionId: line.commission.versionId,
+        commissionBandId: line.commission.bandId,
+        traderPaysMinor: line.traderPaysMinor,
+        farmerReceivesMinor: line.farmerReceivesBeforeDeductionsMinor,
+      };
+    });
 
-      const operationId = deps.createId();
-      const reversalPostingId = deps.createId();
-
-      try {
-        postLedgerEntries(tx, {
-          postingId: reversalPostingId,
-          stallId: context.stallId,
-          sourceType: SALE_SOURCE_TYPE,
-          sourceId: sale.id,
-          financialEventType: SALE_EVENT_REVERSED,
-          eventSequence: 1,
-          businessDate,
-          recordedAt: now,
-          actorStaffId: context.actorRef,
-          description: `Sale ${input.action} reverse ${sale.id}`,
-          currency: "LKR",
-          entries: reversalEffects.map((effect) => ({
-            entryId: deps.createId(),
-            partyKind: effect.partyKind,
-            partyId: effect.partyId,
-            amountMinor: effect.amountMinor,
-            reversesEntryId: effect.reversesEntryId,
-          })),
-        });
-      } catch (error) {
-        if (error instanceof DuplicateFinancialEventError) {
-          throw conflictError(error.message);
-        }
-        throw error;
-      }
-
-      let replacementSaleId: string | null = null;
-      let replacementPostingId: string | null = null;
-      let replacementTraderBillId: string | null = null;
-      let replacementTraderBillNumber: string | null = null;
-
-      if (
-        input.action === "correct" &&
-        input.replacement !== undefined &&
-        calculatedBill !== null &&
-        policy !== null
-      ) {
-        const buyer = getBuyerById(tx, context.stallId, input.replacement.traderId);
-        if (buyer === null) {
-          throw notFoundError("Replacement buyer was not found.");
-        }
-
-        replacementSaleId = deps.createId();
-        // Replacement lines always get new identities; never reuse original sale_line ids.
-        const draftLines = input.replacement.lines.map((line) => ({
-          id: deps.createId(),
-          farmerId: line.farmerId,
-          vegetableId: line.vegetableId,
-          packageTypeId: line.packageTypeId,
-          unitPricePerKgMinor: line.unitPricePerKgMinor,
-          packagingWeightHundredths: line.weights.packagingWeightHundredths ?? 0,
-          notes: line.notes ?? null,
-          weights: line.weights.rows.map((row, index) => ({
-            id: deps.createId(),
-            rowKey: row.rowKey,
-            packageIndex: index + 1,
-            packageTypeId: row.packageTypeId ?? null,
-            grossWeightHundredths: row.grossWeightHundredths,
-          })),
-        }));
-
-        const lineInputs = toPolicyInputs(
-          input.replacement.lines.map((line, index) => ({
-            ...line,
-            lineId: draftLines[index]!.id,
-          })),
-        );
-        calculatedBill = calculateSaleBillWithPolicy(policy, lineInputs);
-
-        insertSaleDraft(tx, {
-          id: replacementSaleId,
-          stallId: context.stallId,
-          traderId: input.replacement.traderId,
-          businessDate,
-          correctsSaleId: sale.id,
-          lines: draftLines,
-          createdAt: now,
-          updatedAt: now,
-        });
-
-        const draft = getSaleById(tx, context.stallId, replacementSaleId);
-        if (draft === null) {
-          throw conflictError("Failed to create replacement sale draft.");
-        }
-
-        const calcFingerprint = hashFingerprint(
-          buildSaleCalculationFingerprintMaterial({
-            draftRevision: draft.revision,
-            policyId: policy.policyId,
-            versionId: policy.versionId,
-            traderId: input.replacement.traderId,
-            businessDate,
-            lines: calculatedBill.lines,
-          }),
-        );
-
-        replacementPostingId = deps.createId();
-        ensurePartyAccount(tx, {
-          id: deps.createId(),
-          stallId: context.stallId,
-          partyKind: "trader",
-          partyId: buyer.id,
-          createdAt: now,
-          updatedAt: now,
-        });
-        for (const farmerId of calculatedBill.farmerEntitlements.keys()) {
-          ensurePartyAccount(tx, {
-            id: deps.createId(),
-            stallId: context.stallId,
-            partyKind: "farmer",
-            partyId: farmerId,
-            createdAt: now,
-            updatedAt: now,
-          });
-        }
-
-        try {
-          postLedgerEntries(tx, {
-            postingId: replacementPostingId,
-            stallId: context.stallId,
-            sourceType: SALE_SOURCE_TYPE,
-            sourceId: replacementSaleId,
-            financialEventType: SALE_EVENT_REPLACED,
-            eventSequence: 1,
-            businessDate,
-            recordedAt: now,
-            actorStaffId: context.actorRef,
-            description: `Sale correction replacement ${replacementSaleId}`,
-            currency: "LKR",
-            entries: [
-              {
-                entryId: deps.createId(),
-                partyKind: "trader",
-                partyId: buyer.id,
-                amountMinor: calculatedBill.totalTraderPaysMinor,
-              },
-              ...[...calculatedBill.farmerEntitlements.entries()].map(([farmerId, amountMinor]) => ({
-                entryId: deps.createId(),
-                partyKind: "farmer" as const,
-                partyId: farmerId,
-                amountMinor,
-              })),
-            ],
-          });
-        } catch (error) {
-          if (error instanceof DuplicateFinancialEventError) {
-            throw conflictError(error.message);
-          }
-          throw error;
-        }
-
-        const lineSnapshots = calculatedBill.lines.map((line) => {
-          const farmer = getFarmerById(tx, context.stallId, line.farmerId)!;
-          const vegetable = getVegetableById(tx, context.stallId, line.vegetableId)!;
-          const packageType = getPackageTypeById(tx, context.stallId, line.packageTypeId)!;
-          return {
-            lineId: line.lineId!,
-            farmerId: farmer.id,
-            farmerShortCode: farmer.shortCode,
-            farmerDisplayName: farmer.displayName,
-            vegetableShortCode: vegetable.shortCode,
-            vegetableDisplayName: vegetable.displayName,
-            packageTypeId: packageType.id,
-            packageTypeShortCode: packageType.shortCode,
-            packageTypeDisplayName: packageType.displayName,
-            grossWeightHundredths: line.grossWeightHundredths,
-            netWeightHundredths: line.netWeightHundredths,
-            lineSaleAmountMinor: line.saleAmountMinor,
-            appliedCommissionRatePerKgMinor: line.commission.appliedRatePerKgMinor,
-            appliedCommissionAmountMinor: line.commission.commissionMinor,
-            commissionPolicyId: line.commission.policyId,
-            commissionVersionId: line.commission.versionId,
-            commissionBandId: line.commission.bandId,
-            traderPaysMinor: line.traderPaysMinor,
-            farmerReceivesMinor: line.farmerReceivesBeforeDeductionsMinor,
-          };
-        });
-
-        try {
-          finalizeSaleWithExpectedRevision(tx, {
-            stallId: context.stallId,
-            saleId: replacementSaleId,
-            expectedRevision: draft.revision,
-            traderShortCode: buyer.shortCode,
-            traderDisplayName: buyer.displayName,
-            commissionPolicyId: policy.policyId,
-            commissionVersionId: policy.versionId,
-            calculationFingerprint: calcFingerprint,
-            postingId: replacementPostingId,
-            totalSaleAmountMinor: calculatedBill.totalSaleAmountMinor,
-            totalCommissionMinor: calculatedBill.totalCommissionMinor,
-            totalTraderPaysMinor: calculatedBill.totalTraderPaysMinor,
-            totalFarmerReceivesMinor: calculatedBill.totalFarmerReceivesBeforeDeductionsMinor,
-            lineSnapshots,
-            finalizedAt: now,
-            updatedAt: now,
-          });
-        } catch (error) {
-          if (error instanceof RevisionConflictError) {
-            throw conflictError(error.message);
-          }
-          if (error instanceof Error) {
-            throw conflictError(`Replacement finalize failed: ${error.message}`);
-          }
-          throw error;
-        }
-
-        ensureBillSequencesForStall(tx, context.stallId);
-        const sequence = allocateNextBillSequence(tx, context.stallId, "trader");
-        replacementTraderBillNumber = formatBillNumber("trader", sequence);
-        replacementTraderBillId = deps.createId();
-        const stallPrintIdentity = getStallPrintIdentity(tx);
-        insertFinalizedTraderBill(tx, {
-          id: replacementTraderBillId,
-          stallId: context.stallId,
-          saleId: replacementSaleId,
-          traderId: buyer.id,
-          traderShortCode: buyer.shortCode,
-          traderDisplayName: buyer.displayName,
-          stallDisplayName: stallPrintIdentity?.displayName ?? null,
-          stallAddress: stallPrintIdentity?.address ?? null,
-          billNumber: replacementTraderBillNumber,
-          businessDate,
-          totalAmountMinor: calculatedBill.totalTraderPaysMinor,
-          totalCommissionMinor: calculatedBill.totalCommissionMinor,
-          totalFarmerReceivesMinor: calculatedBill.totalFarmerReceivesBeforeDeductionsMinor,
-          commissionPolicyId: policy.policyId,
-          commissionVersionId: policy.versionId,
-          calculationFingerprint: calcFingerprint,
-          postingId: replacementPostingId,
-          finalizedAt: now,
-          createdAt: now,
-          updatedAt: now,
-        });
-      }
-
-      insertSaleCorrectionOperation(tx, {
-        id: operationId,
+    try {
+      finalizeSaleWithExpectedRevision(tx, {
         stallId: context.stallId,
-        action: input.action,
-        sourceSaleId: sale.id,
-        replacementSaleId,
-        reason,
-        actorStaffId: context.actorRef,
-        recordedAt: now,
-        businessDate,
-        previewFingerprint: input.previewFingerprint,
-        sourceRevisionExpected: input.expectedRevision,
-        reversalPostingId,
-        replacementPostingId,
-        originalTraderBillId: traderBillId,
-        replacementTraderBillId,
-        createdAt: now,
+        saleId: replacementSaleId,
+        expectedRevision: draft.revision,
+        traderShortCode: buyer.shortCode,
+        traderDisplayName: buyer.displayName,
+        commissionPolicyId: policy.policyId,
+        commissionVersionId: policy.versionId,
+        calculationFingerprint: calcFingerprint,
+        postingId: replacementPostingId,
+        totalSaleAmountMinor: calculatedBill.totalSaleAmountMinor,
+        totalCommissionMinor: calculatedBill.totalCommissionMinor,
+        totalTraderPaysMinor: calculatedBill.totalTraderPaysMinor,
+        totalFarmerReceivesMinor: calculatedBill.totalFarmerReceivesBeforeDeductionsMinor,
+        lineSnapshots,
+        finalizedAt: now,
+        updatedAt: now,
       });
-
-      try {
-        markSaleCorrectedWithExpectedRevision(tx, {
-          stallId: context.stallId,
-          saleId: sale.id,
-          expectedRevision: sale.revision,
-          correctionStatus: input.action === "correct" ? "superseded" : "reversed",
-          correctionOperationId: operationId,
-          replacementSaleId,
-          reversalPostingId,
-          updatedAt: now,
-        });
-      } catch (error) {
-        if (error instanceof RevisionConflictError) {
-          throw conflictError(error.message);
-        }
-        throw error;
+    } catch (error) {
+      if (error instanceof RevisionConflictError) {
+        throw conflictError(error.message);
       }
-
-      if (traderBillId !== null) {
-        markTraderBillCorrected(tx, {
-          stallId: context.stallId,
-          traderBillId,
-          correctionStatus: input.action === "correct" ? "superseded" : "reversed",
-          correctionOperationId: operationId,
-          replacementTraderBillId,
-          updatedAt: now,
-        });
+      if (error instanceof Error) {
+        throw conflictError(`Replacement finalize failed: ${error.message}`);
       }
+      throw error;
+    }
 
-      const response = saleCorrectionCommitResponseSchema.parse({
+    ensureBillSequencesForStall(tx, context.stallId);
+    const sequence = allocateNextBillSequence(tx, context.stallId, "trader");
+    replacementTraderBillNumber = formatBillNumber("trader", sequence);
+    replacementTraderBillId = deps.createId();
+    const stallPrintIdentity = getStallPrintIdentity(tx);
+    insertFinalizedTraderBill(tx, {
+      id: replacementTraderBillId,
+      stallId: context.stallId,
+      saleId: replacementSaleId,
+      traderId: buyer.id,
+      traderShortCode: buyer.shortCode,
+      traderDisplayName: buyer.displayName,
+      stallDisplayName: stallPrintIdentity?.displayName ?? null,
+      stallAddress: stallPrintIdentity?.address ?? null,
+      billNumber: replacementTraderBillNumber,
+      businessDate,
+      totalAmountMinor: calculatedBill.totalTraderPaysMinor,
+      totalCommissionMinor: calculatedBill.totalCommissionMinor,
+      totalFarmerReceivesMinor: calculatedBill.totalFarmerReceivesBeforeDeductionsMinor,
+      commissionPolicyId: policy.policyId,
+      commissionVersionId: policy.versionId,
+      calculationFingerprint: calcFingerprint,
+      postingId: replacementPostingId,
+      finalizedAt: now,
+      createdAt: now,
+      updatedAt: now,
+    });
+  }
+
+  insertSaleCorrectionOperation(tx, {
+    id: operationId,
+    stallId: context.stallId,
+    action: input.action,
+    sourceSaleId: sale.id,
+    replacementSaleId,
+    reason,
+    actorStaffId: context.actorRef,
+    recordedAt: now,
+    businessDate,
+    previewFingerprint: input.previewFingerprint,
+    sourceRevisionExpected: input.expectedRevision,
+    reversalPostingId,
+    replacementPostingId,
+    originalTraderBillId: traderBillId,
+    replacementTraderBillId,
+    createdAt: now,
+  });
+
+  try {
+    markSaleCorrectedWithExpectedRevision(tx, {
+      stallId: context.stallId,
+      saleId: sale.id,
+      expectedRevision: sale.revision,
+      correctionStatus: input.action === "correct" ? "superseded" : "reversed",
+      correctionOperationId: operationId,
+      replacementSaleId,
+      reversalPostingId,
+      updatedAt: now,
+    });
+  } catch (error) {
+    if (error instanceof RevisionConflictError) {
+      throw conflictError(error.message);
+    }
+    throw error;
+  }
+
+  if (traderBillId !== null) {
+    markTraderBillCorrected(tx, {
+      stallId: context.stallId,
+      traderBillId,
+      correctionStatus: input.action === "correct" ? "superseded" : "reversed",
+      correctionOperationId: operationId,
+      replacementTraderBillId,
+      updatedAt: now,
+    });
+  }
+
+  const response = saleCorrectionCommitResponseSchema.parse({
+    operationId,
+    action: input.action,
+    sourceSaleId: sale.id,
+    replacementSaleId,
+    originalTraderBillId: traderBillId,
+    replacementTraderBillId,
+    replacementTraderBillNumber,
+    reversalPostingId,
+    replacementPostingId,
+    businessDate,
+    recordedAt: now,
+    reason,
+  });
+
+  if (input.action === "reverse") {
+    writeAuditAndOutbox({
+      tx,
+      context,
+      action: "sale.reversed",
+      targetType: "sale",
+      targetId: sale.id,
+      eventType: SALE_REVERSED_EVENT_TYPE,
+      eventSchemaVersion: SALE_REVERSED_EVENT_SCHEMA_VERSION,
+      payload: saleReversedEventPayloadSchema.parse({
         operationId,
-        action: input.action,
         sourceSaleId: sale.id,
-        replacementSaleId,
-        originalTraderBillId: traderBillId,
-        replacementTraderBillId,
-        replacementTraderBillNumber,
         reversalPostingId,
-        replacementPostingId,
+        originalTraderBillId: traderBillId,
+        reason,
         businessDate,
         recordedAt: now,
+      }),
+      eventId: deps.createId(),
+      auditId: deps.createId(),
+      now,
+    });
+  } else {
+    writeAuditAndOutbox({
+      tx,
+      context,
+      action: "sale.corrected",
+      targetType: "sale",
+      targetId: sale.id,
+      eventType: SALE_CORRECTED_EVENT_TYPE,
+      eventSchemaVersion: SALE_CORRECTED_EVENT_SCHEMA_VERSION,
+      payload: saleCorrectedEventPayloadSchema.parse({
+        operationId,
+        sourceSaleId: sale.id,
+        replacementSaleId: replacementSaleId!,
+        reversalPostingId,
+        replacementPostingId: replacementPostingId!,
+        originalTraderBillId: traderBillId,
+        replacementTraderBillId: replacementTraderBillId!,
         reason,
-      });
+        businessDate,
+        recordedAt: now,
+      }),
+      eventId: deps.createId(),
+      auditId: deps.createId(),
+      now,
+    });
+  }
 
-      if (input.action === "reverse") {
-        writeAuditAndOutbox({
-          tx,
-          context,
-          action: "sale.reversed",
-          targetType: "sale",
-          targetId: sale.id,
-          eventType: SALE_REVERSED_EVENT_TYPE,
-          eventSchemaVersion: SALE_REVERSED_EVENT_SCHEMA_VERSION,
-          payload: saleReversedEventPayloadSchema.parse({
-            operationId,
-            sourceSaleId: sale.id,
-            reversalPostingId,
-            originalTraderBillId: traderBillId,
-            reason,
-            businessDate,
-            recordedAt: now,
-          }),
-          eventId: deps.createId(),
-          auditId: deps.createId(),
-          now,
-        });
-      } else {
-        writeAuditAndOutbox({
-          tx,
-          context,
-          action: "sale.corrected",
-          targetType: "sale",
-          targetId: sale.id,
-          eventType: SALE_CORRECTED_EVENT_TYPE,
-          eventSchemaVersion: SALE_CORRECTED_EVENT_SCHEMA_VERSION,
-          payload: saleCorrectedEventPayloadSchema.parse({
-            operationId,
-            sourceSaleId: sale.id,
-            replacementSaleId: replacementSaleId!,
-            reversalPostingId,
-            replacementPostingId: replacementPostingId!,
-            originalTraderBillId: traderBillId,
-            replacementTraderBillId: replacementTraderBillId!,
-            reason,
-            businessDate,
-            recordedAt: now,
-          }),
-          eventId: deps.createId(),
-          auditId: deps.createId(),
-          now,
-        });
-      }
-
-      void eligibility;
-      return response;
+  void eligibility;
+  return response;
 }
 
 export function runCommitSaleCorrectionCommand(

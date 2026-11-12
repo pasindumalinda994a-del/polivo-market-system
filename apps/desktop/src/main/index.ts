@@ -691,9 +691,7 @@ app.whenReady().then(() => {
     if (!input || typeof input !== "object") {
       throw new Error("Invalid account balance request.");
     }
-    return getAccountBalance(
-      input as { partyKind: "farmer" | "trader"; partyId: string },
-    );
+    return getAccountBalance(input as { partyKind: "farmer" | "trader"; partyId: string });
   });
   ipcMain.handle("accounts:listMovements", async (event, input: unknown) => {
     if (!isTrustedIpcSender(event)) {
@@ -800,10 +798,7 @@ app.whenReady().then(() => {
           partyKind: "farmer" | "trader";
           partyId: string;
           direction:
-            | "stall_owes_farmer"
-            | "farmer_owes_stall"
-            | "buyer_owes_stall"
-            | "stall_owes_buyer";
+            "stall_owes_farmer" | "farmer_owes_stall" | "buyer_owes_stall" | "stall_owes_buyer";
           amountMinor: number;
           cutoffDate: string;
           reference?: string;
@@ -827,10 +822,7 @@ app.whenReady().then(() => {
         input as {
           expectedRevision: number;
           direction:
-            | "stall_owes_farmer"
-            | "farmer_owes_stall"
-            | "buyer_owes_stall"
-            | "stall_owes_buyer";
+            "stall_owes_farmer" | "farmer_owes_stall" | "buyer_owes_stall" | "stall_owes_buyer";
           amountMinor: number;
           cutoffDate: string;
           reference?: string;
@@ -872,10 +864,7 @@ app.whenReady().then(() => {
           reason: string;
           replacement?: {
             direction:
-              | "stall_owes_farmer"
-              | "farmer_owes_stall"
-              | "buyer_owes_stall"
-              | "stall_owes_buyer";
+              "stall_owes_farmer" | "farmer_owes_stall" | "buyer_owes_stall" | "stall_owes_buyer";
             amountMinor: number;
             cutoffDate?: string;
             reference?: string;
@@ -887,18 +876,21 @@ app.whenReady().then(() => {
     },
   );
 
-  ipcMain.handle("salesBilling:createDraft", async (event, input: unknown, idempotencyKey: unknown) => {
-    if (!isTrustedIpcSender(event)) {
-      throw new Error("Untrusted IPC sender.");
-    }
-    if (!input || typeof input !== "object") {
-      throw new Error("Invalid sale draft payload.");
-    }
-    return createSaleDraft(
-      input as Parameters<typeof createSaleDraft>[0],
-      typeof idempotencyKey === "string" ? idempotencyKey : undefined,
-    );
-  });
+  ipcMain.handle(
+    "salesBilling:createDraft",
+    async (event, input: unknown, idempotencyKey: unknown) => {
+      if (!isTrustedIpcSender(event)) {
+        throw new Error("Untrusted IPC sender.");
+      }
+      if (!input || typeof input !== "object") {
+        throw new Error("Invalid sale draft payload.");
+      }
+      return createSaleDraft(
+        input as Parameters<typeof createSaleDraft>[0],
+        typeof idempotencyKey === "string" ? idempotencyKey : undefined,
+      );
+    },
+  );
   ipcMain.handle("salesBilling:listDrafts", async (event, input: unknown) => {
     if (!isTrustedIpcSender(event)) {
       throw new Error("Untrusted IPC sender.");
@@ -1047,7 +1039,11 @@ app.whenReady().then(() => {
     if (!isTrustedIpcSender(event)) {
       throw new Error("Untrusted IPC sender.");
     }
-    if (!input || typeof input !== "object" || typeof (input as { farmerId?: unknown }).farmerId !== "string") {
+    if (
+      !input ||
+      typeof input !== "object" ||
+      typeof (input as { farmerId?: unknown }).farmerId !== "string"
+    ) {
       throw new Error("Farmer id is required.");
     }
     return listFarmerSales(input as Parameters<typeof listFarmerSales>[0]);
@@ -1080,9 +1076,7 @@ app.whenReady().then(() => {
     if (!isTrustedIpcSender(event)) {
       throw new Error("Untrusted IPC sender.");
     }
-    return listFarmerBills(
-      input as Parameters<typeof listFarmerBills>[0] | undefined,
-    );
+    return listFarmerBills(input as Parameters<typeof listFarmerBills>[0] | undefined);
   });
   ipcMain.handle("farmerBilling:getBill", async (event, billId: unknown) => {
     if (!isTrustedIpcSender(event)) {
@@ -1442,15 +1436,18 @@ app.whenReady().then(() => {
     }
     return runReport(input as Parameters<typeof runReport>[0]);
   });
-  ipcMain.handle("reports:createExport", async (event, input: unknown, idempotencyKey?: unknown) => {
-    if (!isTrustedIpcSender(event)) {
-      throw new Error("Untrusted IPC sender.");
-    }
-    return createReportExport(
-      input as Parameters<typeof createReportExport>[0],
-      typeof idempotencyKey === "string" ? idempotencyKey : undefined,
-    );
-  });
+  ipcMain.handle(
+    "reports:createExport",
+    async (event, input: unknown, idempotencyKey?: unknown) => {
+      if (!isTrustedIpcSender(event)) {
+        throw new Error("Untrusted IPC sender.");
+      }
+      return createReportExport(
+        input as Parameters<typeof createReportExport>[0],
+        typeof idempotencyKey === "string" ? idempotencyKey : undefined,
+      );
+    },
+  );
   ipcMain.handle("reports:getExportArtifact", async (event, exportJobId: unknown) => {
     if (!isTrustedIpcSender(event)) {
       throw new Error("Untrusted IPC sender.");

@@ -420,8 +420,7 @@ contextBridge.exposeInMainWorld("polivoAccounts", {
     snapshotToken?: string;
     movementSearch?: string;
     sourceTypeFilter?: string;
-  }): Promise<AccountsApiResult<unknown>> =>
-    ipcRenderer.invoke("accounts:getStatement", input),
+  }): Promise<AccountsApiResult<unknown>> => ipcRenderer.invoke("accounts:getStatement", input),
   getSummary: (input: {
     partyKind: "farmer" | "trader";
     partyId: string;
@@ -436,8 +435,7 @@ contextBridge.exposeInMainWorld("polivoAccounts", {
     snapshotToken?: string;
     limit?: number;
     cursor?: string;
-  }): Promise<AccountsApiResult<unknown>> =>
-    ipcRenderer.invoke("accounts:listOutstanding", input),
+  }): Promise<AccountsApiResult<unknown>> => ipcRenderer.invoke("accounts:listOutstanding", input),
   listUnappliedPayments: (input: {
     partyKind: "farmer" | "trader";
     partyId: string;

@@ -29,10 +29,14 @@ describe("permission capability helpers", () => {
     expect(recommendedCapabilitiesForProfile("billing_staff")).toContain("catalog.manage");
     expect(recommendedCapabilitiesForProfile("billing_staff")).toContain("commission.manage");
     expect(recommendedCapabilitiesForProfile("billing_staff")).toContain("accounts.view");
-    expect(recommendedCapabilitiesForProfile("billing_staff")).toContain("accounts.opening_prepare");
+    expect(recommendedCapabilitiesForProfile("billing_staff")).toContain(
+      "accounts.opening_prepare",
+    );
     expect(recommendedCapabilitiesForProfile("billing_staff")).toContain("documents.print");
     expect(recommendedCapabilitiesForProfile("billing_staff")).toContain("documents.reprint");
-    expect(recommendedCapabilitiesForProfile("billing_staff")).not.toContain("accounts.opening_post");
+    expect(recommendedCapabilitiesForProfile("billing_staff")).not.toContain(
+      "accounts.opening_post",
+    );
     expect(recommendedCapabilitiesForProfile("billing_staff")).not.toContain(
       "accounts.opening_correct",
     );

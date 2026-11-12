@@ -17,12 +17,12 @@ Only the stall service writes ledger and opening data through SQLite transaction
 
 ## Permissions
 
-| Capability | Purpose |
-|---|---|
-| `accounts.view` | Balance and movements |
+| Capability                 | Purpose                    |
+| -------------------------- | -------------------------- |
+| `accounts.view`            | Balance and movements      |
 | `accounts.opening_prepare` | Create/edit opening drafts |
-| `accounts.opening_post` | Post openings |
-| `accounts.opening_correct` | Reverse/replace openings |
+| `accounts.opening_post`    | Post openings              |
+| `accounts.opening_correct` | Reverse/replace openings   |
 
 Recommended billing-staff defaults include view + prepare only. Cashier defaults include view. Post/correct are not in billing-staff or cashier recommended profiles (local owners receive the full catalog).
 
@@ -30,17 +30,17 @@ Existing staff capability snapshots need a trusted permission refresh or owner r
 
 ## API surface
 
-| Method | Path | Capability |
-|---|---|---|
-| GET | `/accounts/:partyKind/:partyId/balance` | `accounts.view` |
-| GET | `/accounts/:partyKind/:partyId/movements` | `accounts.view` |
-| GET | `/ledger/postings/:postingId` | `accounts.view` |
-| GET | `/accounts/:partyKind/:partyId/opening-draft` | `accounts.opening_prepare` |
-| GET | `/openings/drafts/:draftId` | `accounts.opening_prepare` |
-| POST | `/openings/drafts` | `accounts.opening_prepare` |
-| PATCH | `/openings/drafts/:draftId` | `accounts.opening_prepare` |
-| POST | `/openings/drafts/:draftId/post` | `accounts.opening_post` |
-| POST | `/openings/correct` | `accounts.opening_correct` |
+| Method | Path                                          | Capability                 |
+| ------ | --------------------------------------------- | -------------------------- |
+| GET    | `/accounts/:partyKind/:partyId/balance`       | `accounts.view`            |
+| GET    | `/accounts/:partyKind/:partyId/movements`     | `accounts.view`            |
+| GET    | `/ledger/postings/:postingId`                 | `accounts.view`            |
+| GET    | `/accounts/:partyKind/:partyId/opening-draft` | `accounts.opening_prepare` |
+| GET    | `/openings/drafts/:draftId`                   | `accounts.opening_prepare` |
+| POST   | `/openings/drafts`                            | `accounts.opening_prepare` |
+| PATCH  | `/openings/drafts/:draftId`                   | `accounts.opening_prepare` |
+| POST   | `/openings/drafts/:draftId/post`              | `accounts.opening_post`    |
+| POST   | `/openings/correct`                           | `accounts.opening_correct` |
 
 Mutations require `Idempotency-Key`. There is no unrestricted client ledger-line endpoint. Later sales/payment services must call the internal `postLedgerEntries` repository helper inside their own transaction with audit and outbox.
 

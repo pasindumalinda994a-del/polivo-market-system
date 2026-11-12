@@ -21,10 +21,7 @@ import { AccountStatementPanel } from "./AccountStatementPanel";
 
 type PartyKind = "farmer" | "trader";
 type OpeningDirection =
-  | "stall_owes_farmer"
-  | "farmer_owes_stall"
-  | "buyer_owes_stall"
-  | "stall_owes_buyer";
+  "stall_owes_farmer" | "farmer_owes_stall" | "buyer_owes_stall" | "stall_owes_buyer";
 
 type AccountSectionProps = {
   partyKind: PartyKind;
@@ -267,7 +264,9 @@ export function AccountSection({
     if (!result.ok) {
       setError(result.message);
       if (result.conflict) {
-        setInfo("If the connection dropped after commit, retry with the same key or reload balance.");
+        setInfo(
+          "If the connection dropped after commit, retry with the same key or reload balance.",
+        );
       } else {
         postKeyRef.current = newIdempotencyKey("opening-post");
       }
@@ -321,7 +320,9 @@ export function AccountSection({
         <div className="grid gap-2 sm:grid-cols-3">
           <div>
             <div className="text-xs text-muted-foreground">Balance</div>
-            <div className="text-lg font-semibold">{formatMoneyMinor(balance.displayAmountMinor)}</div>
+            <div className="text-lg font-semibold">
+              {formatMoneyMinor(balance.displayAmountMinor)}
+            </div>
           </div>
           <div>
             <div className="text-xs text-muted-foreground">Direction</div>
@@ -496,7 +497,11 @@ export function AccountSection({
                   Edit draft
                 </Button>
                 {canPost ? (
-                  <Button type="button" disabled={busy || !draft} onClick={() => void confirmPost()}>
+                  <Button
+                    type="button"
+                    disabled={busy || !draft}
+                    onClick={() => void confirmPost()}
+                  >
                     Post opening
                   </Button>
                 ) : (

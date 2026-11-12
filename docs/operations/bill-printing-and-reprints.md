@@ -11,9 +11,9 @@ Phase 29 operations guide for desktop printing of buyer bills, farmer bills, pay
 
 ## Capabilities
 
-| Capability | Meaning |
-| --- | --- |
-| `documents.print` | Initial print / preview / test page |
+| Capability          | Meaning                                  |
+| ------------------- | ---------------------------------------- |
+| `documents.print`   | Initial print / preview / test page      |
 | `documents.reprint` | Additional copies with a required reason |
 
 Document view still requires the existing bill/payment/accounts view gates. Cashier defaults include `documents.print` only. Billing-staff defaults include both print and reprint.
@@ -51,10 +51,10 @@ Printer configuration is stored under the desktop `userData/printing/` directory
 
 ## Paper profiles and templates
 
-| Profile | Intent | Calibration |
-| --- | --- | --- |
+| Profile             | Intent             | Calibration                 |
+| ------------------- | ------------------ | --------------------------- |
 | `thermal-80mm-test` | ~80 mm roll layout | Pending physical acceptance |
-| `a4-paged-test` | A4 paged layout | Pending physical acceptance |
+| `a4-paged-test`     | A4 paged layout    | Pending physical acceptance |
 
 Template version for all document kinds: `1` (`buyer_bill`, `farmer_bill`, `payment_receipt`, `account_statement`, `test_page`).
 
@@ -64,14 +64,14 @@ Fonts: Inter + Noto Sans Sinhala (offline local/system fallbacks). Wait for font
 
 ## Print-status meanings
 
-| Outcome | Meaning |
-| --- | --- |
-| `prepared` | Durable attempt created; not submitted |
-| `submitting` | Submission started |
-| `accepted_by_print_system` | Windows/Electron accepted the job into the spooler — **not** proof of paper delivery |
-| `failed_before_submission` | Known failure before spooler acceptance |
-| `cancelled_before_submission` | Cancelled (for example preview closed) |
-| `outcome_unknown` | Crash/timeout/ambiguous result |
+| Outcome                       | Meaning                                                                              |
+| ----------------------------- | ------------------------------------------------------------------------------------ |
+| `prepared`                    | Durable attempt created; not submitted                                               |
+| `submitting`                  | Submission started                                                                   |
+| `accepted_by_print_system`    | Windows/Electron accepted the job into the spooler — **not** proof of paper delivery |
+| `failed_before_submission`    | Known failure before spooler acceptance                                              |
+| `cancelled_before_submission` | Cancelled (for example preview closed)                                               |
+| `outcome_unknown`             | Crash/timeout/ambiguous result                                                       |
 
 Unknown outcomes never auto-resubmit. Operators must check the printer/Windows queue and choose an explicit retry/reprint.
 

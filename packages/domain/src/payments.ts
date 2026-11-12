@@ -274,10 +274,7 @@ export function validateExplicitAllocations(input: {
   }
 
   if (allocatedTotalMinor > input.paymentAmountMinor) {
-    throw new DomainError(
-      "INVALID_ALLOCATION",
-      "Allocated total exceeds the payment amount",
-    );
+    throw new DomainError("INVALID_ALLOCATION", "Allocated total exceeds the payment amount");
   }
 
   return {
@@ -289,9 +286,7 @@ export function validateExplicitAllocations(input: {
 }
 
 /** Effects of a full payment reversal on the payment available amount. */
-export function paymentReversalReleasedAmountMinor(
-  activeAllocatedMinor: MoneyMinor,
-): MoneyMinor {
+export function paymentReversalReleasedAmountMinor(activeAllocatedMinor: MoneyMinor): MoneyMinor {
   assertNonNegativeMoney(activeAllocatedMinor, "activeAllocatedMinor");
   return activeAllocatedMinor;
 }

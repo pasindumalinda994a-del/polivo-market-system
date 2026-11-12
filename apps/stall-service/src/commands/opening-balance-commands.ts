@@ -55,11 +55,7 @@ import {
   validateOpeningDraft,
 } from "@polivo/domain";
 
-import {
-  conflictError,
-  notFoundError,
-  validationError,
-} from "../errors/app-error.js";
+import { conflictError, notFoundError, validationError } from "../errors/app-error.js";
 import {
   runIdempotentCommand,
   writeAuditAndOutbox,
@@ -176,13 +172,7 @@ function loadBalance(
   asOfBusinessDate?: string,
 ): AccountBalanceResponse {
   const account = getPartyAccount(tx, stallId, partyKind, partyId);
-  const balanceMinor = sumAccountBalanceMinor(
-    tx,
-    stallId,
-    partyKind,
-    partyId,
-    asOfBusinessDate,
-  );
+  const balanceMinor = sumAccountBalanceMinor(tx, stallId, partyKind, partyId, asOfBusinessDate);
   return toAccountBalanceResponse({
     stallId,
     partyKind,
@@ -230,12 +220,7 @@ function prepareOpeningDraftDefinition(
         updatedAt: now,
       });
 
-      const existing = getActiveOpeningDraft(
-        tx,
-        context.stallId,
-        input.partyKind,
-        input.partyId,
-      );
+      const existing = getActiveOpeningDraft(tx, context.stallId, input.partyKind, input.partyId);
       if (existing !== null) {
         throw conflictError("An active opening draft already exists for this account.");
       }
@@ -481,7 +466,9 @@ function correctOpeningDefinition(
       if (account === null || account.openingStatus === "not_opened") {
         throw conflictError("No completed opening exists to correct.");
       }
-      if (accountHasOperationalLedgerPostings(tx, context.stallId, input.partyKind, input.partyId)) {
+      if (
+        accountHasOperationalLedgerPostings(tx, context.stallId, input.partyKind, input.partyId)
+      ) {
         throw conflictError("Opening correction is denied after operational ledger activity.");
       }
 
@@ -542,7 +529,8 @@ function correctOpeningDefinition(
             partyKind: input.partyKind,
             direction: input.replacement.direction,
             amountMinor: input.replacement.amountMinor,
-            cutoffDate: input.replacement.cutoffDate ?? account.openingCutoffDate ?? now.slice(0, 10),
+            cutoffDate:
+              input.replacement.cutoffDate ?? account.openingCutoffDate ?? now.slice(0, 10),
             currency: "LKR",
             reference: input.replacement.reference,
             explanation: input.replacement.explanation ?? input.reason,

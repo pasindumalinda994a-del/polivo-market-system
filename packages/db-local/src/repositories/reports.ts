@@ -1,7 +1,4 @@
-import {
-  moneyMinorFromSqliteInteger,
-  weightHundredthsFromSqliteInteger,
-} from "../numeric.js";
+import { moneyMinorFromSqliteInteger, weightHundredthsFromSqliteInteger } from "../numeric.js";
 import {
   optionalString,
   requireAbsoluteTimestamp,
@@ -319,8 +316,7 @@ export function listReportPayments(
     const amountMinor = moneyMinorFromSqliteInteger(row["amount_minor"]);
     const allocatedTotalMinor = moneyMinorFromSqliteInteger(row["allocated_total_minor"]);
     const status = requireString(row["status"], "status") as "posted" | "reversed";
-    const unapplied =
-      status === "posted" ? Math.max(0, amountMinor - allocatedTotalMinor) : 0;
+    const unapplied = status === "posted" ? Math.max(0, amountMinor - allocatedTotalMinor) : 0;
     return {
       paymentId: requireString(row["payment_id"], "payment_id"),
       businessDate: requireCalendarDate(row["business_date"], "business_date"),
@@ -569,7 +565,10 @@ function mapExportJob(row: Record<string, unknown>): ReportExportJobRecord {
     stallId: requireString(row["stall_id"], "report_export_jobs.stall_id"),
     reportType: requireString(row["report_type"], "report_export_jobs.report_type"),
     format: requireString(row["format"], "report_export_jobs.format") as "csv" | "pdf",
-    status: requireString(row["status"], "report_export_jobs.status") as ReportExportJobRecord["status"],
+    status: requireString(
+      row["status"],
+      "report_export_jobs.status",
+    ) as ReportExportJobRecord["status"],
     definitionVersion: requireString(
       row["definition_version"],
       "report_export_jobs.definition_version",

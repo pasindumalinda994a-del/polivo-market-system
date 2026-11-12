@@ -35,9 +35,7 @@ export type BillCorrectionsApiSuccess<T> = {
   stale?: boolean;
 };
 
-export type BillCorrectionsApiResult<T> =
-  | BillCorrectionsApiSuccess<T>
-  | BillCorrectionsApiError;
+export type BillCorrectionsApiResult<T> = BillCorrectionsApiSuccess<T> | BillCorrectionsApiError;
 
 type CorrectionRecoveryState = {
   idempotencyKey: string;
@@ -248,7 +246,11 @@ export async function lookupCorrection(
       path: `/sales/corrections/${encodeURIComponent(idempotencyKey)}`,
     });
     if (response.status < 200 || response.status >= 300) {
-      return parseError(response.status, response.bodyText, "Unable to look up correction outcome.");
+      return parseError(
+        response.status,
+        response.bodyText,
+        "Unable to look up correction outcome.",
+      );
     }
     return {
       ok: true,

@@ -489,9 +489,7 @@ export function FarmersPanel({
       <AccountSection
         partyKind="farmer"
         partyId={selectedId}
-        partyLabel={
-          items.find((item) => item.id === selectedId)?.displayName ?? "Selected farmer"
-        }
+        partyLabel={items.find((item) => item.id === selectedId)?.displayName ?? "Selected farmer"}
         hostAvailable={hostAvailable}
         signedIn={signedIn}
         canView={canViewAccounts}

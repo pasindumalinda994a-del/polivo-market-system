@@ -5,12 +5,7 @@ import {
 } from "./printing.js";
 
 export type PrintTemplateRenderInput = {
-  templateId:
-    | "buyer_bill"
-    | "farmer_bill"
-    | "payment_receipt"
-    | "account_statement"
-    | "test_page";
+  templateId: "buyer_bill" | "farmer_bill" | "payment_receipt" | "account_statement" | "test_page";
   templateVersion: "1";
   paperProfile: "thermal-80mm-test" | "a4-paged-test";
   stallDisplayName: string;
@@ -68,13 +63,9 @@ export function renderPrintDocumentHtml(input: PrintTemplateRenderInput): string
     .join("");
   const footnotes = input.footnotes.map((note) => `<p class="footnote">${e(note)}</p>`).join("");
   const reprint =
-    input.reprintLabel === null
-      ? ""
-      : `<div class="reprint">${e(input.reprintLabel)}</div>`;
+    input.reprintLabel === null ? "" : `<div class="reprint">${e(input.reprintLabel)}</div>`;
   const status =
-    input.statusLabel === "Current"
-      ? ""
-      : `<div class="status">${e(input.statusLabel)}</div>`;
+    input.statusLabel === "Current" ? "" : `<div class="status">${e(input.statusLabel)}</div>`;
 
   return `<!DOCTYPE html>
 <html lang="en">

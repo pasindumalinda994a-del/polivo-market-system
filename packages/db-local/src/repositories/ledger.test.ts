@@ -144,9 +144,7 @@ describe("ledger repositories", () => {
       ).toThrow(DuplicateFinancialEventError);
 
       expect(() =>
-        tx.db
-          .prepare(`UPDATE ledger_postings SET description = 'x' WHERE id = 'post-1'`)
-          .run(),
+        tx.db.prepare(`UPDATE ledger_postings SET description = 'x' WHERE id = 'post-1'`).run(),
       ).toThrow();
     });
   });

@@ -351,15 +351,11 @@ export function markOpeningDraftPosted(
            updated_at = ?
        WHERE id = ? AND stall_id = ? AND status = 'draft' AND revision = ?`,
     )
-    .run(
-      input.postingId,
-      input.updatedAt,
-      input.draftId,
-      input.stallId,
-      input.expectedRevision,
-    );
+    .run(input.postingId, input.updatedAt, input.draftId, input.stallId, input.expectedRevision);
   if (result.changes !== 1) {
-    throw new RevisionConflictError("Opening draft could not be posted (stale revision or status).");
+    throw new RevisionConflictError(
+      "Opening draft could not be posted (stale revision or status).",
+    );
   }
   const updated = getOpeningDraftById(executor, input.stallId, input.draftId);
   if (updated === null) {
@@ -404,8 +400,7 @@ function nextPostingSequence(executor: DbExecutor, stallId: string): number {
        WHERE stall_id = ?`,
     )
     .get(stallId) as { max_seq: number | bigint };
-  const max =
-    typeof row.max_seq === "bigint" ? Number(row.max_seq) : Number(row.max_seq ?? 0);
+  const max = typeof row.max_seq === "bigint" ? Number(row.max_seq) : Number(row.max_seq ?? 0);
   return max + 1;
 }
 
@@ -573,8 +568,7 @@ export function findPostingBySource(
          AND event_sequence = ?`,
     )
     .get(stallId, sourceType, sourceId, financialEventType, eventSequence) as
-    | Record<string, unknown>
-    | undefined;
+    Record<string, unknown> | undefined;
   if (row === undefined) {
     return null;
   }

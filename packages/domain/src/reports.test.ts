@@ -16,14 +16,20 @@ import { DomainError } from "./money.js";
 
 describe("report filters and snapshots", () => {
   it("rejects unsupported filters", () => {
-    expect(() =>
-      assertFiltersAllowed("sales_summary", { paymentMethod: "cash" }),
-    ).toThrow(DomainError);
+    expect(() => assertFiltersAllowed("sales_summary", { paymentMethod: "cash" })).toThrow(
+      DomainError,
+    );
   });
 
   it("fingerprints filters stably", () => {
-    const a = fingerprintReportFilters({ fromBusinessDate: "2026-01-01", toBusinessDate: "2026-01-02" });
-    const b = fingerprintReportFilters({ toBusinessDate: "2026-01-02", fromBusinessDate: "2026-01-01" });
+    const a = fingerprintReportFilters({
+      fromBusinessDate: "2026-01-01",
+      toBusinessDate: "2026-01-02",
+    });
+    const b = fingerprintReportFilters({
+      toBusinessDate: "2026-01-02",
+      fromBusinessDate: "2026-01-01",
+    });
     expect(a).toBe(b);
     expect(a).toHaveLength(32);
   });
@@ -50,9 +56,7 @@ describe("report filters and snapshots", () => {
   });
 
   it("enforces date range limit", () => {
-    expect(() => assertDateRangeWithinLimit("2025-01-01", "2026-12-31", 366)).toThrow(
-      DomainError,
-    );
+    expect(() => assertDateRangeWithinLimit("2025-01-01", "2026-12-31", 366)).toThrow(DomainError);
   });
 });
 
@@ -111,7 +115,7 @@ describe("csv export safety", () => {
     expect(neutralizeCsvFormulaCell("+123")).toBe("'+123");
     expect(neutralizeCsvFormulaCell("@sum")).toBe("'@sum");
     expect(serializeCsvCell(-500)).toBe("-500");
-    expect(serializeCsvCell("hello, \"world\"")).toBe('"hello, ""world"""');
+    expect(serializeCsvCell('hello, "world"')).toBe('"hello, ""world"""');
   });
 
   it("includes Sinhala and metadata in CSV", () => {

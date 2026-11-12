@@ -34,17 +34,10 @@ export type LedgerEntryInput = {
 };
 
 export type OpeningBalanceDirection =
-  | "stall_owes_farmer"
-  | "farmer_owes_stall"
-  | "buyer_owes_stall"
-  | "stall_owes_buyer";
+  "stall_owes_farmer" | "farmer_owes_stall" | "buyer_owes_stall" | "stall_owes_buyer";
 
 export type BalanceDirectionLabel =
-  | "Stall owes farmer"
-  | "Farmer owes stall"
-  | "Buyer owes stall"
-  | "Stall owes buyer"
-  | "Settled";
+  "Stall owes farmer" | "Farmer owes stall" | "Buyer owes stall" | "Stall owes buyer" | "Settled";
 
 export type OpeningDraftValidationInput = {
   partyKind: LedgerPartyKind;
@@ -236,7 +229,10 @@ function normalizeOptionalText(
 export function resolveEventSequence(source: PostingSourceIdentity): number {
   const sequence = source.eventSequence ?? 1;
   if (!Number.isSafeInteger(sequence) || sequence < 1) {
-    throw new DomainError("INVALID_EVENT_SEQUENCE", "eventSequence must be a positive safe integer");
+    throw new DomainError(
+      "INVALID_EVENT_SEQUENCE",
+      "eventSequence must be a positive safe integer",
+    );
   }
   return sequence;
 }

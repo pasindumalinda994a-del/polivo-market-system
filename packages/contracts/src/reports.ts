@@ -1,11 +1,7 @@
 import { z } from "zod";
 
 import { statementDateBasisSchema } from "./account-statements.js";
-import {
-  absoluteTimestampSchema,
-  calendarDateSchema,
-  opaqueIdSchema,
-} from "./primitives.js";
+import { absoluteTimestampSchema, calendarDateSchema, opaqueIdSchema } from "./primitives.js";
 import { phase27PaymentMethodSchema } from "./financial.js";
 import {
   PAGINATION_DEFAULT_LIMIT,
@@ -232,9 +228,7 @@ export const reportResponseSchema = z.strictObject({
   nextCursor: paginationCursorSchema.nullable(),
   rowCountEstimate: z.number().int().safe().nonnegative().nullable(),
   limitations: reportLimitationsSchema,
-  emptyReason: z
-    .enum(["no_activity", "data_unavailable", "access_denied"])
-    .nullable(),
+  emptyReason: z.enum(["no_activity", "data_unavailable", "access_denied"]).nullable(),
 });
 export type ReportResponse = z.infer<typeof reportResponseSchema>;
 
@@ -258,12 +252,7 @@ export type ReportCatalogResponse = z.infer<typeof reportCatalogResponseSchema>;
 
 export const REPORT_EXPORT_MAX_ROWS = 50_000;
 
-export const reportExportJobStatusSchema = z.enum([
-  "preparing",
-  "ready",
-  "failed",
-  "expired",
-]);
+export const reportExportJobStatusSchema = z.enum(["preparing", "ready", "failed", "expired"]);
 export type ReportExportJobStatusDto = z.infer<typeof reportExportJobStatusSchema>;
 
 export const createReportExportRequestSchema = z.strictObject({

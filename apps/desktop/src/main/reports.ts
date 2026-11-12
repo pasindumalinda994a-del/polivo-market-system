@@ -163,7 +163,8 @@ export async function createReportExport(
     method: "POST",
     path: "/reports/exports",
     body: input,
-    idempotencyKey: idempotencyKey && idempotencyKey.trim().length > 0 ? idempotencyKey : randomUUID(),
+    idempotencyKey:
+      idempotencyKey && idempotencyKey.trim().length > 0 ? idempotencyKey : randomUUID(),
     fallback: "Unable to prepare report export.",
     parse: (value) => createReportExportResponseSchema.parse(value),
   });

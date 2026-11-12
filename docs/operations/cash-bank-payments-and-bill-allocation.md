@@ -65,13 +65,13 @@ Migration `012_cash_bank_payments_and_bill_allocation` rebuilds payment/allocati
 
 ## Status meanings
 
-| Status | Meaning |
-|---|---|
-| Bill `unpaid` | No active allocations against its obligations |
-| Bill `partially_paid` | Some but not all obligation amount allocated |
-| Bill `fully_paid` | Remaining obligation amount is zero |
-| Payment `posted` | Financial effect recorded; may still have unapplied amount |
-| Payment `reversed` | Full bookkeeping reversal linked; history preserved |
+| Status                | Meaning                                                    |
+| --------------------- | ---------------------------------------------------------- |
+| Bill `unpaid`         | No active allocations against its obligations              |
+| Bill `partially_paid` | Some but not all obligation amount allocated               |
+| Bill `fully_paid`     | Remaining obligation amount is zero                        |
+| Payment `posted`      | Financial effect recorded; may still have unapplied amount |
+| Payment `reversed`    | Full bookkeeping reversal linked; history preserved        |
 
 Do not show a reversed/superseded document as Paid merely because collectible amount is zero.
 

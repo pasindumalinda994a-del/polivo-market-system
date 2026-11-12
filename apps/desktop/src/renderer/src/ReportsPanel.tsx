@@ -133,7 +133,8 @@ export function ReportsPanel({ canView, canExport }: Props) {
     if (supported.has("asOfBusinessDate")) filters.asOfBusinessDate = asOfBusinessDate;
     if (supported.has("farmerId") && farmerId.trim()) filters.farmerId = farmerId.trim();
     if (supported.has("buyerId") && buyerId.trim()) filters.buyerId = buyerId.trim();
-    if (supported.has("vegetableId") && vegetableId.trim()) filters.vegetableId = vegetableId.trim();
+    if (supported.has("vegetableId") && vegetableId.trim())
+      filters.vegetableId = vegetableId.trim();
     if (supported.has("grouping") && grouping) filters.grouping = grouping;
     return filters;
   }
@@ -482,9 +483,7 @@ export function ReportsPanel({ canView, canExport }: Props) {
             </div>
             <div>
               Definition v{report.definitionVersion}
-              {report.rowCountEstimate !== null
-                ? ` · ~${report.rowCountEstimate} rows`
-                : null}
+              {report.rowCountEstimate !== null ? ` · ~${report.rowCountEstimate} rows` : null}
             </div>
           </div>
           <div className="flex flex-wrap gap-3 text-sm">

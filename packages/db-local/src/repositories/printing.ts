@@ -2,11 +2,7 @@ import { optionalString, requireAbsoluteTimestamp, requireString } from "../mapp
 import { NotFoundError, RepositoryError, type DbExecutor } from "./types.js";
 
 export type PrintDocumentKind =
-  | "buyer_bill"
-  | "farmer_bill"
-  | "payment_receipt"
-  | "account_statement"
-  | "test_page";
+  "buyer_bill" | "farmer_bill" | "payment_receipt" | "account_statement" | "test_page";
 
 export type PrintClassification = "initial" | "reprint";
 
@@ -377,10 +373,7 @@ export function reportPrintAttemptOutcome(
   input: {
     stallId: string;
     attemptId: string;
-    outcome: Exclude<
-      PrintAttemptOutcome,
-      "prepared" | "submitting"
-    >;
+    outcome: Exclude<PrintAttemptOutcome, "prepared" | "submitting">;
     outcomeDetail: string | null;
     reportOperationId: string;
     reportedAt: string;
@@ -429,9 +422,15 @@ function mapPrintJob(row: Record<string, unknown>): PrintJobRecord {
   return {
     id: requireString(row["id"], "print_jobs.id"),
     stallId: requireString(row["stall_id"], "print_jobs.stall_id"),
-    documentKind: requireString(row["document_kind"], "print_jobs.document_kind") as PrintDocumentKind,
+    documentKind: requireString(
+      row["document_kind"],
+      "print_jobs.document_kind",
+    ) as PrintDocumentKind,
     documentId: requireString(row["document_id"], "print_jobs.document_id"),
-    paperProfile: requireString(row["paper_profile"], "print_jobs.paper_profile") as PrintPaperProfile,
+    paperProfile: requireString(
+      row["paper_profile"],
+      "print_jobs.paper_profile",
+    ) as PrintPaperProfile,
     templateId: requireString(row["template_id"], "print_jobs.template_id"),
     templateVersion: requireString(row["template_version"], "print_jobs.template_version"),
     payloadHash: requireString(row["payload_hash"], "print_jobs.payload_hash"),
@@ -441,7 +440,10 @@ function mapPrintJob(row: Record<string, unknown>): PrintJobRecord {
     ),
     createOperationId: requireString(row["create_operation_id"], "print_jobs.create_operation_id"),
     createdByStaffId: requireString(row["created_by_staff_id"], "print_jobs.created_by_staff_id"),
-    createdByDeviceId: requireString(row["created_by_device_id"], "print_jobs.created_by_device_id"),
+    createdByDeviceId: requireString(
+      row["created_by_device_id"],
+      "print_jobs.created_by_device_id",
+    ),
     createdAt: requireAbsoluteTimestamp(row["created_at"], "print_jobs.created_at"),
     updatedAt: requireAbsoluteTimestamp(row["updated_at"], "print_jobs.updated_at"),
   };

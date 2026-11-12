@@ -17,11 +17,7 @@ import {
   paginationCursorSchema,
   paginationLimitQuerySchema,
 } from "./pagination.js";
-import {
-  absoluteTimestampSchema,
-  calendarDateSchema,
-  opaqueIdSchema,
-} from "./primitives.js";
+import { absoluteTimestampSchema, calendarDateSchema, opaqueIdSchema } from "./primitives.js";
 import { billSettlementSummarySchema, paymentObligationKindSchema } from "./payments.js";
 
 /** Statement view-model version for later print/export consumers. */
@@ -36,12 +32,7 @@ export const statementSnapshotTokenSchema = z
 export const statementDateBasisSchema = z.literal("business_effective");
 export type StatementDateBasisDto = z.infer<typeof statementDateBasisSchema>;
 
-export const statementCorrectionStatusSchema = z.enum([
-  "active",
-  "reversed",
-  "replaced",
-  "none",
-]);
+export const statementCorrectionStatusSchema = z.enum(["active", "reversed", "replaced", "none"]);
 export type StatementCorrectionStatusDto = z.infer<typeof statementCorrectionStatusSchema>;
 
 export const statementSettlementStatusSchema = z.enum([
