@@ -41,6 +41,10 @@ export function conflictError(
   return new WebAuthError("CONFLICT", message);
 }
 
+export function rateLimitedError(message = "Too many requests."): WebAuthError {
+  return new WebAuthError("RATE_LIMITED", message);
+}
+
 export function notFoundError(message = "Resource not found."): WebAuthError {
   return new WebAuthError("NOT_FOUND", message);
 }

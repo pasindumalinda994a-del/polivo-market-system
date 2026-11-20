@@ -17,54 +17,58 @@ import {
 } from "@polivo/ui";
 import { BarChart3, LayoutDashboard, Settings, Users } from "lucide-react";
 
-import type { MembershipSummary } from "@/lib/auth/memberships";
-
-const navigation: SidebarNavItem[] = [
-  {
-    id: "dashboard",
-    label: "Dashboard",
-    href: "/dashboard",
-    available: true,
-    active: true,
-    icon: <LayoutDashboard className="h-5 w-5" aria-hidden="true" />,
-  },
-  {
-    id: "reports",
-    label: "Reports",
-    available: false,
-    icon: <BarChart3 className="h-5 w-5" aria-hidden="true" />,
-  },
-  {
-    id: "farmers",
-    label: "Farmers",
-    available: false,
-    icon: <Users className="h-5 w-5" aria-hidden="true" />,
-  },
-  {
-    id: "buyers",
-    label: "Buyers",
-    available: false,
-    icon: <Users className="h-5 w-5" aria-hidden="true" />,
-  },
-  {
-    id: "settings",
-    label: "Settings",
-    available: false,
-    icon: <Settings className="h-5 w-5" aria-hidden="true" />,
-  },
-];
+import type { MembershipSummary } from "@/lib/auth/membership-summary";
 
 export type DashboardShellProps = {
   membershipState: "none" | "active" | "unavailable";
   memberships: MembershipSummary[];
   unavailableMessage?: string;
+  isPlatformAdmin?: boolean;
 };
 
 export function DashboardShell({
   membershipState,
   memberships,
   unavailableMessage,
+  isPlatformAdmin = false,
 }: DashboardShellProps) {
+  const navigation: SidebarNavItem[] = [
+    {
+      id: "dashboard",
+      label: "Dashboard",
+      href: "/dashboard",
+      available: true,
+      active: true,
+      icon: <LayoutDashboard className="h-5 w-5" aria-hidden="true" />,
+    },
+    {
+      id: "reports",
+      label: "Reports",
+      href: memberships[0] ? `/tenants/${encodeURIComponent(memberships[0].tenantId)}` : undefined,
+      available: memberships.length > 0,
+      icon: <BarChart3 className="h-5 w-5" aria-hidden="true" />,
+    },
+    {
+      id: "platform",
+      label: "Platform admin",
+      href: "/platform",
+      available: isPlatformAdmin,
+      icon: <Settings className="h-5 w-5" aria-hidden="true" />,
+    },
+    {
+      id: "farmers",
+      label: "Farmers",
+      available: false,
+      icon: <Users className="h-5 w-5" aria-hidden="true" />,
+    },
+    {
+      id: "buyers",
+      label: "Buyers",
+      available: false,
+      icon: <Users className="h-5 w-5" aria-hidden="true" />,
+    },
+  ];
+
   return (
     <AppShell
       brand={<BrandMark />}
@@ -140,12 +144,20 @@ export function DashboardShell({
                     Role: {membership.accessRole.replaceAll("_", " ")} · {membership.timezone}
                   </p>
                 </div>
-                <Link
-                  className="text-sm font-semibold text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  href={`/tenants/${encodeURIComponent(membership.tenantId)}`}
-                >
-                  Open stall
-                </Link>
+                <div className="flex flex-col items-end gap-2 sm:flex-row sm:items-center">
+                  <Link
+                    className="text-sm font-semibold text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    href={`/tenants/${encodeURIComponent(membership.tenantId)}/setup`}
+                  >
+                    Continue setup
+                  </Link>
+                  <Link
+                    className="text-sm font-semibold text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    href={`/tenants/${encodeURIComponent(membership.tenantId)}`}
+                  >
+                    Open stall
+                  </Link>
+                </div>
               </li>
             ))}
           </ul>

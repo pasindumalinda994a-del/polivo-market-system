@@ -75,6 +75,18 @@ export function isProtectedPath(pathname: string): boolean {
   if (pathname === "/api/local-staff/permission-refresh/redeem") {
     return false;
   }
+  // Host sync ingest uses activated-host Ed25519 possession proofs, not Clerk sessions.
+  if (pathname.startsWith("/api/sync/")) {
+    return false;
+  }
+  // Host configuration pull/ack uses activated-host Ed25519 possession proofs, not Clerk sessions.
+  if (pathname.startsWith("/api/config/")) {
+    return false;
+  }
+  // Public trusted download redirects resolve destinations from the release catalog only.
+  if (pathname.startsWith("/api/downloads/")) {
+    return false;
+  }
   return (
     pathname === "/dashboard" ||
     pathname.startsWith("/dashboard/") ||

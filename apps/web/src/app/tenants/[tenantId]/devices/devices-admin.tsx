@@ -23,7 +23,9 @@ import {
   type SidebarNavItem,
 } from "@polivo/ui";
 import type { TenantDeviceSummary } from "@polivo/contracts";
-import { KeyRound, LayoutDashboard, MonitorSmartphone, Users } from "lucide-react";
+import { ClipboardList, KeyRound, LayoutDashboard, MonitorSmartphone, Users } from "lucide-react";
+
+import { buildOwnerSidebarNav } from "@/lib/tenant/owner-nav";
 
 export type DevicesAdminProps = {
   tenantId: string;
@@ -81,37 +83,17 @@ export function DevicesAdmin({
     [devices],
   );
 
-  const navigation: SidebarNavItem[] = [
-    {
-      id: "dashboard",
-      label: "Dashboard",
-      href: "/dashboard",
-      available: true,
-      icon: <LayoutDashboard className="h-5 w-5" aria-hidden="true" />,
+  const navigation: SidebarNavItem[] = buildOwnerSidebarNav({
+    tenantId,
+    activeId: "devices",
+    icons: {
+      dashboard: <LayoutDashboard className="h-5 w-5" aria-hidden="true" />,
+      setup: <ClipboardList className="h-5 w-5" aria-hidden="true" />,
+      members: <Users className="h-5 w-5" aria-hidden="true" />,
+      permissions: <KeyRound className="h-5 w-5" aria-hidden="true" />,
+      devices: <MonitorSmartphone className="h-5 w-5" aria-hidden="true" />,
     },
-    {
-      id: "members",
-      label: "Members",
-      href: `/tenants/${encodeURIComponent(tenantId)}/members`,
-      available: true,
-      icon: <Users className="h-5 w-5" aria-hidden="true" />,
-    },
-    {
-      id: "permissions",
-      label: "Permissions",
-      href: `/tenants/${encodeURIComponent(tenantId)}/permissions`,
-      available: true,
-      icon: <KeyRound className="h-5 w-5" aria-hidden="true" />,
-    },
-    {
-      id: "devices",
-      label: "Devices",
-      href: `/tenants/${encodeURIComponent(tenantId)}/devices`,
-      available: true,
-      active: true,
-      icon: <MonitorSmartphone className="h-5 w-5" aria-hidden="true" />,
-    },
-  ];
+  });
 
   async function refreshDevices() {
     const response = await fetch(`/api/tenants/${encodeURIComponent(tenantId)}/devices`);

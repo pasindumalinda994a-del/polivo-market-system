@@ -227,6 +227,8 @@ export type AuditEventRecord = {
   changeDetailsJson: string | null;
 };
 
+export type OutboxAckState = "pending" | "acknowledged" | "failed" | "blocked";
+
 export type OutboxEventRecord = {
   eventId: string;
   tenantId: string;
@@ -237,10 +239,43 @@ export type OutboxEventRecord = {
   payloadJson: string;
   occurredAt: string;
   localSequence: number;
+  transactionGroupId: string;
   deliveryAttempts: number;
   lastAttemptAt: string | null;
-  ackState: "pending" | "acknowledged" | "failed";
+  nextRetryAt: string | null;
+  lastErrorCode: string | null;
+  ackState: OutboxAckState;
   acknowledgedAt: string | null;
+  ackReceiptJson: string | null;
+  ackPayloadHash: string | null;
+};
+
+export type SyncStreamStateRecord = {
+  stallId: string;
+  sourceStreamId: string;
+  streamGeneration: number;
+  acknowledgedCursor: number;
+  localTailSequence: number;
+  localTailMeasuredAt: string | null;
+  lastUploadAttemptAt: string | null;
+  lastAckAt: string | null;
+  nextRetryAt: string | null;
+  workerEnabled: boolean;
+  blockingGroupId: string | null;
+  blockingEventId: string | null;
+  blockingErrorCode: string | null;
+  blockingMessage: string | null;
+  lastErrorCode: string | null;
+  updatedAt: string;
+};
+
+export type SyncWorkerLeaseRecord = {
+  stallId: string;
+  ownerToken: string;
+  fenceToken: number;
+  acquiredAt: string;
+  expiresAt: string;
+  updatedAt: string;
 };
 
 export type LocalStaffStatus = "active" | "disabled";
@@ -317,7 +352,7 @@ export type BillType = "farmer" | "trader";
 
 const BILL_STATUSES = new Set<string>(["draft", "finalized", "cancelled"]);
 const PAYMENT_STATUSES = new Set<string>(["unpaid", "partially_paid", "fully_paid"]);
-const ACK_STATES = new Set<string>(["pending", "acknowledged", "failed"]);
+const ACK_STATES = new Set<string>(["pending", "acknowledged", "failed", "blocked"]);
 const HOST_ACTIVATION_STATES = new Set<string>([
   "pending_credential",
   "redeeming",
@@ -710,16 +745,95 @@ export function mapOutboxEventRow(row: Record<string, unknown>): OutboxEventReco
     payloadJson: requireString(row["payload_json"], "sync_outbox.payload_json"),
     occurredAt: requireAbsoluteTimestamp(row["occurred_at"], "sync_outbox.occurred_at"),
     localSequence: requireInteger(row["local_sequence"], "sync_outbox.local_sequence"),
+    transactionGroupId: requireString(
+      row["transaction_group_id"],
+      "sync_outbox.transaction_group_id",
+    ),
     deliveryAttempts: requireInteger(row["delivery_attempts"], "sync_outbox.delivery_attempts"),
     lastAttemptAt:
       row["last_attempt_at"] === null || row["last_attempt_at"] === undefined
         ? null
         : requireAbsoluteTimestamp(row["last_attempt_at"], "sync_outbox.last_attempt_at"),
+    nextRetryAt:
+      row["next_retry_at"] === null || row["next_retry_at"] === undefined
+        ? null
+        : requireAbsoluteTimestamp(row["next_retry_at"], "sync_outbox.next_retry_at"),
+    lastErrorCode: optionalString(row["last_error_code"], "sync_outbox.last_error_code"),
     ackState: ackState as OutboxEventRecord["ackState"],
     acknowledgedAt:
       row["acknowledged_at"] === null || row["acknowledged_at"] === undefined
         ? null
         : requireAbsoluteTimestamp(row["acknowledged_at"], "sync_outbox.acknowledged_at"),
+    ackReceiptJson: optionalString(row["ack_receipt_json"], "sync_outbox.ack_receipt_json"),
+    ackPayloadHash: optionalString(row["ack_payload_hash"], "sync_outbox.ack_payload_hash"),
+  };
+}
+
+export function mapSyncStreamStateRow(row: Record<string, unknown>): SyncStreamStateRecord {
+  return {
+    stallId: requireString(row["stall_id"], "sync_stream_state.stall_id"),
+    sourceStreamId: requireString(row["source_stream_id"], "sync_stream_state.source_stream_id"),
+    streamGeneration: requireInteger(
+      row["stream_generation"],
+      "sync_stream_state.stream_generation",
+    ),
+    acknowledgedCursor: requireInteger(
+      row["acknowledged_cursor"],
+      "sync_stream_state.acknowledged_cursor",
+    ),
+    localTailSequence: requireInteger(
+      row["local_tail_sequence"],
+      "sync_stream_state.local_tail_sequence",
+    ),
+    localTailMeasuredAt:
+      row["local_tail_measured_at"] === null || row["local_tail_measured_at"] === undefined
+        ? null
+        : requireAbsoluteTimestamp(
+            row["local_tail_measured_at"],
+            "sync_stream_state.local_tail_measured_at",
+          ),
+    lastUploadAttemptAt:
+      row["last_upload_attempt_at"] === null || row["last_upload_attempt_at"] === undefined
+        ? null
+        : requireAbsoluteTimestamp(
+            row["last_upload_attempt_at"],
+            "sync_stream_state.last_upload_attempt_at",
+          ),
+    lastAckAt:
+      row["last_ack_at"] === null || row["last_ack_at"] === undefined
+        ? null
+        : requireAbsoluteTimestamp(row["last_ack_at"], "sync_stream_state.last_ack_at"),
+    nextRetryAt:
+      row["next_retry_at"] === null || row["next_retry_at"] === undefined
+        ? null
+        : requireAbsoluteTimestamp(row["next_retry_at"], "sync_stream_state.next_retry_at"),
+    workerEnabled: requireBoolean01(row["worker_enabled"], "sync_stream_state.worker_enabled"),
+    blockingGroupId: optionalString(
+      row["blocking_group_id"],
+      "sync_stream_state.blocking_group_id",
+    ),
+    blockingEventId: optionalString(
+      row["blocking_event_id"],
+      "sync_stream_state.blocking_event_id",
+    ),
+    blockingErrorCode: optionalString(
+      row["blocking_error_code"],
+      "sync_stream_state.blocking_error_code",
+    ),
+    blockingMessage: optionalString(row["blocking_message"], "sync_stream_state.blocking_message"),
+    lastErrorCode: optionalString(row["last_error_code"], "sync_stream_state.last_error_code"),
+    updatedAt: requireAbsoluteTimestamp(row["updated_at"], "sync_stream_state.updated_at"),
+  };
+}
+
+export function mapSyncWorkerLeaseRow(row: Record<string, unknown>): SyncWorkerLeaseRecord {
+  return {
+    stallId: requireString(row["stall_id"], "sync_worker_lease.stall_id"),
+    ownerToken: requireString(row["owner_token"], "sync_worker_lease.owner_token"),
+    fenceToken: requireInteger(row["fence_token"], "sync_worker_lease.fence_token"),
+    acquiredAt: requireAbsoluteTimestamp(row["acquired_at"], "sync_worker_lease.acquired_at"),
+    expiresAt: requireAbsoluteTimestamp(row["expires_at"], "sync_worker_lease.expires_at"),
+    updatedAt: requireAbsoluteTimestamp(row["updated_at"], "sync_worker_lease.updated_at"),
   };
 }
 

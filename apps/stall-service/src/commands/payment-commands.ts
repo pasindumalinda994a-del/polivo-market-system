@@ -951,6 +951,7 @@ function executePostPayment(
   });
   refreshSettlementProjections(tx, context.stallId, evaluated.allocations, now);
 
+  const transactionGroupId = deps.createId();
   writeAuditAndOutbox({
     tx,
     context,
@@ -987,6 +988,7 @@ function executePostPayment(
     eventId: deps.createId(),
     auditId: deps.createId(),
     now,
+    transactionGroupId,
   });
 
   if (allocationIds.length > 0) {
@@ -1012,6 +1014,7 @@ function executePostPayment(
       eventId: deps.createId(),
       auditId: deps.createId(),
       now,
+      transactionGroupId,
     });
   }
 

@@ -18,8 +18,28 @@ export type TenantRow = {
   market_location: string | null;
   contact: string | null;
   timezone: string;
+  profile_revision: number;
   created_at: string;
   updated_at: string;
+};
+
+export type PlatformAdministratorStatus = "active" | "inactive";
+
+export type PlatformAdministratorRow = {
+  identity_provider: IdentityProvider;
+  external_subject: string;
+  status: PlatformAdministratorStatus;
+  created_at: string;
+  created_by_subject: string | null;
+  updated_at: string;
+  notes: string | null;
+};
+
+export type TenantAdminNotesRow = {
+  tenant_id: string;
+  notes: string;
+  updated_at: string;
+  updated_by_subject: string;
 };
 
 export type TenantMembershipRow = {
@@ -136,6 +156,9 @@ export type FarmerRow = {
   short_code: string;
   display_name: string;
   is_active: boolean;
+  revision: number;
+  contact_number: string | null;
+  locality: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -147,6 +170,9 @@ export type TraderRow = {
   short_code: string;
   display_name: string;
   is_active: boolean;
+  revision: number;
+  contact_number: string | null;
+  locality: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -176,6 +202,32 @@ export type PaymentRow = {
   created_at: string;
 };
 
+export type ReportExportJobRow = {
+  tenant_id: string;
+  id: string;
+  stall_id: string;
+  report_type: string;
+  format: "csv" | "pdf";
+  status: "preparing" | "ready" | "failed" | "expired";
+  definition_version: string;
+  snapshot_token: string;
+  filter_fingerprint: string;
+  normalized_filters_json: Record<string, unknown>;
+  row_count: number | null;
+  content_sha256: string | null;
+  content_bytes: string | Uint8Array | null;
+  content_type: string | null;
+  byte_length: number | null;
+  default_file_name: string;
+  failure_code: string | null;
+  failure_message: string | null;
+  created_by_subject: string;
+  create_operation_id: string;
+  created_at: string;
+  expires_at: string;
+  ready_at: string | null;
+};
+
 export type SyncReceivedEventRow = {
   tenant_id: string;
   event_id: string;
@@ -185,6 +237,40 @@ export type SyncReceivedEventRow = {
   occurred_at: string;
   received_at: string;
   source_revision: number | null;
+  source_stream_id: string | null;
+  stream_generation: number | null;
+  local_sequence: number | null;
+  transaction_group_id: string | null;
+  payload_hash: string | null;
+  applied_status: string;
+  device_id: string | null;
+  applied_at: string | null;
+  diagnostics_json: string | null;
+};
+
+export type SyncSourceStreamRow = {
+  tenant_id: string;
+  source_stream_id: string;
+  stall_id: string;
+  device_id: string;
+  installation_id: string;
+  stream_generation: number;
+  committed_cursor: number;
+  compatibility_protocol_version: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type PackageTypeRow = {
+  tenant_id: string;
+  id: string;
+  stall_id: string;
+  short_code: string;
+  display_name: string;
+  is_active: boolean;
+  revision: number;
+  created_at: string;
+  updated_at: string;
 };
 
 /** Capability seeds for create_stall RPC — JSON arrays (PostgREST-friendly json params). */
@@ -258,6 +344,21 @@ export type Database = {
         Update: Partial<AdminAuditEventRow>;
         Relationships: [];
       };
+      platform_administrators: {
+        Row: PlatformAdministratorRow;
+        Insert: Omit<PlatformAdministratorRow, "created_at" | "updated_at"> & {
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<PlatformAdministratorRow>;
+        Relationships: [];
+      };
+      tenant_admin_notes: {
+        Row: TenantAdminNotesRow;
+        Insert: Omit<TenantAdminNotesRow, "updated_at"> & { updated_at?: string };
+        Update: Partial<TenantAdminNotesRow>;
+        Relationships: [];
+      };
       tenant_devices: {
         Row: TenantDeviceRow;
         Insert: Omit<
@@ -328,13 +429,61 @@ export type Database = {
       };
       sync_received_events: {
         Row: SyncReceivedEventRow;
-        Insert: Omit<SyncReceivedEventRow, "received_at"> & { received_at?: string };
+        Insert: Omit<SyncReceivedEventRow, "received_at" | "applied_status"> & {
+          received_at?: string;
+          applied_status?: string;
+        };
         Update: Partial<SyncReceivedEventRow>;
+        Relationships: [];
+      };
+      sync_source_streams: {
+        Row: SyncSourceStreamRow;
+        Insert: SyncSourceStreamRow;
+        Update: Partial<SyncSourceStreamRow>;
+        Relationships: [];
+      };
+      package_types: {
+        Row: PackageTypeRow;
+        Insert: PackageTypeRow;
+        Update: Partial<PackageTypeRow>;
+        Relationships: [];
+      };
+      report_export_jobs: {
+        Row: ReportExportJobRow;
+        Insert: ReportExportJobRow;
+        Update: Partial<ReportExportJobRow>;
         Relationships: [];
       };
     };
     Views: Record<string, never>;
     Functions: {
+      check_sync_ingest_rate_limit: {
+        Args: {
+          p_bucket_key: string;
+          p_window_seconds: number;
+          p_max_requests: number;
+        };
+        Returns: {
+          allowed: boolean;
+          retry_after_seconds: number;
+          request_count: number;
+        }[];
+      };
+      apply_sync_ingestion_group: {
+        Args: {
+          p_tenant_id: string;
+          p_stall_id: string;
+          p_device_id: string;
+          p_installation_id: string;
+          p_credential_version: number;
+          p_source_stream_id: string;
+          p_stream_generation: number;
+          p_transaction_group_id: string;
+          p_events: unknown;
+          p_event_hashes: unknown;
+        };
+        Returns: Record<string, unknown>;
+      };
       has_active_reporting_access: {
         Args: { p_tenant_id: string };
         Returns: boolean;
@@ -342,6 +491,96 @@ export type Database = {
       is_active_tenant_owner: {
         Args: { p_tenant_id: string };
         Returns: boolean;
+      };
+      is_platform_administrator: {
+        Args: Record<string, never>;
+        Returns: boolean;
+      };
+      get_platform_admin_status: {
+        Args: Record<string, never>;
+        Returns: { is_platform_admin: boolean }[];
+      };
+      get_stall_admin_profile: {
+        Args: { p_tenant_id: string };
+        Returns: {
+          tenant_id: string;
+          status: TenantStatus;
+          display_name: string;
+          market_location: string | null;
+          contact: string | null;
+          timezone: string;
+          profile_revision: number;
+          admin_notes: string;
+          updated_at: string;
+        }[];
+      };
+      update_stall_profile: {
+        Args: {
+          p_tenant_id: string;
+          p_expected_revision: number;
+          p_display_name: string;
+          p_timezone: string;
+          p_market_location?: string | null;
+          p_contact?: string | null;
+          p_admin_notes?: string | null;
+        };
+        Returns: { profile_revision: number }[];
+      };
+      list_platform_stall_directory: {
+        Args: {
+          p_limit?: number;
+          p_offset?: number;
+          p_search?: string | null;
+          p_status?: TenantStatus | null;
+          p_tenant_id?: string | null;
+        };
+        Returns: {
+          tenant_id: string;
+          display_name: string;
+          market_location: string | null;
+          contact: string | null;
+          timezone: string;
+          status: TenantStatus;
+          owner_subject: string | null;
+          enrollment_status: string;
+          last_host_contact_at: string | null;
+          last_upload_applied_at: string | null;
+          config_published_revision: number | null;
+          config_acknowledged_revision: number | null;
+          config_delivery_status: string;
+          blocker_no_enrolled_host: boolean;
+          blocker_host_contact_stale: boolean;
+          blocker_upload_blocked: boolean;
+          blocker_config_pending: boolean;
+          blocker_reconciliation_issue: boolean;
+          total_count: number;
+        }[];
+      };
+      get_platform_stall_detail: {
+        Args: { p_tenant_id: string };
+        Returns: {
+          tenant_id: string;
+          display_name: string;
+          market_location: string | null;
+          contact: string | null;
+          timezone: string;
+          status: TenantStatus;
+          profile_revision: number;
+          admin_notes: string;
+          owner_subject: string | null;
+          enrollment_status: string;
+          last_host_contact_at: string | null;
+          last_upload_applied_at: string | null;
+          config_published_revision: number | null;
+          config_acknowledged_revision: number | null;
+          config_delivery_status: string;
+          blocker_no_enrolled_host: boolean;
+          blocker_host_contact_stale: boolean;
+          blocker_upload_blocked: boolean;
+          blocker_config_pending: boolean;
+          blocker_reconciliation_issue: boolean;
+          updated_at: string;
+        }[];
       };
       create_stall_with_owner: {
         Args: CreateStallWithOwnerArgs;
@@ -525,6 +764,69 @@ export type Database = {
           p_possession_signature: string;
         };
         Returns: { credential_version: number; state_revision: number }[];
+      };
+      capture_reporting_watermarks: {
+        Args: { p_tenant_id: string; p_stall_id: string };
+        Returns: {
+          max_posting_sequence: number;
+          max_allocation_created_at: string;
+          max_allocation_id: string;
+          max_payment_recorded_at: string;
+          max_payment_id: string;
+          committed_cloud_cursor: number;
+        }[];
+      };
+      get_stall_reporting_freshness: {
+        Args: { p_tenant_id: string };
+        Returns: {
+          last_host_contact_at: string | null;
+          last_applied_upload_group_id: string | null;
+          last_applied_upload_at: string | null;
+          committed_cloud_cursor: number;
+          committed_cloud_cursor_observed_at: string | null;
+          applied_max_posting_sequence: number;
+          has_any_applied_data: boolean;
+        }[];
+      };
+      list_report_sale_lines: {
+        Args: Record<string, unknown>;
+        Returns: Record<string, unknown>[];
+      };
+      list_report_payments: {
+        Args: Record<string, unknown>;
+        Returns: Record<string, unknown>[];
+      };
+      list_report_corrections: {
+        Args: Record<string, unknown>;
+        Returns: Record<string, unknown>[];
+      };
+      sum_account_balance_at_watermark: {
+        Args: Record<string, unknown>;
+        Returns: number;
+      };
+      list_unapplied_payments_at_watermark: {
+        Args: Record<string, unknown>;
+        Returns: Record<string, unknown>[];
+      };
+      list_eligible_trader_bill_obligations: {
+        Args: Record<string, unknown>;
+        Returns: Record<string, unknown>[];
+      };
+      list_eligible_farmer_sale_line_obligations: {
+        Args: Record<string, unknown>;
+        Returns: Record<string, unknown>[];
+      };
+      list_statement_movements_page: {
+        Args: Record<string, unknown>;
+        Returns: Record<string, unknown>[];
+      };
+      sum_statement_opening_balance: {
+        Args: Record<string, unknown>;
+        Returns: number;
+      };
+      sum_balance_before_statement_page: {
+        Args: Record<string, unknown>;
+        Returns: number;
       };
     };
     Enums: Record<string, never>;

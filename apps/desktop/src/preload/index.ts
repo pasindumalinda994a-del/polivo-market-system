@@ -764,3 +764,41 @@ contextBridge.exposeInMainWorld("polivoReports", {
     defaultFileName?: string;
   }): Promise<ReportsApiResult<unknown>> => ipcRenderer.invoke("reports:saveExport", input),
 });
+
+export type SyncApiResult<T> =
+  { ok: true; data: T; stale?: boolean } | { ok: false; code: string; message: string };
+
+contextBridge.exposeInMainWorld("polivoSync", {
+  getStatus: (): Promise<SyncApiResult<unknown>> => ipcRenderer.invoke("sync:getStatus"),
+  getWorkspace: (): Promise<SyncApiResult<unknown>> => ipcRenderer.invoke("sync:getWorkspace"),
+  retry: (): Promise<SyncApiResult<unknown>> => ipcRenderer.invoke("sync:retry"),
+  reconcile: (input: {
+    requestId: string;
+    includeReporting?: boolean;
+  }): Promise<SyncApiResult<unknown>> => ipcRenderer.invoke("sync:reconcile", input),
+  createRecoveryPlan: (input: {
+    requestId: string;
+    actionType: string;
+    groupIds?: string[];
+  }): Promise<SyncApiResult<unknown>> => ipcRenderer.invoke("sync:recoveryPlan", input),
+  executeRecoveryPlan: (input: {
+    requestId: string;
+    planId: string;
+    idempotencyKey: string;
+  }): Promise<SyncApiResult<unknown>> => ipcRenderer.invoke("sync:recoveryExecute", input),
+  cancelRecoveryJob: (input: {
+    requestId: string;
+    jobId: string;
+  }): Promise<SyncApiResult<unknown>> => ipcRenderer.invoke("sync:recoveryCancel", input),
+  exportDiagnostics: (input: { requestId: string }): Promise<SyncApiResult<unknown>> =>
+    ipcRenderer.invoke("sync:exportDiagnostics", input),
+});
+
+export type ConfigSyncApiResult<T> =
+  { ok: true; data: T; stale?: boolean } | { ok: false; code: string; message: string };
+
+contextBridge.exposeInMainWorld("polivoConfigSync", {
+  getStatus: (): Promise<ConfigSyncApiResult<unknown>> =>
+    ipcRenderer.invoke("configSync:getStatus"),
+  refresh: (): Promise<ConfigSyncApiResult<unknown>> => ipcRenderer.invoke("configSync:refresh"),
+});

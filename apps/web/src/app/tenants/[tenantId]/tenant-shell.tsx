@@ -15,9 +15,10 @@ import {
   PageHeader,
   type SidebarNavItem,
 } from "@polivo/ui";
-import { KeyRound, LayoutDashboard, MonitorSmartphone, Users } from "lucide-react";
+import { ClipboardList, KeyRound, LayoutDashboard, MonitorSmartphone, Users } from "lucide-react";
 
-import type { MembershipSummary } from "@/lib/auth/memberships";
+import type { MembershipSummary } from "@/lib/auth/membership-summary";
+import { buildOwnerSidebarNav } from "@/lib/tenant/owner-nav";
 
 export type TenantShellProps =
   | { state: "allowed"; membership: MembershipSummary }
@@ -30,44 +31,28 @@ export function TenantShell(props: TenantShellProps) {
   const isOwner = props.state === "allowed" && props.membership.accessRole === "owner";
   const tenantId = props.state === "allowed" ? props.membership.tenantId : null;
 
-  const navigation: SidebarNavItem[] = [
-    {
-      id: "dashboard",
-      label: "Dashboard",
-      href: "/dashboard",
-      available: true,
-      active: false,
-      icon: <LayoutDashboard className="h-5 w-5" aria-hidden="true" />,
-    },
-    ...(isOwner && tenantId
-      ? [
+  const navigation: SidebarNavItem[] =
+    isOwner && tenantId
+      ? buildOwnerSidebarNav({
+          tenantId,
+          icons: {
+            dashboard: <LayoutDashboard className="h-5 w-5" aria-hidden="true" />,
+            setup: <ClipboardList className="h-5 w-5" aria-hidden="true" />,
+            members: <Users className="h-5 w-5" aria-hidden="true" />,
+            permissions: <KeyRound className="h-5 w-5" aria-hidden="true" />,
+            devices: <MonitorSmartphone className="h-5 w-5" aria-hidden="true" />,
+          },
+        })
+      : [
           {
-            id: "members",
-            label: "Members",
-            href: `/tenants/${encodeURIComponent(tenantId)}/members`,
+            id: "dashboard",
+            label: "Dashboard",
+            href: "/dashboard",
             available: true,
             active: false,
-            icon: <Users className="h-5 w-5" aria-hidden="true" />,
+            icon: <LayoutDashboard className="h-5 w-5" aria-hidden="true" />,
           },
-          {
-            id: "permissions",
-            label: "Permissions",
-            href: `/tenants/${encodeURIComponent(tenantId)}/permissions`,
-            available: true,
-            active: false,
-            icon: <KeyRound className="h-5 w-5" aria-hidden="true" />,
-          },
-          {
-            id: "devices",
-            label: "Devices",
-            href: `/tenants/${encodeURIComponent(tenantId)}/devices`,
-            available: true,
-            active: false,
-            icon: <MonitorSmartphone className="h-5 w-5" aria-hidden="true" />,
-          },
-        ]
-      : []),
-  ];
+        ];
 
   return (
     <AppShell
@@ -118,23 +103,31 @@ export function TenantShell(props: TenantShellProps) {
             <Alert className="mb-4">
               <AlertTitle>Stall account created. Desktop setup is not complete.</AlertTitle>
               <AlertDescription>
-                Your online stall account is ready. Device enrollment and local staff login are not
-                configured yet.
+                Your online stall account is ready. Continue with host enrollment and local owner
+                setup from the setup overview. Device enrollment and local staff login are separate
+                from this web account.
               </AlertDescription>
             </Alert>
           ) : null}
 
           <Alert className="mb-4">
-            <AlertTitle>Permission status</AlertTitle>
+            <AlertTitle>Continue setup</AlertTitle>
             <AlertDescription>
-              Cloud membership and permission settings apply to online access. Local application
-              status unavailable until desktop synchronization is implemented.
+              Cloud membership controls online access. Configuration delivery and local application
+              status are shown on Setup and Permissions after the host acknowledges snapshots. Open{" "}
+              <Link
+                className="font-semibold text-primary underline-offset-4 hover:underline"
+                href={`/tenants/${encodeURIComponent(props.membership.tenantId)}/setup`}
+              >
+                Setup overview
+              </Link>{" "}
+              for confirmed, awaiting, blocked, and unknown milestones.
             </AlertDescription>
           </Alert>
 
           <EmptyState
-            title="Reports unavailable"
-            description="Synchronized financial reports remain read-only and will appear after synchronization is implemented. Web users cannot edit synchronized financial records."
+            title="Reporting workspace"
+            description="Synchronized financial reports are read-only and appear for authorized members when cloud data exists. Freshness indicators show when reports last received evidence — sync is not a backup."
           />
         </>
       ) : null}

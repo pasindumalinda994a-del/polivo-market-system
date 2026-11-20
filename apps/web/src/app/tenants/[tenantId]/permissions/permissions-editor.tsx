@@ -25,19 +25,52 @@ import {
   TabsTrigger,
   type SidebarNavItem,
 } from "@polivo/ui";
-import { KeyRound, LayoutDashboard, Users } from "lucide-react";
+import { ClipboardList, KeyRound, LayoutDashboard, Users } from "lucide-react";
+
+import type { ConfigDeliveryStatus } from "@polivo/contracts";
 
 import type { PermissionProfileSummary } from "@/lib/tenant/permission-profiles";
+
+export type StallSyncCloudVisibility = {
+  lastHostContactAt: string | null;
+  lastAppliedUploadGroupId: string | null;
+  lastAppliedUploadAt: string | null;
+  committedCloudCursor: { value: string | null; observedAt: string | null } | null;
+  pendingPublishedConfigRevision: number | null;
+  lastConfigApplicationAckAt: string | null;
+  note: string;
+};
 
 export type PermissionsEditorProps = {
   tenantId: string;
   displayName: string;
   profiles: PermissionProfileSummary[];
+  delivery?: ConfigDeliveryStatus | null;
+  syncVisibility?: StallSyncCloudVisibility | null;
 };
 
 type ProfileRole = "billing_staff" | "cashier";
 
-export function PermissionsEditor({ tenantId, displayName, profiles }: PermissionsEditorProps) {
+function deliveryCopy(status: ConfigDeliveryStatus | null | undefined): string {
+  if (!status || status.publishedRevision == null) {
+    return "No access configuration has been published yet.";
+  }
+  if (status.localApplicationStatus === "applied") {
+    return `Published revision ${status.publishedRevision} is applied on the stall host (acked ${status.lastAcknowledgedRevision ?? "—"}).`;
+  }
+  if (status.localApplicationStatus === "failed" || status.localApplicationStatus === "blocked") {
+    return `Saved in cloud (revision ${status.publishedRevision}); host reported ${status.localApplicationStatus}${status.failureMessage ? `: ${status.failureMessage}` : "."}`;
+  }
+  return `Saved in cloud; waiting for stall host (published ${status.publishedRevision}, last acked ${status.lastAcknowledgedRevision ?? "none"}).`;
+}
+
+export function PermissionsEditor({
+  tenantId,
+  displayName,
+  profiles,
+  delivery = null,
+  syncVisibility = null,
+}: PermissionsEditorProps) {
   const [pending, startTransition] = useTransition();
   const [activeRole, setActiveRole] = useState<ProfileRole>("billing_staff");
   const [state, setState] = useState(() => {
@@ -66,6 +99,7 @@ export function PermissionsEditor({ tenantId, displayName, profiles }: Permissio
   const [reviewed, setReviewed] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [deliveryState, setDeliveryState] = useState<ConfigDeliveryStatus | null>(delivery);
 
   const recommendations = useMemo(
     () => recommendedCapabilitiesForProfile(activeRole),
@@ -79,6 +113,13 @@ export function PermissionsEditor({ tenantId, displayName, profiles }: Permissio
       href: "/dashboard",
       available: true,
       icon: <LayoutDashboard className="h-5 w-5" aria-hidden="true" />,
+    },
+    {
+      id: "setup",
+      label: "Setup",
+      href: `/tenants/${encodeURIComponent(tenantId)}/setup`,
+      available: true,
+      icon: <ClipboardList className="h-5 w-5" aria-hidden="true" />,
     },
     {
       id: "members",
@@ -144,7 +185,9 @@ export function PermissionsEditor({ tenantId, displayName, profiles }: Permissio
       const payload = (await response.json()) as {
         revision?: number;
         cloudSaveStatus?: string;
-        localApplicationStatus?: string;
+        localApplicationStatus?: ConfigDeliveryStatus["localApplicationStatus"];
+        publishedRevision?: number;
+        lastAcknowledgedRevision?: number | null;
         message?: string;
       };
       if (!response.ok || typeof payload.revision !== "number") {
@@ -160,9 +203,18 @@ export function PermissionsEditor({ tenantId, displayName, profiles }: Permissio
           capabilities: [...selected[activeRole]],
         },
       }));
-      setMessage(
-        "Saved to cloud. Local application status unavailable. Desktop sync acknowledgements are not implemented yet.",
-      );
+      const nextDelivery: ConfigDeliveryStatus = {
+        domain: "access",
+        publishedRevision: payload.publishedRevision ?? null,
+        lastAcknowledgedRevision: payload.lastAcknowledgedRevision ?? null,
+        localApplicationStatus: payload.localApplicationStatus ?? "pending_delivery",
+        lastAcknowledgementAt: null,
+        lastHostDeviceId: null,
+        failureCode: null,
+        failureMessage: null,
+      };
+      setDeliveryState(nextDelivery);
+      setMessage(deliveryCopy(nextDelivery));
       setReviewed(false);
     });
   }
@@ -190,16 +242,47 @@ export function PermissionsEditor({ tenantId, displayName, profiles }: Permissio
     >
       <PageHeader
         title={`Permissions · ${displayName}`}
-        description="Configure recommended operational capabilities for billing staff and cashiers. Ownership and membership administration stay with the owner."
+        description="Save applies these capabilities to every billing-staff or cashier membership with that role, then the stall host pulls them for mapped local staff. Ownership and membership administration stay with the owner."
       />
 
       <Alert className="mb-4">
         <AlertTitle>Cloud versus desktop</AlertTitle>
         <AlertDescription>
-          Saving updates cloud configuration only. Local application status unavailable. Do not
-          treat a cloud save as applied on the desktop.
+          {deliveryCopy(deliveryState)} Do not say permissions are updated on all terminals solely
+          because publication succeeded.
         </AlertDescription>
       </Alert>
+
+      {syncVisibility ? (
+        <Alert className="mb-4">
+          <AlertTitle>Cloud-observable sync status</AlertTitle>
+          <AlertDescription>
+            <p className="mb-2">{syncVisibility.note}</p>
+            <ul className="list-disc space-y-1 pl-5 text-sm">
+              <li>Last host contact: {syncVisibility.lastHostContactAt ?? "not observed"}</li>
+              <li>
+                Last applied upload group: {syncVisibility.lastAppliedUploadGroupId ?? "none"}
+                {syncVisibility.lastAppliedUploadAt
+                  ? ` at ${syncVisibility.lastAppliedUploadAt}`
+                  : ""}
+              </li>
+              <li>
+                Committed cloud cursor: {syncVisibility.committedCloudCursor?.value ?? "—"}
+                {syncVisibility.committedCloudCursor?.observedAt
+                  ? ` (observed ${syncVisibility.committedCloudCursor.observedAt})`
+                  : ""}
+              </li>
+              <li>
+                Pending published config revision:{" "}
+                {syncVisibility.pendingPublishedConfigRevision ?? "none"}
+              </li>
+              <li>
+                Last config application ack: {syncVisibility.lastConfigApplicationAckAt ?? "none"}
+              </li>
+            </ul>
+          </AlertDescription>
+        </Alert>
+      ) : null}
 
       {message ? (
         <Alert className="mb-4">

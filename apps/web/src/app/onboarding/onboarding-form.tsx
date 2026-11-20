@@ -96,7 +96,7 @@ export function OnboardingForm() {
           return;
         }
         setSuccessTenantId(payload.tenantId);
-        router.push(`/tenants/${encodeURIComponent(payload.tenantId)}?created=1`);
+        router.push(`/tenants/${encodeURIComponent(payload.tenantId)}/setup?created=1`);
       } catch {
         setSubmitError("Unable to create the stall account. Check your connection and try again.");
       }

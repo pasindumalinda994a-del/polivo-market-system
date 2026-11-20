@@ -1,19 +1,13 @@
 import type { MembershipAccessRole, MembershipStatus, TenantStatus } from "@polivo/db-cloud/types";
 
 import { forbiddenError, serviceUnavailableError } from "./errors";
+import { membershipHasCapability, type MembershipSummary } from "./membership-summary";
 import { createRequestUserSupabaseClient, type UserSupabaseClient } from "./supabase-user";
 
-const ACTIVE_ACCESS_ROLES = new Set<MembershipAccessRole>(["owner", "billing_staff", "cashier"]);
+export type { MembershipSummary } from "./membership-summary";
+export { membershipHasCapability } from "./membership-summary";
 
-export type MembershipSummary = {
-  membershipId: string;
-  tenantId: string;
-  accessRole: MembershipAccessRole;
-  membershipStatus: MembershipStatus;
-  tenantStatus: TenantStatus;
-  displayName: string;
-  timezone: string;
-};
+const ACTIVE_ACCESS_ROLES = new Set<MembershipAccessRole>(["owner", "billing_staff", "cashier"]);
 
 export type MembershipListResult =
   { status: "ok"; memberships: MembershipSummary[] } | { status: "unavailable"; message: string };
@@ -27,7 +21,15 @@ type MembershipRow = {
   tenant_id: string;
   status: MembershipStatus;
   access_role: MembershipAccessRole;
+  capabilities: unknown;
 };
+
+function parseCapabilities(raw: unknown): string[] {
+  if (!Array.isArray(raw)) {
+    return [];
+  }
+  return raw.filter((value): value is string => typeof value === "string");
+}
 
 type TenantRow = {
   id: string;
@@ -43,7 +45,7 @@ function createSupabaseMembershipPort(client: UserSupabaseClient): MembershipQue
       // explicitly scope dashboard/access resolution to the caller's subject.
       const membershipQuery = await client
         .from("tenant_memberships")
-        .select("id, tenant_id, status, access_role")
+        .select("id, tenant_id, status, access_role, capabilities")
         .eq("external_subject", subject);
 
       if (membershipQuery.error) {
@@ -89,6 +91,7 @@ function createSupabaseMembershipPort(client: UserSupabaseClient): MembershipQue
           tenantStatus: tenant.status,
           displayName: tenant.display_name,
           timezone: tenant.timezone,
+          capabilities: parseCapabilities(row.capabilities),
         });
       }
 
@@ -162,4 +165,35 @@ export function assertOwnerAccess(membership: MembershipSummary): MembershipSumm
     throw forbiddenError("Only the stall owner can manage members and permissions.");
   }
   return membership;
+}
+
+export function assertReportingAccess(membership: MembershipSummary): MembershipSummary {
+  if (!membershipHasCapability(membership, "reports.view_financial")) {
+    throw forbiddenError("Financial reporting is not enabled for this membership.");
+  }
+  return membership;
+}
+
+export function assertExportAccess(membership: MembershipSummary): MembershipSummary {
+  if (!membershipHasCapability(membership, "data.export")) {
+    throw forbiddenError("Data export is not enabled for this membership.");
+  }
+  return membership;
+}
+
+export function assertSyncViewAccess(membership: MembershipSummary): MembershipSummary {
+  if (!membershipHasCapability(membership, "sync.view")) {
+    throw forbiddenError("Sync diagnostics are not available for this membership.");
+  }
+  return membership;
+}
+
+export function assertAccountsViewAccess(membership: MembershipSummary): MembershipSummary {
+  if (
+    membershipHasCapability(membership, "accounts.view") ||
+    membershipHasCapability(membership, "reports.view_financial")
+  ) {
+    return membership;
+  }
+  throw forbiddenError("Account statements are not available for this membership.");
 }

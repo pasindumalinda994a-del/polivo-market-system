@@ -29,6 +29,7 @@ import { BillHistoryPanel } from "./bill-history/BillHistoryPanel";
 import { BuyersPanel } from "./BuyersPanel";
 import { CatalogPanel } from "./CatalogPanel";
 import { CommissionSettingsPanel } from "./CommissionSettingsPanel";
+import { SyncWorkspacePanel } from "./SyncWorkspacePanel";
 import { FarmerBillingPanel } from "./farmer-billing/FarmerBillingPanel";
 import { FarmersPanel } from "./FarmersPanel";
 import { PaymentsPanel, type PaymentsInitialContext } from "./payments/PaymentsPanel";
@@ -257,6 +258,42 @@ export default function App() {
       .catch(() => setConnection(null));
   }, []);
 
+  // Phase 33: access apply updates the local snapshot without ending the session.
+  // Re-read /local-auth/session so Catalog and other gates drop removed caps mid-session.
+  useEffect(() => {
+    if (connection?.state !== "signed_in" || !window.polivoConnection?.getSession) {
+      return;
+    }
+
+    let cancelled = false;
+    const refreshCapabilities = () => {
+      void window.polivoConnection
+        ?.getSession()
+        .then((status) => {
+          if (!cancelled) {
+            setConnection(status);
+          }
+        })
+        .catch(() => {
+          // Keep last known connection state; next interval or host call will retry.
+        });
+    };
+
+    refreshCapabilities();
+    const intervalId = window.setInterval(refreshCapabilities, 10_000);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") {
+        refreshCapabilities();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [connection?.state]);
+
   function enroll() {
     setError(null);
     setInfo(null);
@@ -411,6 +448,12 @@ export default function App() {
   const canManageParties = Boolean(connection?.capabilities.includes("parties.register_edit"));
   const canManageCatalog = Boolean(connection?.capabilities.includes("catalog.manage"));
   const canManageCommission = Boolean(connection?.capabilities.includes("commission.manage"));
+  const canManageSettings = Boolean(connection?.capabilities.includes("settings.manage"));
+  const canSyncView = Boolean(connection?.capabilities.includes("sync.view") || canManageSettings);
+  const canSyncReconcile = Boolean(connection?.capabilities.includes("sync.reconcile"));
+  const canSyncRetry = Boolean(connection?.capabilities.includes("sync.retry"));
+  const canSyncRecover = Boolean(connection?.capabilities.includes("sync.recover"));
+  const canSyncExport = Boolean(connection?.capabilities.includes("sync.export_diagnostics"));
   const canViewAccounts = Boolean(connection?.capabilities.includes("accounts.view"));
   const canPrepareOpening = Boolean(connection?.capabilities.includes("accounts.opening_prepare"));
   const canPostOpening = Boolean(connection?.capabilities.includes("accounts.opening_post"));
@@ -723,6 +766,16 @@ export default function App() {
             hostAvailable={hostAvailable}
             signedIn={signedIn}
             canManage={canManageCommission}
+            staffKey={staffSessionKey}
+          />
+          <SyncWorkspacePanel
+            hostAvailable={hostAvailable}
+            signedIn={signedIn}
+            canView={canSyncView}
+            canReconcile={canSyncReconcile}
+            canRetry={canSyncRetry}
+            canRecover={canSyncRecover}
+            canExport={canSyncExport}
             staffKey={staffSessionKey}
           />
           <PrintingSettingsPanel hostAvailable={hostAvailable} signedIn={signedIn} />

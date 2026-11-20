@@ -58,8 +58,9 @@ describe("data access foundations", () => {
         .prepare(
           `INSERT INTO sync_outbox (
              event_id, tenant_id, stall_id, originating_device_id, event_type,
-             event_schema_version, payload_json, occurred_at, local_sequence
-           ) VALUES ('e1', 'tenant-1', 'stall-1', 'device-1', 'polivo.test.fixture', '1', '{}', ?, 1)`,
+             event_schema_version, payload_json, occurred_at, local_sequence,
+             transaction_group_id
+           ) VALUES ('e1', 'tenant-1', 'stall-1', 'device-1', 'polivo.test.fixture', '1', '{}', ?, 1, 'e1')`,
         )
         .run("2026-11-01T01:00:00.000Z");
     });

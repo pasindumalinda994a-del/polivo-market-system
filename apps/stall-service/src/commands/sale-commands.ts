@@ -828,6 +828,7 @@ function executeFinalizeSale(
     lineCount: bill.lines.length,
   });
 
+  const transactionGroupId = deps.createId();
   writeAuditAndOutbox({
     tx,
     context,
@@ -840,6 +841,7 @@ function executeFinalizeSale(
     eventId: deps.createId(),
     auditId: deps.createId(),
     now,
+    transactionGroupId,
   });
   writeAuditAndOutbox({
     tx,
@@ -853,6 +855,7 @@ function executeFinalizeSale(
     eventId: deps.createId(),
     auditId: deps.createId(),
     now,
+    transactionGroupId,
   });
 
   return finalizeSaleResponseSchema.parse({

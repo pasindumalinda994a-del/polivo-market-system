@@ -6,6 +6,8 @@ import {
   createStallRequestSchema,
   updateMembershipRequestSchema,
   updatePermissionProfileRequestSchema,
+  updateStallProfileRequestSchema,
+  platformDirectoryQuerySchema,
 } from "./tenant-access.js";
 
 describe("tenant access contracts", () => {
@@ -67,5 +69,28 @@ describe("tenant access contracts", () => {
         token: "a".repeat(32),
       }).success,
     ).toBe(true);
+  });
+
+  it("accepts stall profile updates with expected revision", () => {
+    const parsed = updateStallProfileRequestSchema.parse({
+      displayName: "Stall Renamed",
+      timezone: "Asia/Colombo",
+      marketLocation: "Pettah",
+      adminNotes: "ops note",
+      expectedRevision: 2,
+    });
+    expect(parsed.expectedRevision).toBe(2);
+    expect(
+      updateStallProfileRequestSchema.safeParse({
+        displayName: "Stall",
+        timezone: "Asia/Colombo",
+        expectedRevision: 0,
+      }).success,
+    ).toBe(false);
+  });
+
+  it("bounds platform directory query pagination", () => {
+    expect(platformDirectoryQuerySchema.parse({}).limit).toBe(50);
+    expect(platformDirectoryQuerySchema.safeParse({ limit: 500 }).success).toBe(false);
   });
 });

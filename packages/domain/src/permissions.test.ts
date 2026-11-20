@@ -81,4 +81,17 @@ describe("permission capability helpers", () => {
       [],
     );
   });
+
+  it("includes Phase 34 sync operator capabilities", () => {
+    for (const cap of [
+      "sync.view",
+      "sync.reconcile",
+      "sync.retry",
+      "sync.recover",
+      "sync.export_diagnostics",
+    ] as const) {
+      expect(PERMISSION_CAPABILITIES).toContain(cap);
+      expect(recommendedCapabilitiesForProfile("cashier")).not.toContain(cap);
+    }
+  });
 });

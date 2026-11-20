@@ -2,6 +2,10 @@
  * Configurable operational permission capabilities.
  * Enforcement belongs to the stall service; these are stable identifiers only.
  * Cloud membership administration uses ownership, not these capability grants.
+ *
+ * Cloud SQL allowlist `public.polivo_capabilities_are_known` must match this list.
+ * When adding a capability, ship a forward Supabase migration that updates that
+ * function (see supabase/migrations/*_sync_known_permission_capabilities.sql).
  */
 export const PERMISSION_CAPABILITIES = [
   "bills.create",
@@ -32,6 +36,11 @@ export const PERMISSION_CAPABILITIES = [
   "staff.manage",
   "settings.manage",
   "backups.restore",
+  "sync.view",
+  "sync.reconcile",
+  "sync.retry",
+  "sync.recover",
+  "sync.export_diagnostics",
 ] as const;
 
 export type PermissionCapability = (typeof PERMISSION_CAPABILITIES)[number];
@@ -155,7 +164,17 @@ export const CAPABILITY_GROUPS: readonly CapabilityGroup[] = [
   {
     id: "administration",
     label: "Administration",
-    capabilities: ["data.export", "staff.manage", "settings.manage", "backups.restore"],
+    capabilities: [
+      "data.export",
+      "staff.manage",
+      "settings.manage",
+      "backups.restore",
+      "sync.view",
+      "sync.reconcile",
+      "sync.retry",
+      "sync.recover",
+      "sync.export_diagnostics",
+    ],
   },
 ] as const;
 

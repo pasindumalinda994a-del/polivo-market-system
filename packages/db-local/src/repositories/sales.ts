@@ -486,6 +486,36 @@ function deleteSaleChildren(executor: DbExecutor, stallId: string, saleId: strin
     .run(stallId, saleId);
 }
 
+export type SaleFarmerAllocationRecord = {
+  id: string;
+  saleLineId: string;
+  farmerId: string;
+  allocatedNetWeightHundredths: number;
+};
+
+export function listSaleFarmerAllocations(
+  executor: DbExecutor,
+  stallId: string,
+  saleId: string,
+): SaleFarmerAllocationRecord[] {
+  const rows = executor.db
+    .prepare(
+      `SELECT id, sale_line_id, farmer_id, allocated_net_weight_hundredths
+       FROM sale_farmer_allocations
+       WHERE stall_id = ? AND sale_id = ?
+       ORDER BY sale_line_id ASC, id ASC`,
+    )
+    .all(stallId, saleId) as Array<Record<string, unknown>>;
+  return rows.map((row) => ({
+    id: requireString(row["id"], "sale_farmer_allocations.id"),
+    saleLineId: requireString(row["sale_line_id"], "sale_farmer_allocations.sale_line_id"),
+    farmerId: requireString(row["farmer_id"], "sale_farmer_allocations.farmer_id"),
+    allocatedNetWeightHundredths: weightHundredthsFromSqliteInteger(
+      row["allocated_net_weight_hundredths"],
+    ),
+  }));
+}
+
 export function getSaleById(
   executor: DbExecutor,
   stallId: string,

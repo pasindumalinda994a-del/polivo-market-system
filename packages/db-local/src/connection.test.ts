@@ -265,8 +265,8 @@ describe("schema integrity", () => {
         .prepare(
           `INSERT INTO sync_outbox (
              event_id, tenant_id, stall_id, originating_device_id, event_type, event_schema_version,
-             payload_json, occurred_at, local_sequence
-           ) VALUES ('evt-1', 'tenant-a', 'stall-a', 'device-1', 'sale.drafted', '1', '{}', ?, 1)`,
+             payload_json, occurred_at, local_sequence, transaction_group_id
+           ) VALUES ('evt-1', 'tenant-a', 'stall-a', 'device-1', 'sale.drafted', '1', '{}', ?, 1, 'evt-1')`,
         )
         .run(now);
       local.db.exec("ROLLBACK;");

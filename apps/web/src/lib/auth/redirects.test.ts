@@ -61,6 +61,19 @@ describe("isProtectedPath", () => {
     expect(isProtectedPath("/api/device-enrollment/confirm")).toBe(false);
     expect(isProtectedPath("/api/local-staff/setup-grants/redeem")).toBe(false);
     expect(isProtectedPath("/api/local-staff/permission-refresh/redeem")).toBe(false);
+    expect(isProtectedPath("/api/sync/ingest")).toBe(false);
+    expect(isProtectedPath("/api/config/pull")).toBe(false);
+    expect(isProtectedPath("/api/config/ack")).toBe(false);
+    expect(isProtectedPath("/api/downloads/desktop-windows-x64-0.1.0")).toBe(false);
+  });
+
+  it("keeps marketing pages public", () => {
+    expect(isProtectedPath("/features")).toBe(false);
+    expect(isProtectedPath("/downloads")).toBe(false);
+    expect(isProtectedPath("/setup")).toBe(false);
+    expect(isProtectedPath("/support")).toBe(false);
+    expect(isProtectedPath("/privacy")).toBe(false);
+    expect(isProtectedPath("/terms")).toBe(false);
   });
 
   it("keeps owner local-staff setup authorize behind Clerk", () => {

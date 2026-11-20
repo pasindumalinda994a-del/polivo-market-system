@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { localApplicationStatusSchema } from "./config/status.js";
 import { idempotencyKeySchema, opaqueIdSchema, tenantIdSchema } from "./primitives.js";
 
 export const MEMBERSHIP_ACCESS_ROLES = ["owner", "billing_staff", "cashier"] as const;
@@ -77,7 +78,87 @@ export const updatePermissionProfileRequestSchema = z.object({
 export const updatePermissionProfileResponseSchema = z.object({
   revision: z.number().int().positive(),
   cloudSaveStatus: z.literal("saved_to_cloud"),
-  localApplicationStatus: z.literal("unavailable"),
+  /** Delivery observation for the access domain after publication. */
+  localApplicationStatus: localApplicationStatusSchema,
+  publishedRevision: z.number().int().positive().optional(),
+  lastAcknowledgedRevision: z.number().int().nonnegative().nullable().optional(),
+});
+
+export const TENANT_LIFECYCLE_STATUSES = ["active", "inactive", "suspended"] as const;
+export const tenantLifecycleStatusSchema = z.enum(TENANT_LIFECYCLE_STATUSES);
+
+export const updateStallProfileRequestSchema = z.object({
+  displayName: z.string().trim().min(1).max(128),
+  timezone: z.string().trim().min(1).max(64),
+  marketLocation: z.string().trim().max(256).optional(),
+  contact: z.string().trim().max(256).optional(),
+  adminNotes: z.string().max(2000).optional(),
+  expectedRevision: z.number().int().positive(),
+});
+
+export const updateStallProfileResponseSchema = z.object({
+  profileRevision: z.number().int().positive(),
+  cloudSaveStatus: z.literal("saved_to_cloud"),
+});
+
+export const stallAdminProfileSchema = z.object({
+  tenantId: tenantIdSchema,
+  status: tenantLifecycleStatusSchema,
+  displayName: z.string().min(1).max(128),
+  marketLocation: z.string().max(256).nullable(),
+  contact: z.string().max(256).nullable(),
+  timezone: z.string().min(1).max(64),
+  profileRevision: z.number().int().positive(),
+  adminNotes: z.string().max(2000),
+  updatedAt: z.string().min(1),
+});
+
+export const platformDirectoryQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(100).optional().default(50),
+  offset: z.coerce.number().int().min(0).optional().default(0),
+  search: z.string().trim().max(128).optional(),
+  status: tenantLifecycleStatusSchema.optional(),
+});
+
+export const platformStallDirectoryRowSchema = z.object({
+  tenantId: tenantIdSchema,
+  displayName: z.string().min(1),
+  marketLocation: z.string().nullable(),
+  contact: z.string().nullable(),
+  timezone: z.string().min(1),
+  status: tenantLifecycleStatusSchema,
+  ownerSubject: z.string().nullable(),
+  enrollmentStatus: z.string().min(1),
+  lastHostContactAt: z.string().nullable(),
+  lastUploadAppliedAt: z.string().nullable(),
+  configPublishedRevision: z.number().int().positive().nullable(),
+  configAcknowledgedRevision: z.number().int().nonnegative().nullable(),
+  configDeliveryStatus: z.string().min(1),
+  blockerNoEnrolledHost: z.boolean(),
+  blockerHostContactStale: z.boolean(),
+  blockerUploadBlocked: z.boolean(),
+  blockerConfigPending: z.boolean(),
+  blockerReconciliationIssue: z.boolean(),
+});
+
+export const platformStallDirectoryResponseSchema = z.object({
+  stalls: z.array(platformStallDirectoryRowSchema),
+  totalCount: z.number().int().nonnegative(),
+  limit: z.number().int().positive(),
+  offset: z.number().int().nonnegative(),
+});
+
+export const adminAuditEventSchema = z.object({
+  id: opaqueIdSchema,
+  tenantId: tenantIdSchema,
+  actorSubject: z.string().min(1),
+  action: z.string().min(1).max(128),
+  targetType: z.string().nullable(),
+  targetId: z.string().nullable(),
+  beforeJson: z.record(z.string(), z.unknown()).nullable(),
+  afterJson: z.record(z.string(), z.unknown()).nullable(),
+  configurationRevision: z.number().int().nullable(),
+  createdAt: z.string().min(1),
 });
 
 export type CreateStallRequest = z.infer<typeof createStallRequestSchema>;
@@ -89,3 +170,10 @@ export type AcceptInvitationResponse = z.infer<typeof acceptInvitationResponseSc
 export type UpdateMembershipRequest = z.infer<typeof updateMembershipRequestSchema>;
 export type UpdatePermissionProfileRequest = z.infer<typeof updatePermissionProfileRequestSchema>;
 export type UpdatePermissionProfileResponse = z.infer<typeof updatePermissionProfileResponseSchema>;
+export type UpdateStallProfileRequest = z.infer<typeof updateStallProfileRequestSchema>;
+export type UpdateStallProfileResponse = z.infer<typeof updateStallProfileResponseSchema>;
+export type StallAdminProfile = z.infer<typeof stallAdminProfileSchema>;
+export type PlatformDirectoryQuery = z.infer<typeof platformDirectoryQuerySchema>;
+export type PlatformStallDirectoryRow = z.infer<typeof platformStallDirectoryRowSchema>;
+export type PlatformStallDirectoryResponse = z.infer<typeof platformStallDirectoryResponseSchema>;
+export type AdminAuditEvent = z.infer<typeof adminAuditEventSchema>;

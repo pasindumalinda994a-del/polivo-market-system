@@ -118,6 +118,38 @@ describe("cloud tenant onboarding and roles (policy tests)", () => {
     expect(failed).toBe(true);
   });
 
+  it("cascades permission profile saves onto matching memberships without touching owners", async () => {
+    await beginAs(admin, { kind: "authenticated", sub: FIXTURES.userA });
+    await admin.query(
+      `SELECT * FROM public.update_permission_profile($1, 'cashier', $2::jsonb, 1)`,
+      [FIXTURES.tenantA, '["payments.receive_trader","payments.pay_farmer","catalog.manage"]'],
+    );
+
+    const cashier = await admin.query<{
+      capabilities: unknown;
+      capabilities_revision: string | number;
+      access_role: string;
+    }>(
+      `SELECT capabilities, capabilities_revision, access_role
+       FROM public.tenant_memberships WHERE id = 'mem-inactive'`,
+    );
+    const owner = await admin.query<{
+      capabilities: unknown;
+      access_role: string;
+    }>(`SELECT capabilities, access_role FROM public.tenant_memberships WHERE id = 'mem-a'`);
+    await rollback(admin);
+
+    expect(cashier.rows[0]?.access_role).toBe("cashier");
+    expect(cashier.rows[0]?.capabilities).toEqual([
+      "payments.receive_trader",
+      "payments.pay_farmer",
+      "catalog.manage",
+    ]);
+    expect(Number(cashier.rows[0]?.capabilities_revision)).toBeGreaterThan(1);
+    expect(owner.rows[0]?.access_role).toBe("owner");
+    expect(owner.rows[0]?.capabilities).toEqual([]);
+  });
+
   it("returns revision conflicts for stale permission updates", async () => {
     await beginAs(admin, { kind: "authenticated", sub: FIXTURES.userA });
     await admin.query(

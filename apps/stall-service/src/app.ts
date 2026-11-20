@@ -30,9 +30,13 @@ import { registerBillCorrectionRoutes } from "./http/bill-correction-routes.js";
 import { registerPaymentRoutes } from "./http/payment-routes.js";
 import { registerPrintRoutes } from "./http/print-routes.js";
 import { registerReportRoutes } from "./http/report-routes.js";
+import { registerConfigRoutes } from "./http/config-routes.js";
+import { registerSyncRoutes } from "./http/sync-routes.js";
+import type { ConfigWorkerHandle } from "./config-sync/worker.js";
 import { assertLoopbackOnly } from "./http/loopback-guard.js";
 import { registerLocalStaffRoutes } from "./http/local-staff-routes.js";
 import type { TlsMaterial } from "./security/tls-material.js";
+import type { SyncWorkerHandle } from "./sync/worker.js";
 
 export type BuildAppOptions = BuildDependenciesOptions & {
   /**
@@ -52,6 +56,13 @@ export type BuildAppOptions = BuildDependenciesOptions & {
    * Tests that use inject() may omit this.
    */
   https?: TlsMaterial | false;
+  /** Phase 32 outbox sync worker handle for status/retry routes. */
+  syncWorker?: SyncWorkerHandle | null;
+  /** Phase 33 configuration pull worker handle for status/refresh routes. */
+  configWorker?: ConfigWorkerHandle | null;
+  /** Phase 34 cloud reconciliation client (host-authenticated reads). */
+  reconciliationCloudClient?:
+    import("./sync/reconciliation/cloud-client.js").ReconciliationCloudClient | null;
 };
 
 export type StallApp = ReturnType<typeof buildApp>;
@@ -73,7 +84,12 @@ export function buildApp(options: BuildAppOptions = {}) {
       createId: options.createId,
       credentialRoot: options.credentialRoot,
       tlsMaterial: options.tlsMaterial,
+      syncWorker: options.syncWorker,
+      configWorker: options.configWorker,
     });
+
+  const syncWorker = options.syncWorker ?? deps.syncWorker ?? null;
+  const configWorker = options.configWorker ?? deps.configWorker ?? null;
 
   const httpsOption =
     options.https === false
@@ -158,9 +174,16 @@ export function buildApp(options: BuildAppOptions = {}) {
   registerPaymentRoutes(app, deps);
   registerPrintRoutes(app, deps);
   registerReportRoutes(app, deps);
+  registerSyncRoutes(app, deps, syncWorker, {
+    configWorker,
+    cloudClient: options.reconciliationCloudClient ?? null,
+  });
+  registerConfigRoutes(app, deps, configWorker);
 
   return Object.assign(app, {
     getLocalDatabase: (): LocalDatabase | undefined => deps.database,
     getDependencies: (): ServiceDependencies => deps,
+    getSyncWorker: (): SyncWorkerHandle | null => syncWorker,
+    getConfigWorker: (): ConfigWorkerHandle | null => configWorker,
   });
 }

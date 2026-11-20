@@ -22,7 +22,14 @@ import {
   TableRow,
   type SidebarNavItem,
 } from "@polivo/ui";
-import { KeyRound, LayoutDashboard, Users } from "lucide-react";
+import {
+  ClipboardList,
+  KeyRound,
+  LayoutDashboard,
+  MonitorSmartphone,
+  Settings2,
+  Users,
+} from "lucide-react";
 
 import type { InvitationSummary } from "@/lib/tenant/invitations";
 import type { TenantMemberSummary } from "@/lib/tenant/membership-admin";
@@ -68,6 +75,20 @@ export function MembersAdmin({
       icon: <LayoutDashboard className="h-5 w-5" aria-hidden="true" />,
     },
     {
+      id: "setup",
+      label: "Setup",
+      href: `/tenants/${encodeURIComponent(tenantId)}/setup`,
+      available: true,
+      icon: <ClipboardList className="h-5 w-5" aria-hidden="true" />,
+    },
+    {
+      id: "profile",
+      label: "Profile",
+      href: `/tenants/${encodeURIComponent(tenantId)}/profile`,
+      available: true,
+      icon: <Settings2 className="h-5 w-5" aria-hidden="true" />,
+    },
+    {
       id: "members",
       label: "Members",
       href: `/tenants/${encodeURIComponent(tenantId)}/members`,
@@ -81,6 +102,13 @@ export function MembersAdmin({
       href: `/tenants/${encodeURIComponent(tenantId)}/permissions`,
       available: true,
       icon: <KeyRound className="h-5 w-5" aria-hidden="true" />,
+    },
+    {
+      id: "devices",
+      label: "Devices",
+      href: `/tenants/${encodeURIComponent(tenantId)}/devices`,
+      available: true,
+      icon: <MonitorSmartphone className="h-5 w-5" aria-hidden="true" />,
     },
   ];
 
