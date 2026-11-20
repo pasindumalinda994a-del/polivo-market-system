@@ -9,7 +9,8 @@
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "activate-host": "tsx src/enrollment/cli.ts",
-    "staff-cli": "tsx src/auth/staff-cli.ts"
+    "staff-cli": "tsx src/auth/staff-cli.ts",
+    "sync-sign": "tsx src/sync/sign-cli.ts"
   },
   "dependencies": {
     "@polivo/contracts": "workspace:*",

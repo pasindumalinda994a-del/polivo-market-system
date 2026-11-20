@@ -26,6 +26,7 @@ import {
   serviceUnavailableError,
   unauthenticatedError,
 } from "../errors/app-error.js";
+import { notifySyncOutboxCommitted } from "../sync/notify.js";
 import { buildCommandFingerprint } from "./fingerprint.js";
 
 export type CommandDefinition<TInput, TResult> = {
@@ -138,7 +139,8 @@ export function runIdempotentCommand<TInput, TResult>(
   });
 
   try {
-    return runInTransaction(deps.database.db, (tx) => {
+    let wroteNewWork = false;
+    const result = runInTransaction(deps.database.db, (tx) => {
       const existing = getIdempotencyRecord(tx, scope, request.idempotencyKey);
       if (existing !== null) {
         if (existing.requestFingerprint !== fingerprint) {
@@ -165,8 +167,8 @@ export function runIdempotentCommand<TInput, TResult>(
         true,
       );
 
-      const result = definition.execute({ tx, context, input: request.input });
-      definition.afterExecute?.({ tx, context, input: request.input, result });
+      const executed = definition.execute({ tx, context, input: request.input });
+      definition.afterExecute?.({ tx, context, input: request.input, result: executed });
 
       const completedAt = deps.now();
       insertCompletedIdempotencyRecord(tx, {
@@ -174,13 +176,18 @@ export function runIdempotentCommand<TInput, TResult>(
         idempotencyKey: request.idempotencyKey,
         commandType: definition.type,
         requestFingerprint: fingerprint,
-        resultRef: definition.serializeResult(result),
+        resultRef: definition.serializeResult(executed),
         completedAt,
         createdAt: completedAt,
       });
 
-      return result;
+      wroteNewWork = true;
+      return executed;
     });
+    if (wroteNewWork) {
+      notifySyncOutboxCommitted();
+    }
+    return result;
   } catch (error) {
     if (error instanceof AppError) {
       throw error;
@@ -222,7 +229,7 @@ export function runIdempotentCommand<TInput, TResult>(
   }
 }
 
-/** Helper used by test/fixture commands to write required audit + outbox rows. */
+/** Helper used by production and fixture commands to write required audit + outbox rows. */
 export function writeAuditAndOutbox(args: {
   tx: TxHandle;
   context: ExecutionContext;
@@ -235,6 +242,11 @@ export function writeAuditAndOutbox(args: {
   eventId: string;
   auditId: string;
   now: string;
+  /**
+   * Shared across every outbox event committed in the same local transaction group.
+   * Defaults to eventId for single-event commands.
+   */
+  transactionGroupId?: string;
 }): void {
   appendAuditEvent(args.tx, {
     id: args.auditId,
@@ -258,6 +270,7 @@ export function writeAuditAndOutbox(args: {
     eventSchemaVersion: args.eventSchemaVersion,
     payloadJson: JSON.stringify(args.payload),
     occurredAt: args.now,
+    transactionGroupId: args.transactionGroupId ?? args.eventId,
   });
 }
 

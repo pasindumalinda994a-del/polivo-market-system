@@ -31,7 +31,9 @@ Active members with those roles may read reporting copies via `has_active_report
 
 - Ownership and membership/permission administration are **owner-only**.
 - Operational capabilities use the domain catalog (`PERMISSION_CAPABILITIES`). Unknown capabilities are rejected.
+- Cloud RPC validation uses `public.polivo_capabilities_are_known`, which must stay identical to `PERMISSION_CAPABILITIES`. When adding a capability, update domain first, then ship a forward Supabase migration that replaces that function.
 - Default billing-staff and cashier capability sets are **recommendations** seeded at stall creation. Owners must review selections before saving profile changes.
+- Saving a role on **Permissions** updates that role’s profile **and** every membership with the same `access_role` (`billing_staff` or `cashier`). Phase 33 then delivers those membership capabilities to mapped local staff. Per-member overrides remain available via `PATCH /api/tenants/:tenantId/memberships/:membershipId`.
 - Do not authorize features with bare `role === "cashier"` checks.
 - Capability grants never confer ownership, membership administration, or cross-tenant access.
 - Ownership transfer is unavailable.
@@ -76,6 +78,7 @@ Routes:
 - Profiles live in `tenant_permission_profiles` with a monotonic `revision`.
 - Updates require `expectedRevision` and `permissionsReviewed: true`.
 - Stale revisions return a conflict; newer versions are not silently overwritten.
+- A successful profile save cascades the capability set onto matching `tenant_memberships` rows (same `access_role`) and bumps each membership’s `capabilities_revision`, then publishes an access snapshot for the stall host.
 - Admin audit events record actor, action, before/after, and revision where applicable. Tokens are never logged.
 
 ## Cloud versus desktop enforcement

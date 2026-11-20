@@ -129,6 +129,22 @@ export function tryGetLocalStaffByCode(
   return row === undefined ? null : mapLocalStaffRow(row);
 }
 
+export function listLocalStaffByCloudMembershipId(
+  executor: DbExecutor,
+  tenantId: string,
+  cloudMembershipId: string,
+): LocalStaffRecord[] {
+  const rows = executor.db
+    .prepare(
+      `SELECT id, tenant_id, staff_code, display_name, status, is_local_owner,
+              cloud_membership_id, created_at, updated_at, disabled_at
+       FROM local_staff
+       WHERE tenant_id = ? AND cloud_membership_id = ?`,
+    )
+    .all(tenantId, cloudMembershipId) as Record<string, unknown>[];
+  return rows.map(mapLocalStaffRow);
+}
+
 export function tryGetLocalOwner(executor: DbExecutor, tenantId: string): LocalStaffRecord | null {
   const row = executor.db
     .prepare(

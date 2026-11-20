@@ -3,6 +3,9 @@
 -- Prefer forward migration: drop 6-arg redeem overload, replace with 7-arg signature.
 
 DROP FUNCTION IF EXISTS public.redeem_device_enrollment_grant(text, text, text, text, text, text);
+-- Drift-safe: remote may already have a 7-arg overload with a different RETURNS TABLE
+-- (CREATE OR REPLACE cannot change OUT/return row type — SQLSTATE 42P13).
+DROP FUNCTION IF EXISTS public.redeem_device_enrollment_grant(text, text, text, text, text, text, text);
 
 CREATE OR REPLACE FUNCTION public.redeem_device_enrollment_grant(
   p_secret_digest text,

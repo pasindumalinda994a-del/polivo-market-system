@@ -723,6 +723,64 @@ declare global {
         | { ok: false; code: string; message: string; conflict?: boolean }
       >;
     };
+    polivoSync?: {
+      getStatus: () => Promise<
+        | { ok: true; data: unknown; stale?: boolean }
+        | { ok: false; code: string; message: string }
+      >;
+      getWorkspace: () => Promise<
+        | { ok: true; data: unknown; stale?: boolean }
+        | { ok: false; code: string; message: string }
+      >;
+      retry: () => Promise<
+        | { ok: true; data: unknown; stale?: boolean }
+        | { ok: false; code: string; message: string }
+      >;
+      reconcile: (input: {
+        requestId: string;
+        includeReporting?: boolean;
+      }) => Promise<
+        | { ok: true; data: unknown; stale?: boolean }
+        | { ok: false; code: string; message: string }
+      >;
+      createRecoveryPlan: (input: {
+        requestId: string;
+        actionType: string;
+        groupIds?: string[];
+      }) => Promise<
+        | { ok: true; data: unknown; stale?: boolean }
+        | { ok: false; code: string; message: string }
+      >;
+      executeRecoveryPlan: (input: {
+        requestId: string;
+        planId: string;
+        idempotencyKey: string;
+      }) => Promise<
+        | { ok: true; data: unknown; stale?: boolean }
+        | { ok: false; code: string; message: string }
+      >;
+      cancelRecoveryJob: (input: {
+        requestId: string;
+        jobId: string;
+      }) => Promise<
+        | { ok: true; data: unknown; stale?: boolean }
+        | { ok: false; code: string; message: string }
+      >;
+      exportDiagnostics: (input: { requestId: string }) => Promise<
+        | { ok: true; data: unknown; stale?: boolean }
+        | { ok: false; code: string; message: string }
+      >;
+    };
+    polivoConfigSync?: {
+      getStatus: () => Promise<
+        | { ok: true; data: unknown; stale?: boolean }
+        | { ok: false; code: string; message: string }
+      >;
+      refresh: () => Promise<
+        | { ok: true; data: unknown; stale?: boolean }
+        | { ok: false; code: string; message: string }
+      >;
+    };
   }
 }
 

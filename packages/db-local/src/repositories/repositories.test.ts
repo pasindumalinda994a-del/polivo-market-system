@@ -184,6 +184,7 @@ describe("repositories", () => {
         eventSchemaVersion: "1",
         payloadJson: JSON.stringify({ ok: true }),
         occurredAt: "2026-11-01T00:00:00.000Z",
+        transactionGroupId: "evt-1",
       });
     });
 

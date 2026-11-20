@@ -61,9 +61,19 @@ export async function rollback(client: pg.Client): Promise<void> {
 export async function resetFixtures(client: pg.Client): Promise<void> {
   await client.query(`
     TRUNCATE TABLE
+      public.sync_ingest_rate_limits,
+      public.sync_transaction_group_receipts,
       public.sync_received_events,
+      public.sync_source_streams,
+      public.print_attempts,
+      public.print_jobs,
+      public.ledger_entries,
+      public.ledger_postings,
+      public.party_accounts,
+      public.sale_correction_operations,
       public.payment_allocations,
       public.payments,
+      public.farmer_bill_lines,
       public.farmer_bills,
       public.trader_bills,
       public.sale_farmer_allocations,
@@ -71,6 +81,7 @@ export async function resetFixtures(client: pg.Client): Promise<void> {
       public.sale_lines,
       public.sales,
       public.commission_bands,
+      public.commission_policies,
       public.commission_band_sets,
       public.audit_events,
       public.admin_audit_events,
@@ -79,9 +90,13 @@ export async function resetFixtures(client: pg.Client): Promise<void> {
       public.tenant_invitations,
       public.tenant_onboarding_requests,
       public.tenant_permission_profiles,
+      public.tenant_admin_notes,
+      public.platform_administrators,
+      public.package_types,
       public.farmers,
       public.traders,
       public.vegetables,
+      public.report_export_jobs,
       public.tenant_memberships,
       public.tenants
     RESTART IDENTITY CASCADE
@@ -95,11 +110,28 @@ export const FIXTURES = {
   userB: "user_tenant_b_active",
   userNoMembership: "user_no_membership",
   userInactive: "user_tenant_a_inactive",
+  /** Synthetic platform administrator subject — never granted by production migrations. */
+  userPlatformAdmin: "user_platform_admin_test",
   stallA: "stall-a",
   stallB: "stall-b",
   farmerA: "farmer-a",
   farmerB: "farmer-b",
 } as const;
+
+/** Test-only helper: insert a platform administrator subject into the trusted store. */
+export async function seedPlatformAdministrator(
+  client: pg.Client,
+  subject: string = FIXTURES.userPlatformAdmin,
+): Promise<void> {
+  await client.query(
+    `INSERT INTO public.platform_administrators
+      (identity_provider, external_subject, status, created_by_subject, notes)
+     VALUES ('clerk', $1, 'active', 'operator_test', 'isolation fixture')
+     ON CONFLICT (identity_provider, external_subject) DO UPDATE
+     SET status = 'active', updated_at = now()`,
+    [subject],
+  );
+}
 
 export async function seedIsolationFixtures(client: pg.Client): Promise<void> {
   await resetFixtures(client);

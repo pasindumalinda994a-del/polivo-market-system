@@ -168,6 +168,30 @@ export {
 } from "./permissions.js";
 
 export {
+  ADMIN_ACTION_MATRIX,
+  isUnavailableAdminAction,
+  PLATFORM_ADMIN_ACTIONS,
+  STALL_OWNER_ADMIN_ACTIONS,
+  UNAVAILABLE_ADMIN_ACTIONS,
+  type AdminActionDefinition,
+  type AdminActionScope,
+  type PlatformAdminAction,
+  type StallOwnerAdminAction,
+  type UnavailableAdminAction,
+} from "./admin-capabilities.js";
+
+export {
+  DOMAIN_SYNC_MANIFEST_VERSION,
+  canonicalizeForSyncManifest,
+  buildChunkedManifest,
+  classifyDeliveryObservation,
+  formatExactDifference,
+  type DeliveryMismatchCategory,
+  type SyncManifestChunk,
+  type SyncManifestSummary,
+} from "./sync-manifest.js";
+
+export {
   recordFarmerChequeAsPaid,
   type FarmerChequePaymentInput,
   type FarmerChequePaymentResult,

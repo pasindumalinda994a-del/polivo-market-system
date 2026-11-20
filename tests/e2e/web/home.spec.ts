@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-test("loads the Polivo web foundation home page", async ({ page }) => {
+test("loads the Polivo public home page", async ({ page }) => {
   const pageErrors: Error[] = [];
   page.on("pageerror", (error) => {
     pageErrors.push(error);
@@ -9,13 +9,20 @@ test("loads the Polivo web foundation home page", async ({ page }) => {
   const response = await page.goto("/");
   expect(response?.ok()).toBe(true);
 
-  await expect(page.getByRole("heading", { name: "Polivo", level: 1 })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Market stall billing");
+  await expect(page.getByRole("link", { name: "Get started" }).first()).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "Web application foundation", level: 2 }),
+    page.getByRole("link", { name: "Download desktop application" }).first(),
   ).toBeVisible();
-  await expect(page.getByText("The web application is running.")).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Public" })).toBeVisible();
 
   expect(pageErrors).toEqual([]);
+});
+
+test("downloads page shows unavailable state without fake installers", async ({ page }) => {
+  await page.goto("/downloads");
+  await expect(page.getByRole("heading", { name: "Downloads", level: 1 })).toBeVisible();
+  await expect(page.getByText("Desktop downloads are not available yet.")).toBeVisible();
 });
 
 test("unauthenticated dashboard access redirects to sign-in", async ({ page }) => {

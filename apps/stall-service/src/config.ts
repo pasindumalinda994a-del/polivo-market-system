@@ -15,6 +15,20 @@ export type StallServiceConfig = {
   credentialRoot: string;
   tlsKeyPath: string | null;
   tlsCertPath: string | null;
+  /** Cloud ingest endpoint for the local outbox worker (Phase 32). */
+  syncIngestUrl: string | null;
+  /** Development-only: allow http:// ingest URLs. */
+  syncAllowInsecureHttp: boolean;
+  /** Cloud configuration pull endpoint (Phase 33). */
+  configPullUrl: string | null;
+  /** Cloud configuration acknowledgement endpoint (Phase 33). */
+  configAckUrl: string | null;
+  /** Cloud stream progress lookup (Phase 34). */
+  syncProgressUrl: string | null;
+  /** Cloud receipt lookup (Phase 34). */
+  syncReceiptsUrl: string | null;
+  /** Cloud fact summary for reconciliation (Phase 34). */
+  syncFactSummaryUrl: string | null;
 };
 
 const DEFAULT_HOST = "127.0.0.1";
@@ -145,6 +159,84 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): StallServiceCo
     // Auto-managed material is still allowed; explicit failure happens if generation/load fails at startup.
   }
 
+  const syncIngestUrl = readOptionalEnv(env, "POLIVO_SYNC_INGEST_URL") ?? null;
+  const syncAllowInsecureHttp =
+    (readOptionalEnv(env, "POLIVO_SYNC_ALLOW_INSECURE_HTTP") ?? "").toLowerCase() === "1" ||
+    (readOptionalEnv(env, "POLIVO_SYNC_ALLOW_INSECURE_HTTP") ?? "").toLowerCase() === "true";
+
+  const assertServiceUrl = (raw: string, name: string): void => {
+    let parsed: URL;
+    try {
+      parsed = new URL(raw);
+    } catch {
+      throw new Error(`Invalid ${name} "${raw}".`);
+    }
+    if (parsed.protocol === "http:" && !syncAllowInsecureHttp) {
+      throw new Error(
+        `${name} uses http://. Set POLIVO_SYNC_ALLOW_INSECURE_HTTP=1 only for local development.`,
+      );
+    }
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      throw new Error(`${name} must be an http(s) URL.`);
+    }
+  };
+
+  if (syncIngestUrl) {
+    assertServiceUrl(syncIngestUrl, "POLIVO_SYNC_INGEST_URL");
+  }
+
+  let configPullUrl = readOptionalEnv(env, "POLIVO_CONFIG_PULL_URL") ?? null;
+  let configAckUrl = readOptionalEnv(env, "POLIVO_CONFIG_ACK_URL") ?? null;
+  if (!configPullUrl && syncIngestUrl) {
+    try {
+      const ingest = new URL(syncIngestUrl);
+      configPullUrl = new URL("/api/config/pull", ingest.origin).toString();
+      configAckUrl = configAckUrl ?? new URL("/api/config/ack", ingest.origin).toString();
+    } catch {
+      // leave unset; sync URL already validated above
+    }
+  } else if (configPullUrl && !configAckUrl) {
+    try {
+      const pull = new URL(configPullUrl);
+      configAckUrl = new URL("/api/config/ack", pull.origin).toString();
+    } catch {
+      // validated below
+    }
+  }
+
+  if (configPullUrl) {
+    assertServiceUrl(configPullUrl, "POLIVO_CONFIG_PULL_URL");
+  }
+  if (configAckUrl) {
+    assertServiceUrl(configAckUrl, "POLIVO_CONFIG_ACK_URL");
+  }
+
+  let syncProgressUrl = readOptionalEnv(env, "POLIVO_SYNC_PROGRESS_URL") ?? null;
+  let syncReceiptsUrl = readOptionalEnv(env, "POLIVO_SYNC_RECEIPTS_URL") ?? null;
+  let syncFactSummaryUrl = readOptionalEnv(env, "POLIVO_SYNC_FACT_SUMMARY_URL") ?? null;
+  if (syncIngestUrl) {
+    try {
+      const ingest = new URL(syncIngestUrl);
+      syncProgressUrl =
+        syncProgressUrl ?? new URL("/api/sync/progress", ingest.origin).toString();
+      syncReceiptsUrl =
+        syncReceiptsUrl ?? new URL("/api/sync/receipts", ingest.origin).toString();
+      syncFactSummaryUrl =
+        syncFactSummaryUrl ?? new URL("/api/sync/fact-summary", ingest.origin).toString();
+    } catch {
+      // ingest URL already validated
+    }
+  }
+  if (syncProgressUrl) {
+    assertServiceUrl(syncProgressUrl, "POLIVO_SYNC_PROGRESS_URL");
+  }
+  if (syncReceiptsUrl) {
+    assertServiceUrl(syncReceiptsUrl, "POLIVO_SYNC_RECEIPTS_URL");
+  }
+  if (syncFactSummaryUrl) {
+    assertServiceUrl(syncFactSummaryUrl, "POLIVO_SYNC_FACT_SUMMARY_URL");
+  }
+
   return {
     listenMode,
     host: parseHost(readOptionalEnv(env, "HOST"), listenMode),
@@ -153,5 +245,12 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): StallServiceCo
     credentialRoot: parseCredentialRoot(readOptionalEnv(env, "POLIVO_HOST_CREDENTIAL_ROOT")),
     tlsKeyPath,
     tlsCertPath,
+    syncIngestUrl,
+    syncAllowInsecureHttp,
+    configPullUrl,
+    configAckUrl,
+    syncProgressUrl,
+    syncReceiptsUrl,
+    syncFactSummaryUrl,
   };
 }

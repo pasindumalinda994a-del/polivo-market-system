@@ -133,6 +133,17 @@ import {
   runReport,
   saveReportExport,
 } from "./reports.js";
+import { getConfigSyncStatus, refreshConfigSyncNow } from "./config-sync.js";
+import {
+  cancelSyncRecoveryJob,
+  createSyncRecoveryPlan,
+  executeSyncRecoveryPlan,
+  exportSyncDiagnostics,
+  getSyncStatus,
+  getSyncWorkspace,
+  retrySyncNow,
+  runSyncReconciliation,
+} from "./sync.js";
 
 const isDevelopment = !app.isPackaged;
 
@@ -261,6 +272,69 @@ app.whenReady().then(() => {
       throw new Error("Untrusted IPC sender.");
     }
     return getConnectionStatus();
+  });
+  ipcMain.handle("sync:getStatus", async (event) => {
+    if (!isTrustedIpcSender(event)) {
+      throw new Error("Untrusted IPC sender.");
+    }
+    return getSyncStatus();
+  });
+  ipcMain.handle("sync:getWorkspace", async (event) => {
+    if (!isTrustedIpcSender(event)) {
+      throw new Error("Untrusted IPC sender.");
+    }
+    return getSyncWorkspace();
+  });
+  ipcMain.handle("sync:retry", async (event) => {
+    if (!isTrustedIpcSender(event)) {
+      throw new Error("Untrusted IPC sender.");
+    }
+    return retrySyncNow();
+  });
+  ipcMain.handle("sync:reconcile", async (event, input: unknown) => {
+    if (!isTrustedIpcSender(event)) {
+      throw new Error("Untrusted IPC sender.");
+    }
+    const body = input as { requestId: string; includeReporting?: boolean };
+    return runSyncReconciliation(body);
+  });
+  ipcMain.handle("sync:recoveryPlan", async (event, input: unknown) => {
+    if (!isTrustedIpcSender(event)) {
+      throw new Error("Untrusted IPC sender.");
+    }
+    return createSyncRecoveryPlan(input as { requestId: string; actionType: string; groupIds?: string[] });
+  });
+  ipcMain.handle("sync:recoveryExecute", async (event, input: unknown) => {
+    if (!isTrustedIpcSender(event)) {
+      throw new Error("Untrusted IPC sender.");
+    }
+    return executeSyncRecoveryPlan(
+      input as { requestId: string; planId: string; idempotencyKey: string },
+    );
+  });
+  ipcMain.handle("sync:recoveryCancel", async (event, input: unknown) => {
+    if (!isTrustedIpcSender(event)) {
+      throw new Error("Untrusted IPC sender.");
+    }
+    return cancelSyncRecoveryJob(input as { requestId: string; jobId: string });
+  });
+  ipcMain.handle("sync:exportDiagnostics", async (event, input: unknown) => {
+    if (!isTrustedIpcSender(event)) {
+      throw new Error("Untrusted IPC sender.");
+    }
+    return exportSyncDiagnostics(input as { requestId: string });
+  });
+  ipcMain.handle("configSync:getStatus", async (event) => {
+    if (!isTrustedIpcSender(event)) {
+      throw new Error("Untrusted IPC sender.");
+    }
+    return getConfigSyncStatus();
+  });
+  ipcMain.handle("configSync:refresh", async (event) => {
+    if (!isTrustedIpcSender(event)) {
+      throw new Error("Untrusted IPC sender.");
+    }
+    return refreshConfigSyncNow();
   });
   ipcMain.handle("connection:configureOrTestHost", async (event, input: unknown) => {
     if (!isTrustedIpcSender(event)) {

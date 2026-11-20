@@ -1,8 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  assertAccountsViewAccess,
+  assertExportAccess,
   assertOwnerAccess,
+  assertReportingAccess,
+  assertSyncViewAccess,
   listActiveMemberships,
+  membershipHasCapability,
   resolveTenantAccess,
   type MembershipQueryPort,
   type MembershipSummary,
@@ -20,6 +25,7 @@ function membership(
     tenantStatus: partial.tenantStatus ?? "active",
     displayName: partial.displayName ?? `Stall ${partial.tenantId}`,
     timezone: partial.timezone ?? "Asia/Colombo",
+    capabilities: partial.capabilities ?? [],
   };
 }
 
@@ -124,5 +130,38 @@ describe("assertOwnerAccess", () => {
     expect(() => assertOwnerAccess(membership({ tenantId: "t-1", accessRole: "cashier" }))).toThrow(
       WebAuthError,
     );
+  });
+});
+
+describe("capability gates", () => {
+  it("treats owners as capable for all reporting caps", () => {
+    const owner = membership({ tenantId: "t-1", accessRole: "owner" });
+    expect(membershipHasCapability(owner, "reports.view_financial")).toBe(true);
+    expect(assertReportingAccess(owner).tenantId).toBe("t-1");
+    expect(assertExportAccess(owner).tenantId).toBe("t-1");
+    expect(assertSyncViewAccess(owner).tenantId).toBe("t-1");
+    expect(assertAccountsViewAccess(owner).tenantId).toBe("t-1");
+  });
+
+  it("requires explicit capabilities for non-owners", () => {
+    const staff = membership({
+      tenantId: "t-1",
+      accessRole: "billing_staff",
+      capabilities: ["reports.view_financial"],
+    });
+    expect(assertReportingAccess(staff).tenantId).toBe("t-1");
+    expect(() => assertExportAccess(staff)).toThrow(WebAuthError);
+    expect(() => assertSyncViewAccess(staff)).toThrow(WebAuthError);
+    expect(assertAccountsViewAccess(staff).tenantId).toBe("t-1");
+  });
+
+  it("allows accounts.view without reports cap", () => {
+    const accountsOnly = membership({
+      tenantId: "t-1",
+      accessRole: "cashier",
+      capabilities: ["accounts.view"],
+    });
+    expect(() => assertReportingAccess(accountsOnly)).toThrow(WebAuthError);
+    expect(assertAccountsViewAccess(accountsOnly).tenantId).toBe("t-1");
   });
 });

@@ -19,6 +19,8 @@ import {
   type SecureStorageAdapter,
 } from "./security/secure-storage.js";
 import { loadOrCreateTlsMaterial, type TlsMaterial } from "./security/tls-material.js";
+import type { ConfigWorkerHandle } from "./config-sync/worker.js";
+import type { SyncWorkerHandle } from "./sync/worker.js";
 
 export type Clock = () => string;
 export type IdGenerator = () => string;
@@ -32,6 +34,8 @@ export type ServiceDependencies = {
   createId: IdGenerator;
   credentialRoot: string;
   tlsMaterial: TlsMaterial;
+  syncWorker?: SyncWorkerHandle | null;
+  configWorker?: ConfigWorkerHandle | null;
 };
 
 export type BuildDependenciesOptions = {
@@ -43,6 +47,8 @@ export type BuildDependenciesOptions = {
   createId?: IdGenerator;
   credentialRoot?: string;
   tlsMaterial?: TlsMaterial;
+  syncWorker?: SyncWorkerHandle | null;
+  configWorker?: ConfigWorkerHandle | null;
 };
 
 export function createServiceDependencies(
@@ -78,6 +84,8 @@ export function createServiceDependencies(
     createId,
     credentialRoot,
     tlsMaterial,
+    syncWorker: options.syncWorker ?? null,
+    configWorker: options.configWorker ?? null,
   };
 }
 

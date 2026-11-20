@@ -2,7 +2,11 @@ import { Suspense } from "react";
 
 import { resolveTenantAccess } from "@/lib/auth/memberships";
 import { requirePageUser } from "@/lib/auth/require-user";
-import { listPermissionProfiles } from "@/lib/tenant/permission-profiles";
+import {
+  getAccessConfigDeliveryStatus,
+  getStallSyncCloudVisibility,
+  listPermissionProfiles,
+} from "@/lib/tenant/permission-profiles";
 
 import { TenantShell } from "../tenant-shell";
 import { PermissionsEditor } from "./permissions-editor";
@@ -35,13 +39,19 @@ export default async function PermissionsPage({ params }: PermissionsPageProps) 
     );
   }
 
-  const profiles = await listPermissionProfiles(tenantId);
+  const [profiles, delivery, syncVisibility] = await Promise.all([
+    listPermissionProfiles(tenantId),
+    getAccessConfigDeliveryStatus(tenantId).catch(() => null),
+    getStallSyncCloudVisibility(tenantId).catch(() => null),
+  ]);
 
   return (
     <PermissionsEditor
       tenantId={tenantId}
       displayName={access.membership.displayName}
       profiles={profiles}
+      delivery={delivery}
+      syncVisibility={syncVisibility}
     />
   );
 }

@@ -27,7 +27,9 @@ enabled = true
 port = 54323
 api_url = "http://127.0.0.1"
 
-[local_smtp]
+# Pinned CLI is supabase@2.54.11 (package.json), which expects [inbucket].
+# [local_smtp] requires CLI >= 2.108; do not rename until the pin is upgraded.
+[inbucket]
 enabled = false
 
 [storage]
