@@ -2,18 +2,11 @@ import {
   buildConfigAckPossessionMessage,
   buildConfigPullPossessionMessage,
 } from "@polivo/contracts";
-import {
-  getHostEnrollment,
-  tryGetHostEnrollment,
-  type LocalDatabase,
-} from "@polivo/db-local";
+import { getHostEnrollment, tryGetHostEnrollment, type LocalDatabase } from "@polivo/db-local";
 
 import { signPossessionMessage } from "../security/ed25519.js";
 import type { SecureStorageAdapter } from "../security/secure-storage.js";
-import {
-  HostCredentialConfigurationError,
-  type HostIngestIdentity,
-} from "../sync/signer.js";
+import { HostCredentialConfigurationError, type HostIngestIdentity } from "../sync/signer.js";
 import { sha256HexOfUtf8 } from "../sync/canonical.js";
 
 export type SignedConfigRequest = {
@@ -116,8 +109,7 @@ export function createHostConfigSigner(input: {
 
   return {
     loadIdentity: () => loadPrivateKey().identity,
-    signPullBody: ({ rawBody, requestId, signedAt }) =>
-      sign("pull", rawBody, requestId, signedAt),
+    signPullBody: ({ rawBody, requestId, signedAt }) => sign("pull", rawBody, requestId, signedAt),
     signAckBody: ({ rawBody, requestId, signedAt }) => sign("ack", rawBody, requestId, signedAt),
   };
 }

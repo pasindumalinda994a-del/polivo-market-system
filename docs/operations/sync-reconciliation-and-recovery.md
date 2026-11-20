@@ -6,23 +6,23 @@ Phase 34 operational guide. Local financial records remain authoritative. See [A
 
 ### Upload (operational)
 
-| State | Meaning |
-|---|---|
-| `up_to_date` | Local ack cursor has caught the local committed tail |
-| `uploading` / `waiting_retry` | Pending groups remain; worker active or backing off |
-| `blocked` | Compatibility/integrity block; do not force past it |
-| `configuration_required` / `paused` | Host/signing/worker not ready |
+| State                               | Meaning                                              |
+| ----------------------------------- | ---------------------------------------------------- |
+| `up_to_date`                        | Local ack cursor has caught the local committed tail |
+| `uploading` / `waiting_retry`       | Pending groups remain; worker active or backing off  |
+| `blocked`                           | Compatibility/integrity block; do not force past it  |
+| `configuration_required` / `paused` | Host/signing/worker not ready                        |
 
 Remote cloud cursors are shown only with observation times. Cached remote values are never presented as live.
 
 ### Configuration / access
 
-| State | Meaning |
-|---|---|
-| `up_to_date` | Effective local revision matches what the host last applied |
-| `pending_acknowledgement` | Applied locally; cloud ack still outstanding |
-| `expired` | Access snapshot age exceeded ADR 0013 policy |
-| `blocked` / `configuration_required` | Pull/apply cannot proceed |
+| State                                | Meaning                                                     |
+| ------------------------------------ | ----------------------------------------------------------- |
+| `up_to_date`                         | Effective local revision matches what the host last applied |
+| `pending_acknowledgement`            | Applied locally; cloud ack still outstanding                |
+| `expired`                            | Access snapshot age exceeded ADR 0013 policy                |
+| `blocked` / `configuration_required` | Pull/apply cannot proceed                                   |
 
 Published, downloaded/applied, and cloud-acknowledged revisions are kept separate.
 
@@ -60,14 +60,14 @@ Network failures are not labeled as data mismatches. Host revocation is not infe
 
 ## Safe recovery actions
 
-| Action | Behavior |
-|---|---|
-| Retry upload now | Wake existing Phase 32 worker only |
-| Replay original events | Same event IDs/content through normal ingest |
-| Recover local acknowledgement | Only after verified matching cloud receipts; advances ack via normal worker path |
-| Refresh configuration | Phase 33 pull without extending expiry |
-| Retry configuration application | Same validated revision |
-| Retry configuration acknowledgement | Ack only; not a second application |
+| Action                              | Behavior                                                                         |
+| ----------------------------------- | -------------------------------------------------------------------------------- |
+| Retry upload now                    | Wake existing Phase 32 worker only                                               |
+| Replay original events              | Same event IDs/content through normal ingest                                     |
+| Recover local acknowledgement       | Only after verified matching cloud receipts; advances ack via normal worker path |
+| Refresh configuration               | Phase 33 pull without extending expiry                                           |
+| Retry configuration application     | Same validated revision                                                          |
+| Retry configuration acknowledgement | Ack only; not a second application                                               |
 
 Plans are reviewed, eligibility is rechecked, stale plans are rejected, execution is idempotent, and jobs are audited.
 
@@ -95,13 +95,13 @@ Diagnostics are never sent externally automatically.
 
 ## Capabilities
 
-| Capability | Purpose |
-|---|---|
-| `sync.view` | Workspace / status |
-| `sync.reconcile` | Read-only comparison |
-| `sync.retry` | Worker wake / config refresh |
-| `sync.recover` | Bounded replay / ack / config ack recovery |
-| `sync.export_diagnostics` | Redacted export |
+| Capability                | Purpose                                    |
+| ------------------------- | ------------------------------------------ |
+| `sync.view`               | Workspace / status                         |
+| `sync.reconcile`          | Read-only comparison                       |
+| `sync.retry`              | Worker wake / config refresh               |
+| `sync.recover`            | Bounded replay / ack / config ack recovery |
+| `sync.export_diagnostics` | Redacted export                            |
 
 Reporting-only users must not receive recover/retry.
 

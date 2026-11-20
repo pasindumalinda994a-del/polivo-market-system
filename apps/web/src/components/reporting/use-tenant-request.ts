@@ -19,7 +19,7 @@ export function useTenantJson<T>(tenantId: string, path: string, enabled = true)
     }
     const current = ++generation.current;
     setState({ status: "loading" });
-  const response = await fetch(`/api/tenants/${encodeURIComponent(tenantId)}${path}`, {
+    const response = await fetch(`/api/tenants/${encodeURIComponent(tenantId)}${path}`, {
       cache: "no-store",
       credentials: "same-origin",
     });

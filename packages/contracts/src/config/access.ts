@@ -12,10 +12,7 @@ import {
   membershipStatusSchema,
   operationalProfileRoleSchema,
 } from "../tenant-access.js";
-import {
-  CONFIG_PROTOCOL_VERSION,
-  configProtocolVersionSchema,
-} from "../versioning.js";
+import { CONFIG_PROTOCOL_VERSION, configProtocolVersionSchema } from "../versioning.js";
 import {
   CONFIG_SYNC_MAX_DEVICES,
   CONFIG_SYNC_MAX_MEMBERSHIPS,
@@ -29,11 +26,7 @@ import {
 } from "./status.js";
 
 export { CONFIG_PROTOCOL_VERSION, configProtocolVersionSchema };
-export {
-  LOCAL_APPLICATION_STATUSES,
-  localApplicationStatusSchema,
-  type LocalApplicationStatus,
-};
+export { LOCAL_APPLICATION_STATUSES, localApplicationStatusSchema, type LocalApplicationStatus };
 
 /** Access snapshot schema version inside the envelope. */
 export const ACCESS_CONFIG_SCHEMA_VERSION = "1" as const;
@@ -79,13 +72,7 @@ export type AccessMembershipSnapshot = z.infer<typeof accessMembershipSnapshotSc
 export const accessDeviceSnapshotSchema = z.strictObject({
   deviceId: deviceIdSchema,
   role: z.enum(["host", "terminal"]),
-  enrollmentState: z.enum([
-    "reserved",
-    "redeemed",
-    "activated",
-    "revoked",
-    "superseded",
-  ]),
+  enrollmentState: z.enum(["reserved", "redeemed", "activated", "revoked", "superseded"]),
   installationId: opaqueIdSchema.nullable(),
   credentialVersion: z.number().int().positive().nullable(),
   intendedHostDeviceId: deviceIdSchema.nullable(),

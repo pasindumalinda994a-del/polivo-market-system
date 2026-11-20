@@ -122,10 +122,7 @@ describe("cloud tenant onboarding and roles (policy tests)", () => {
     await beginAs(admin, { kind: "authenticated", sub: FIXTURES.userA });
     await admin.query(
       `SELECT * FROM public.update_permission_profile($1, 'cashier', $2::jsonb, 1)`,
-      [
-        FIXTURES.tenantA,
-        '["payments.receive_trader","payments.pay_farmer","catalog.manage"]',
-      ],
+      [FIXTURES.tenantA, '["payments.receive_trader","payments.pay_farmer","catalog.manage"]'],
     );
 
     const cashier = await admin.query<{
@@ -139,9 +136,7 @@ describe("cloud tenant onboarding and roles (policy tests)", () => {
     const owner = await admin.query<{
       capabilities: unknown;
       access_role: string;
-    }>(
-      `SELECT capabilities, access_role FROM public.tenant_memberships WHERE id = 'mem-a'`,
-    );
+    }>(`SELECT capabilities, access_role FROM public.tenant_memberships WHERE id = 'mem-a'`);
     await rollback(admin);
 
     expect(cashier.rows[0]?.access_role).toBe("cashier");

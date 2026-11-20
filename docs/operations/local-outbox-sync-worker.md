@@ -21,9 +21,9 @@ Requires `POLIVO_LOCAL_DB_PATH` and an activated host. Never prints the private 
 
 ## Endpoint configuration
 
-| Variable | Purpose |
-|----------|---------|
-| `POLIVO_SYNC_INGEST_URL` | Full ingest URL (`POST /api/sync/ingest`) |
+| Variable                          | Purpose                                                |
+| --------------------------------- | ------------------------------------------------------ |
+| `POLIVO_SYNC_INGEST_URL`          | Full ingest URL (`POST /api/sync/ingest`)              |
 | `POLIVO_SYNC_ALLOW_INSECURE_HTTP` | `1`/`true` allows `http://` for local development only |
 
 Production and staging must use HTTPS. TLS certificate verification is not disabled. Signed requests do not follow redirects. Supabase privileged keys are not installed on the host.
@@ -71,14 +71,14 @@ Revoked/invalid credentials, unsupported versions, integrity/sequence/generation
 
 `GET /sync/status` (capability `settings.manage`):
 
-| State | Meaning |
-|-------|---------|
-| `up_to_date` | No pending events through the measured local tail |
-| `uploading` | An upload cycle is in progress or pending work is eligible |
-| `waiting_retry` | Backoff deadline has not elapsed |
-| `paused` | Worker disabled |
+| State                    | Meaning                                                           |
+| ------------------------ | ----------------------------------------------------------------- |
+| `up_to_date`             | No pending events through the measured local tail                 |
+| `uploading`              | An upload cycle is in progress or pending work is eligible        |
+| `waiting_retry`          | Backoff deadline has not elapsed                                  |
+| `paused`                 | Worker disabled                                                   |
 | `configuration_required` | Missing ingest URL, host not activated, or credential unavailable |
-| `blocked` | Requires attention; first blocking group preserved |
+| `blocked`                | Requires attention; first blocking group preserved                |
 
 `POST /sync/retry` wakes the same worker under the same lease.
 

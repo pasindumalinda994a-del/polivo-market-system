@@ -5,7 +5,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReportQuery, ReportResponse, ReportTypeDto } from "@polivo/contracts";
 
 import { FreshnessBanner } from "./freshness-banner";
-import { defaultRollingFilterWindow, ReportFilters, type ReportFilterValues } from "./report-filters";
+import {
+  defaultRollingFilterWindow,
+  ReportFilters,
+  type ReportFilterValues,
+} from "./report-filters";
 import { ReportTable } from "./report-table";
 
 type ViewState =

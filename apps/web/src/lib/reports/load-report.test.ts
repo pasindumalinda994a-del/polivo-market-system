@@ -3,7 +3,9 @@ import { describe, expect, it } from "vitest";
 import { groupSaleRows, sumSaleMetrics } from "./load-report";
 import type { ReportSaleLineRow } from "@polivo/db-cloud";
 
-function line(partial: Partial<ReportSaleLineRow> & Pick<ReportSaleLineRow, "saleLineId">): ReportSaleLineRow {
+function line(
+  partial: Partial<ReportSaleLineRow> & Pick<ReportSaleLineRow, "saleLineId">,
+): ReportSaleLineRow {
   return {
     saleId: "sale-1",
     businessDate: "2026-11-01",

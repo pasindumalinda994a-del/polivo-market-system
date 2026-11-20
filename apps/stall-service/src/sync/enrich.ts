@@ -143,7 +143,9 @@ function mapFinalizedSaleLines(sale: SaleRecord) {
       line.traderPaysMinor === null ||
       line.farmerReceivesMinor === null
     ) {
-      throw new EnrichmentError(`Sale "${sale.id}" line "${line.id}" is missing finalized snapshots.`);
+      throw new EnrichmentError(
+        `Sale "${sale.id}" line "${line.id}" is missing finalized snapshots.`,
+      );
     }
     return {
       lineId: line.id,
@@ -179,7 +181,10 @@ function mapFinalizedSaleLines(sale: SaleRecord) {
   });
 }
 
-function mapTraderBillWire(traderBill: TraderBillDetailRecord, lines: ReturnType<typeof mapFinalizedSaleLines>) {
+function mapTraderBillWire(
+  traderBill: TraderBillDetailRecord,
+  lines: ReturnType<typeof mapFinalizedSaleLines>,
+) {
   return {
     id: traderBill.id,
     stallId: traderBill.stallId,
@@ -327,8 +332,7 @@ function mapPaymentWire(payment: PaymentRecord) {
     issuingBankLabel: payment.issuingBankLabel,
     chequeDate: payment.chequeDate,
     physicalHandoverDate: payment.physicalHandoverDate,
-    recognitionBasis:
-      payment.method === "cheque" ? PAYMENT_CHEQUE_RECOGNITION_BASIS : null,
+    recognitionBasis: payment.method === "cheque" ? PAYMENT_CHEQUE_RECOGNITION_BASIS : null,
   };
 }
 
@@ -348,9 +352,7 @@ function buildPaymentPostedSummary(
   }
 
   const tenantId =
-    typeof thin.tenantId === "string" && thin.tenantId.length > 0
-      ? thin.tenantId
-      : null;
+    typeof thin.tenantId === "string" && thin.tenantId.length > 0 ? thin.tenantId : null;
   if (!tenantId) {
     throw new EnrichmentError(`Payment "${payment.id}" outbox summary is missing tenantId.`);
   }
@@ -621,9 +623,7 @@ export function enrichOutboxEventForUpload(
         payload = {
           schemaVersion: SYNC_FINANCIAL_APPLY_SCHEMA_VERSION,
           summary,
-          ledgerPosting: postingId
-            ? mapLedgerSnapshot(database, event.stallId, postingId)
-            : null,
+          ledgerPosting: postingId ? mapLedgerSnapshot(database, event.stallId, postingId) : null,
           partyAccount: {
             partyKind,
             partyId,

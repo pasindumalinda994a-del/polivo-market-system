@@ -87,7 +87,9 @@ export function SyncStatusPanel({
         </p>
       </div>
       {!hostAvailable || !signedIn ? (
-        <p className="text-sm text-muted-foreground">Sign in while the host is available to view sync status.</p>
+        <p className="text-sm text-muted-foreground">
+          Sign in while the host is available to view sync status.
+        </p>
       ) : error ? (
         <p className="text-sm text-destructive" role="alert">
           {error}
@@ -130,10 +132,19 @@ export function SyncStatusPanel({
         <p className="text-sm text-muted-foreground">Loading sync status…</p>
       )}
       <div className="flex gap-2">
-        <Button type="button" variant="secondary" disabled={!hostAvailable || !signedIn || busy} onClick={() => void load()}>
+        <Button
+          type="button"
+          variant="secondary"
+          disabled={!hostAvailable || !signedIn || busy}
+          onClick={() => void load()}
+        >
           Refresh
         </Button>
-        <Button type="button" disabled={!hostAvailable || !signedIn || busy} onClick={() => void onRetry()}>
+        <Button
+          type="button"
+          disabled={!hostAvailable || !signedIn || busy}
+          onClick={() => void onRetry()}
+        >
           Retry now
         </Button>
       </div>

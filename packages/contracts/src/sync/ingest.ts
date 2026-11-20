@@ -77,7 +77,8 @@ export const syncIngestTransactionGroupSchema = z.strictObject({
     .min(1)
     .max(SYNC_INGEST_MAX_EVENTS_PER_GROUP)
     .refine(
-      (events) => events.every((event) => event.transactionGroupId === events[0]?.transactionGroupId),
+      (events) =>
+        events.every((event) => event.transactionGroupId === events[0]?.transactionGroupId),
       "All events in a group must share transactionGroupId",
     ),
 });

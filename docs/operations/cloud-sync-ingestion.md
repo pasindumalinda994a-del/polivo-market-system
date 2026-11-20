@@ -23,11 +23,11 @@ Decision record: [ADR 0021](../decisions/0021-cloud-sync-ingestion.md).
 
 ## Authority boundaries
 
-| Authority | Owns |
-|-----------|------|
-| Local host | Operational catalog/parties (approved scope), sales/bills, commission snapshots, ledger postings, payments/allocations, corrections, approved operational records |
-| Cloud | Tenant/membership admin, device enrollment/revocation, later config delivery |
-| Cloud reporting copy | Accepted local facts + read-only projections |
+| Authority            | Owns                                                                                                                                                              |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Local host           | Operational catalog/parties (approved scope), sales/bills, commission snapshots, ledger postings, payments/allocations, corrections, approved operational records |
+| Cloud                | Tenant/membership admin, device enrollment/revocation, later config delivery                                                                                      |
+| Cloud reporting copy | Accepted local facts + read-only projections                                                                                                                      |
 
 Ingestion must not overwrite cloud access settings. Browser clients cannot insert replicated financial rows.
 
@@ -89,7 +89,7 @@ See `@polivo/contracts` `SYNC_INGEST_*` constants (request bytes, event/group co
 ```bash
 # Env only — never put secrets on the command line
 export POLIVO_SYNC_INGEST_URL=http://localhost:3000/api/sync/ingest
-export POLIVO_SYNC_TENANT_ID=ten_dac04cc73ab44a7f952026465726c52c  
+export POLIVO_SYNC_TENANT_ID=ten_dac04cc73ab44a7f952026465726c52c
 export POLIVO_SYNC_DEVICE_ID=dev_c1c4a28fa575417a87f3f4f75bc43a1f
 export POLIVO_SYNC_INSTALLATION_ID=f55be500-2cc8-40a4-baf6-ce8f3188d126
 export POLIVO_SYNC_CREDENTIAL_VERSION=1

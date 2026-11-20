@@ -140,8 +140,14 @@ export const syncDomainComparisonResultSchema = z.strictObject({
   matched: z.boolean(),
   localCount: z.number().int().nonnegative().nullable(),
   cloudCount: z.number().int().nonnegative().nullable(),
-  localManifestHash: z.string().regex(/^[a-f0-9]{64}$/).nullable(),
-  cloudManifestHash: z.string().regex(/^[a-f0-9]{64}$/).nullable(),
+  localManifestHash: z
+    .string()
+    .regex(/^[a-f0-9]{64}$/)
+    .nullable(),
+  cloudManifestHash: z
+    .string()
+    .regex(/^[a-f0-9]{64}$/)
+    .nullable(),
   inconclusiveReason: z.string().max(500).nullable(),
   differences: z.array(z.string().max(500)).max(50),
 });
@@ -218,10 +224,7 @@ export const syncRecoveryPlanSchema = z.strictObject({
   affectedItemCount: z.number().int().nonnegative(),
   safetyRationale: z.string().min(1).max(1000),
   potentialOutcome: z.string().min(1).max(1000),
-  requiredCapability: z.enum([
-    "sync.retry",
-    "sync.recover",
-  ]),
+  requiredCapability: z.enum(["sync.retry", "sync.recover"]),
   createdAt: absoluteTimestampSchema,
   expiresAt: absoluteTimestampSchema,
 });

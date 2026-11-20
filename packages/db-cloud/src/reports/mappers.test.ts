@@ -1,11 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { CloudReportError } from "./errors.js";
-import {
-  mapReportPaymentRow,
-  mapReportSaleLineRow,
-  mapReportingWatermarks,
-} from "./mappers.js";
+import { mapReportPaymentRow, mapReportSaleLineRow, mapReportingWatermarks } from "./mappers.js";
 
 describe("report mappers", () => {
   it("maps reporting watermarks from RPC snake_case rows", () => {

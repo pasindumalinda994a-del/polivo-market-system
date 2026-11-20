@@ -4,28 +4,28 @@ Phase 33 delivers cloud-authoritative **access** configuration to the enrolled s
 
 ## Identity boundaries
 
-| Identity | Role in this flow |
-|---|---|
-| Clerk web user | Owner publishes via web |
-| Cloud membership | Caps + status in access snapshot |
-| Local staff | Updated only when `cloud_membership_id` matches |
-| Enrolled host | Only recipient of pull/ack |
-| LAN terminal | Never pulls config; may be revoked via snapshot |
+| Identity         | Role in this flow                               |
+| ---------------- | ----------------------------------------------- |
+| Clerk web user   | Owner publishes via web                         |
+| Cloud membership | Caps + status in access snapshot                |
+| Local staff      | Updated only when `cloud_membership_id` matches |
+| Enrolled host    | Only recipient of pull/ack                      |
+| LAN terminal     | Never pulls config; may be revoked via snapshot |
 
 Do not create local staff from Clerk sessions. Do not match by display name or email.
 
 ## Ownership matrix (v1)
 
-| Setting | Authority |
-|---|---|
-| Role permission profiles | Cloud (Permissions Save also cascades onto matching memberships) |
-| Membership capabilities/status | Cloud → local via verified membership mapping |
-| Device revocations | Cloud → local enrollment projection |
-| Offline access durations | ADR 0013 (2h idle / 12h absolute / 7d snapshot) |
-| Stall display | Local host trust/meta (not delivered) |
-| Commission bands | Local Phase 20 (not delivered) |
-| Terminal printers | Terminal-local (not delivered) |
-| Sales/payments/ledger | Local only (never mutated by apply) |
+| Setting                        | Authority                                                        |
+| ------------------------------ | ---------------------------------------------------------------- |
+| Role permission profiles       | Cloud (Permissions Save also cascades onto matching memberships) |
+| Membership capabilities/status | Cloud → local via verified membership mapping                    |
+| Device revocations             | Cloud → local enrollment projection                              |
+| Offline access durations       | ADR 0013 (2h idle / 12h absolute / 7d snapshot)                  |
+| Stall display                  | Local host trust/meta (not delivered)                            |
+| Commission bands               | Local Phase 20 (not delivered)                                   |
+| Terminal printers              | Terminal-local (not delivered)                                   |
+| Sales/payments/ledger          | Local only (never mutated by apply)                              |
 
 ## Domain and trust
 
@@ -36,10 +36,10 @@ Do not create local staff from Clerk sessions. Do not match by display name or e
 
 ## Host endpoints
 
-| Method | Path | Auth |
-|---|---|---|
-| POST | `/api/config/pull` | Host possession |
-| POST | `/api/config/ack` | Host possession |
+| Method | Path               | Auth            |
+| ------ | ------------------ | --------------- |
+| POST   | `/api/config/pull` | Host possession |
+| POST   | `/api/config/ack`  | Host possession |
 
 Owner status: `get_access_config_delivery_status` RPC + Permissions page copy (“Saved in cloud; waiting for stall host”).
 
@@ -47,11 +47,11 @@ Owner status: `get_access_config_delivery_status` RPC + Permissions page copy (�
 
 Separate from the outbox upload worker.
 
-| Env | Purpose |
-|---|---|
-| `POLIVO_CONFIG_PULL_URL` | Pull endpoint (defaults from ingest origin `/api/config/pull` when unset) |
-| `POLIVO_CONFIG_ACK_URL` | Ack endpoint (defaults to same origin `/api/config/ack`) |
-| `POLIVO_SYNC_ALLOW_INSECURE_HTTP` | Dev-only http:// allowlist (shared with ingest) |
+| Env                               | Purpose                                                                   |
+| --------------------------------- | ------------------------------------------------------------------------- |
+| `POLIVO_CONFIG_PULL_URL`          | Pull endpoint (defaults from ingest origin `/api/config/pull` when unset) |
+| `POLIVO_CONFIG_ACK_URL`           | Ack endpoint (defaults to same origin `/api/config/ack`)                  |
+| `POLIVO_SYNC_ALLOW_INSECURE_HTTP` | Dev-only http:// allowlist (shared with ingest)                           |
 
 Local routes (require `settings.manage`):
 
@@ -76,12 +76,12 @@ Manual permission-refresh grant/redeem remains an emergency fallback.
 
 ## Status labels
 
-| Label | Meaning |
-|---|---|
-| Saved in cloud; waiting for stall host | Published revision ahead of host ack |
-| Applied | Host acknowledged successful apply |
-| Failed / blocked | Host reported rejection or compatibility/revocation block |
-| Pending acknowledgement | Applied locally; ack upload outstanding |
+| Label                                  | Meaning                                                   |
+| -------------------------------------- | --------------------------------------------------------- |
+| Saved in cloud; waiting for stall host | Published revision ahead of host ack                      |
+| Applied                                | Host acknowledged successful apply                        |
+| Failed / blocked                       | Host reported rejection or compatibility/revocation block |
+| Pending acknowledgement                | Applied locally; ack upload outstanding                   |
 
 ## Offline and revocation
 

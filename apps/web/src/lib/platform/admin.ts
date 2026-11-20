@@ -24,13 +24,16 @@ export async function listPlatformStallDirectory(
   query: PlatformDirectoryQuery,
 ): Promise<PlatformStallDirectoryResponse> {
   const client = createRequestUserSupabaseClient();
-  const { data, error } = await client.rpc("list_platform_stall_directory" as never, {
-    p_limit: query.limit,
-    p_offset: query.offset,
-    p_search: query.search ?? null,
-    p_status: query.status ?? null,
-    p_tenant_id: null,
-  } as never);
+  const { data, error } = await client.rpc(
+    "list_platform_stall_directory" as never,
+    {
+      p_limit: query.limit,
+      p_offset: query.offset,
+      p_search: query.search ?? null,
+      p_status: query.status ?? null,
+      p_tenant_id: null,
+    } as never,
+  );
   if (error) {
     throw mapTenantRpcError(error);
   }
@@ -101,9 +104,12 @@ export type PlatformStallDetail = StallAdminProfile & {
 
 export async function getPlatformStallDetail(tenantId: string): Promise<PlatformStallDetail> {
   const client = createRequestUserSupabaseClient();
-  const { data, error } = await client.rpc("get_platform_stall_detail" as never, {
-    p_tenant_id: tenantId,
-  } as never);
+  const { data, error } = await client.rpc(
+    "get_platform_stall_detail" as never,
+    {
+      p_tenant_id: tenantId,
+    } as never,
+  );
   if (error) {
     throw mapTenantRpcError(error);
   }

@@ -1,10 +1,7 @@
 import type { MembershipAccessRole, MembershipStatus, TenantStatus } from "@polivo/db-cloud/types";
 
 import { forbiddenError, serviceUnavailableError } from "./errors";
-import {
-  membershipHasCapability,
-  type MembershipSummary,
-} from "./membership-summary";
+import { membershipHasCapability, type MembershipSummary } from "./membership-summary";
 import { createRequestUserSupabaseClient, type UserSupabaseClient } from "./supabase-user";
 
 export type { MembershipSummary } from "./membership-summary";

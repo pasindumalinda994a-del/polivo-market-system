@@ -1,9 +1,5 @@
 import { buildIngestPossessionMessage } from "@polivo/contracts";
-import {
-  getHostEnrollment,
-  tryGetHostEnrollment,
-  type LocalDatabase,
-} from "@polivo/db-local";
+import { getHostEnrollment, tryGetHostEnrollment, type LocalDatabase } from "@polivo/db-local";
 
 import { signPossessionMessage } from "../security/ed25519.js";
 import type { SecureStorageAdapter } from "../security/secure-storage.js";
@@ -27,11 +23,7 @@ export type SignedIngestRequest = {
 
 export type HostIngestSigner = {
   loadIdentity: () => HostIngestIdentity;
-  signBody: (input: {
-    rawBody: string;
-    batchId: string;
-    signedAt: string;
-  }) => SignedIngestRequest;
+  signBody: (input: { rawBody: string; batchId: string; signedAt: string }) => SignedIngestRequest;
 };
 
 export class HostCredentialConfigurationError extends Error {

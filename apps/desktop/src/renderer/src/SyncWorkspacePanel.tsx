@@ -150,8 +150,11 @@ export function SyncWorkspacePanel({
         setError(result.message);
         return;
       }
-      const plan = (result.data as { plan: { planId: string; safetyRationale: string; potentialOutcome: string } })
-        .plan;
+      const plan = (
+        result.data as {
+          plan: { planId: string; safetyRationale: string; potentialOutcome: string };
+        }
+      ).plan;
       setPendingPlanId(plan.planId);
       setPlanPreview(`${plan.safetyRationale}\n\nOutcome: ${plan.potentialOutcome}`);
       setSection("recovery");
@@ -393,11 +396,15 @@ export function SyncWorkspacePanel({
                       ))}
                     </ul>
                   ) : (
-                    <p className="text-muted-foreground">No mismatch details beyond expected backlog.</p>
+                    <p className="text-muted-foreground">
+                      No mismatch details beyond expected backlog.
+                    </p>
                   )}
                 </>
               ) : (
-                <p className="text-muted-foreground">Run a comparison to see matched domains and cutoff.</p>
+                <p className="text-muted-foreground">
+                  Run a comparison to see matched domains and cutoff.
+                </p>
               )}
               {canReconcile ? (
                 <Button type="button" size="sm" disabled={busy} onClick={() => void onReconcile()}>
@@ -462,7 +469,12 @@ export function SyncWorkspacePanel({
                   </>
                 ) : null}
                 {pendingPlanId && canRecover ? (
-                  <Button type="button" size="sm" disabled={busy} onClick={() => void onConfirmRecovery()}>
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={busy}
+                    onClick={() => void onConfirmRecovery()}
+                  >
                     Confirm plan
                   </Button>
                 ) : null}

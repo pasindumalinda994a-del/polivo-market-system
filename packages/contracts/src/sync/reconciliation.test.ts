@@ -19,9 +19,7 @@ describe("sync reconciliation contracts", () => {
     expect(SYNC_MISMATCH_CATEGORIES).toContain("stale_projection");
     expect(SYNC_RECOVERY_ACTION_TYPES).not.toContain("reset_cursor");
     expect(SYNC_RECOVERY_ACTION_TYPES).not.toContain("skip_event");
-    expect(syncMismatchCategorySchema.parse("missing_cloud_receipt")).toBe(
-      "missing_cloud_receipt",
-    );
+    expect(syncMismatchCategorySchema.parse("missing_cloud_receipt")).toBe("missing_cloud_receipt");
   });
 
   it("builds distinct possession messages for progress and receipts", () => {

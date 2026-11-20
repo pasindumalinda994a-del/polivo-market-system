@@ -6,7 +6,9 @@ const outPath =
   "c:/Users/pasin/Documents/System Projects/polivo-market-system/supabase/migrations/20261119120200_web_reporting_apply_posting_fields.sql";
 
 const lines = fs.readFileSync(srcPath, "utf8").split(/\r?\n/);
-const start = lines.findIndex((l) => l.includes("CREATE OR REPLACE FUNCTION public.polivo_sync_apply_event"));
+const start = lines.findIndex((l) =>
+  l.includes("CREATE OR REPLACE FUNCTION public.polivo_sync_apply_event"),
+);
 const end = lines.findIndex(
   (l, i) => i > start && l.includes("CREATE OR REPLACE FUNCTION public.apply_sync_ingestion_group"),
 );

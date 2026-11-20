@@ -41,7 +41,11 @@ import { conflictError } from "@/lib/auth/errors";
 
 import { stallBinding } from "./client";
 import { mapReportDomainError } from "./errors";
-import { normalizeReportFilters, reportSnapshotMeta, resolveOrCreateReportSnapshot } from "./snapshot";
+import {
+  normalizeReportFilters,
+  reportSnapshotMeta,
+  resolveOrCreateReportSnapshot,
+} from "./snapshot";
 
 function saleLineToRow(line: ReportSaleLineRow): ReportRowDto {
   return {

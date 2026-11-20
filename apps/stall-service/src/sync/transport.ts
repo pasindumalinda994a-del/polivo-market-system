@@ -28,9 +28,7 @@ export function createHttpSyncTransport(input: CreateHttpSyncTransportInput): Sy
   const url = new URL(input.ingestUrl);
   if (url.protocol === "http:") {
     if (!input.allowInsecureHttp) {
-      throw new Error(
-        "POLIVO_SYNC_INGEST_URL must use HTTPS in non-development configurations.",
-      );
+      throw new Error("POLIVO_SYNC_INGEST_URL must use HTTPS in non-development configurations.");
     }
   } else if (url.protocol !== "https:") {
     throw new Error("POLIVO_SYNC_INGEST_URL must be an http(s) URL.");

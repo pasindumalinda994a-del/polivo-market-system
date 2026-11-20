@@ -42,7 +42,10 @@ export function validateIngestAcknowledgement(input: {
   const { batch, response } = input;
 
   if (response.batchId !== batch.body.batchId) {
-    throw new AckValidationError("ACK_BATCH_MISMATCH", "Acknowledgement batchId does not match the request.");
+    throw new AckValidationError(
+      "ACK_BATCH_MISMATCH",
+      "Acknowledgement batchId does not match the request.",
+    );
   }
   if (response.tenantId !== input.expectedTenantId || response.stallId !== input.expectedStallId) {
     throw new AckValidationError(
@@ -119,7 +122,10 @@ export function validateIngestAcknowledgement(input: {
 
   const committedCursor = Number(response.committedCursor);
   if (!Number.isSafeInteger(committedCursor) || committedCursor < 0) {
-    throw new AckValidationError("ACK_CURSOR_INVALID", "Acknowledgement committedCursor is invalid.");
+    throw new AckValidationError(
+      "ACK_CURSOR_INVALID",
+      "Acknowledgement committedCursor is invalid.",
+    );
   }
 
   if (acknowledgedEventIds.length > 0) {

@@ -136,8 +136,7 @@ export function createOutboxSyncWorker(options: SyncWorkerOptions): SyncWorkerHa
   const runCycle = async (): Promise<"idle" | "progress" | "retry" | "blocked" | "skipped"> => {
     if (!options.ingestConfigured || !options.transport || options.enabled === false) {
       configurationMessage =
-        configurationMessage ??
-        "Sync ingest URL is not configured or the worker is disabled.";
+        configurationMessage ?? "Sync ingest URL is not configured or the worker is disabled.";
       return "skipped";
     }
 
@@ -452,11 +451,7 @@ export function createOutboxSyncWorker(options: SyncWorkerOptions): SyncWorkerHa
       wakePending = false;
       result = await runCycle();
       cycles += 1;
-    } while (
-      !stopping &&
-      (result === "progress" || wakePending) &&
-      cycles < MAX_CYCLES_PER_WAKE
-    );
+    } while (!stopping && (result === "progress" || wakePending) && cycles < MAX_CYCLES_PER_WAKE);
   };
 
   const schedule = (): void => {
@@ -531,7 +526,8 @@ export function createOutboxSyncWorker(options: SyncWorkerOptions): SyncWorkerHa
           clearOutboxRetryGateForStall(tx, binding.stallId, now);
           const stream = ensureSyncStreamState(tx, {
             stallId: binding.stallId,
-            sourceStreamId: tryGetHostEnrollment(options.database)?.installationId ?? binding.stallId,
+            sourceStreamId:
+              tryGetHostEnrollment(options.database)?.installationId ?? binding.stallId,
             updatedAt: now,
           });
           void stream;

@@ -7,10 +7,7 @@ import {
   configPullResponseSchema,
   CONFIG_PROTOCOL_VERSION,
 } from "./access.js";
-import {
-  buildConfigAckPossessionMessage,
-  buildConfigPullPossessionMessage,
-} from "./possession.js";
+import { buildConfigAckPossessionMessage, buildConfigPullPossessionMessage } from "./possession.js";
 
 const issuedAt = "2026-11-13T12:00:00.000Z";
 

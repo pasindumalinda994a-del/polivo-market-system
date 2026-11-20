@@ -49,7 +49,8 @@ export async function runReconciliation(input: {
   });
 
   const stream = tryGetSyncStreamState(input.database, input.stallId);
-  const localTail = stream?.localTailSequence ?? getMaxOutboxSequence(input.database, input.stallId);
+  const localTail =
+    stream?.localTailSequence ?? getMaxOutboxSequence(input.database, input.stallId);
   const mismatches: SyncMismatchSummaryItem[] = [];
   const domainResults: SyncDomainComparisonResult[] = [];
   const incompleteDomainWarnings: string[] = [];
@@ -126,10 +127,7 @@ export async function runReconciliation(input: {
     cloudObservedAt = progress.progress.observedAt;
   }
 
-  const comparableCutoff = Math.min(
-    localTail,
-    verifiedCloudCursor ?? stream.acknowledgedCursor,
-  );
+  const comparableCutoff = Math.min(localTail, verifiedCloudCursor ?? stream.acknowledgedCursor);
 
   const localGroups = listOutboxGroupsThroughSequence(
     input.database,
@@ -309,13 +307,21 @@ export async function runReconciliation(input: {
     inconclusiveReason: remoteUnavailable ? "Cloud receipts unavailable." : null,
     differences: deliveryMatched
       ? []
-      : [formatExactDifference({ label: "groups", local: localGroups.length, cloud: receiptsByGroup.size })],
+      : [
+          formatExactDifference({
+            label: "groups",
+            local: localGroups.length,
+            cloud: receiptsByGroup.size,
+          }),
+        ],
   });
 
   // Data / reporting: local authoritative counts; cloud fact summary when available.
-  const localSales = countLocal(input.database, `SELECT COUNT(*) AS c FROM sales WHERE stall_id = ?`, [
-    input.stallId,
-  ]);
+  const localSales = countLocal(
+    input.database,
+    `SELECT COUNT(*) AS c FROM sales WHERE stall_id = ?`,
+    [input.stallId],
+  );
   const localPayments = countLocal(
     input.database,
     `SELECT COUNT(*) AS c FROM payments WHERE stall_id = ?`,
@@ -406,7 +412,11 @@ export async function runReconciliation(input: {
         category: cloudCount < item.local ? "missing_cloud_fact" : "stale_projection",
         checkKind: "data",
         domain: item.domain,
-        observed: formatExactDifference({ label: item.domain, local: item.local, cloud: cloudCount }),
+        observed: formatExactDifference({
+          label: item.domain,
+          local: item.local,
+          cloud: cloudCount,
+        }),
         scopeDescription: `Matched through cutoff ${comparableCutoff}`,
         affectsLocalOperation: false,
         automaticRetryAppropriate: cloudCount < item.local,
@@ -494,8 +504,7 @@ export async function runReconciliation(input: {
 
   const integrityConflict = mismatches.some(
     (m) =>
-      m.category === "different_immutable_payload" ||
-      m.category === "stream_generation_conflict",
+      m.category === "different_immutable_payload" || m.category === "stream_generation_conflict",
   );
 
   let safeNextAction: SyncRecoveryActionType | null = null;
@@ -510,9 +519,7 @@ export async function runReconciliation(input: {
   const allMatched =
     !integrityConflict &&
     mismatches.every((m) => m.category === "expected_upload_backlog") &&
-    domainResults
-      .filter((d) => d.completeness === "complete")
-      .every((d) => d.matched);
+    domainResults.filter((d) => d.completeness === "complete").every((d) => d.matched);
 
   const summaryPhrase = allMatched
     ? `Matched through cutoff ${comparableCutoff}`
@@ -531,8 +538,7 @@ export async function runReconciliation(input: {
       sourceStreamId: stream.sourceStreamId,
       streamGeneration: stream.streamGeneration,
       localCommittedTail: String(localTail),
-      verifiedCloudCursor:
-        verifiedCloudCursor == null ? null : String(verifiedCloudCursor),
+      verifiedCloudCursor: verifiedCloudCursor == null ? null : String(verifiedCloudCursor),
       comparableCutoff: String(comparableCutoff),
       manifestVersion: SYNC_MANIFEST_VERSION,
       definitionVersion: SYNC_RECONCILIATION_DEFINITION_VERSION,

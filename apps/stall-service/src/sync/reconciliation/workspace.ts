@@ -4,9 +4,7 @@ import {
   type SyncReconciliationRunSummary,
   type SyncWorkspaceStatus,
 } from "@polivo/contracts";
-import {
-  classifyDeliveryObservation,
-} from "@polivo/domain";
+import { classifyDeliveryObservation } from "@polivo/domain";
 import {
   listPendingBlockedOutboxGroups,
   tryGetLatestReconciliationRun,

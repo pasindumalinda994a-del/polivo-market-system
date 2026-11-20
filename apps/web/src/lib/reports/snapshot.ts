@@ -1,5 +1,9 @@
 import { REPORT_DEFINITION_VERSION } from "@polivo/contracts";
-import { captureReportingWatermarks, type UserReportingClient, type ReportingWatermarks } from "@polivo/db-cloud";
+import {
+  captureReportingWatermarks,
+  type UserReportingClient,
+  type ReportingWatermarks,
+} from "@polivo/db-cloud";
 import {
   assertReportSnapshotMatchesBinding,
   createReportSnapshotPayload,

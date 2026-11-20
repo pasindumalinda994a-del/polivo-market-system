@@ -20,8 +20,7 @@ export function tryGetSyncStreamState(
   stallId: string,
 ): SyncStreamStateRecord | null {
   const row = executor.db.prepare(`${STREAM_SELECT} WHERE stall_id = ?`).get(stallId) as
-    | Record<string, unknown>
-    | undefined;
+    Record<string, unknown> | undefined;
   return row ? mapSyncStreamStateRow(row) : null;
 }
 
@@ -63,12 +62,7 @@ export function ensureSyncStreamState(
          blocking_error_code, blocking_message, last_error_code, updated_at
        ) VALUES (?, ?, ?, 0, 0, NULL, NULL, NULL, NULL, 1, NULL, NULL, NULL, NULL, NULL, ?)`,
     )
-    .run(
-      input.stallId,
-      input.sourceStreamId,
-      input.streamGeneration ?? 1,
-      input.updatedAt,
-    );
+    .run(input.stallId, input.sourceStreamId, input.streamGeneration ?? 1, input.updatedAt);
 
   return getSyncStreamState(executor, input.stallId);
 }
@@ -264,8 +258,7 @@ export function tryGetSyncWorkerLease(
   stallId: string,
 ): SyncWorkerLeaseRecord | null {
   const row = executor.db.prepare(`${LEASE_SELECT} WHERE stall_id = ?`).get(stallId) as
-    | Record<string, unknown>
-    | undefined;
+    Record<string, unknown> | undefined;
   return row ? mapSyncWorkerLeaseRow(row) : null;
 }
 
@@ -309,13 +302,7 @@ export function acquireSyncWorkerLease(
          SET expires_at = ?, updated_at = ?
          WHERE stall_id = ? AND owner_token = ? AND fence_token = ?`,
       )
-      .run(
-        input.expiresAt,
-        input.now,
-        input.stallId,
-        input.ownerToken,
-        existing.fenceToken,
-      );
+      .run(input.expiresAt, input.now, input.stallId, input.ownerToken, existing.fenceToken);
     return { acquired: true, lease: tryGetSyncWorkerLease(executor, input.stallId)! };
   }
 

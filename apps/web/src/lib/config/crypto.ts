@@ -62,10 +62,7 @@ export function verifyConfigAckPossession(input: {
   return { ok: true };
 }
 
-function checkSkew(
-  signedAt: string,
-  nowMs?: number,
-): { ok: true } | { ok: false; reason: string } {
+function checkSkew(signedAt: string, nowMs?: number): { ok: true } | { ok: false; reason: string } {
   const now = nowMs ?? Date.now();
   const signedAtMs = Date.parse(signedAt);
   if (!Number.isFinite(signedAtMs)) {

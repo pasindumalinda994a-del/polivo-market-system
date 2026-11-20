@@ -4,11 +4,7 @@ import type { FastifyInstance, FastifyRequest } from "fastify";
 import type { AuthorizedPrincipal } from "../auth/authorization.js";
 import type { ServiceDependencies } from "../composition.js";
 import type { ConfigWorkerHandle } from "../config-sync/worker.js";
-import {
-  AppError,
-  forbiddenError,
-  serviceUnavailableError,
-} from "../errors/app-error.js";
+import { AppError, forbiddenError, serviceUnavailableError } from "../errors/app-error.js";
 import { readRequestAuthMaterial } from "./auth-headers.js";
 import { resolveRequestId } from "./request-id.js";
 

@@ -184,10 +184,19 @@ export function mapReportExportJobRow(row: Record<string, unknown>): ReportExpor
     stallId: requireString(row["stall_id"], "report_export_jobs.stall_id"),
     reportType: requireString(row["report_type"], "report_export_jobs.report_type"),
     format: requireString(row["format"], "report_export_jobs.format") as "csv" | "pdf",
-    status: requireString(row["status"], "report_export_jobs.status") as ReportExportJobRecord["status"],
-    definitionVersion: requireString(row["definition_version"], "report_export_jobs.definition_version"),
+    status: requireString(
+      row["status"],
+      "report_export_jobs.status",
+    ) as ReportExportJobRecord["status"],
+    definitionVersion: requireString(
+      row["definition_version"],
+      "report_export_jobs.definition_version",
+    ),
     snapshotToken: requireString(row["snapshot_token"], "report_export_jobs.snapshot_token"),
-    filterFingerprint: requireString(row["filter_fingerprint"], "report_export_jobs.filter_fingerprint"),
+    filterFingerprint: requireString(
+      row["filter_fingerprint"],
+      "report_export_jobs.filter_fingerprint",
+    ),
     normalizedFiltersJson:
       typeof row["normalized_filters_json"] === "string"
         ? row["normalized_filters_json"]
@@ -202,11 +211,20 @@ export function mapReportExportJobRow(row: Record<string, unknown>): ReportExpor
       row["byte_length"] === null || row["byte_length"] === undefined
         ? null
         : requireInteger(row["byte_length"], "report_export_jobs.byte_length"),
-    defaultFileName: requireString(row["default_file_name"], "report_export_jobs.default_file_name"),
+    defaultFileName: requireString(
+      row["default_file_name"],
+      "report_export_jobs.default_file_name",
+    ),
     failureCode: optionalString(row["failure_code"], "report_export_jobs.failure_code"),
     failureMessage: optionalString(row["failure_message"], "report_export_jobs.failure_message"),
-    createdBySubject: requireString(row["created_by_subject"], "report_export_jobs.created_by_subject"),
-    createOperationId: requireString(row["create_operation_id"], "report_export_jobs.create_operation_id"),
+    createdBySubject: requireString(
+      row["created_by_subject"],
+      "report_export_jobs.created_by_subject",
+    ),
+    createOperationId: requireString(
+      row["create_operation_id"],
+      "report_export_jobs.create_operation_id",
+    ),
     createdAt: requireAbsoluteTimestamp(row["created_at"], "report_export_jobs.created_at"),
     expiresAt: requireAbsoluteTimestamp(row["expires_at"], "report_export_jobs.expires_at"),
     readyAt: optionalAbsoluteTimestamp(row["ready_at"], "report_export_jobs.ready_at"),
@@ -215,7 +233,10 @@ export function mapReportExportJobRow(row: Record<string, unknown>): ReportExpor
 
 export function mapStallReportingFreshness(row: Record<string, unknown>): StallReportingFreshness {
   return {
-    lastHostContactAt: optionalAbsoluteTimestamp(row["last_host_contact_at"], "last_host_contact_at"),
+    lastHostContactAt: optionalAbsoluteTimestamp(
+      row["last_host_contact_at"],
+      "last_host_contact_at",
+    ),
     lastAppliedUploadGroupId: optionalString(
       row["last_applied_upload_group_id"],
       "last_applied_upload_group_id",

@@ -70,7 +70,10 @@ export async function acknowledgeAccessConfig(input: {
     .maybeSingle();
 
   if (deviceError) {
-    console.error("config.ack_device_lookup_failed", redactForLog({ message: deviceError.message }));
+    console.error(
+      "config.ack_device_lookup_failed",
+      redactForLog({ message: deviceError.message }),
+    );
     throw serviceUnavailableError("Unable to verify host device.");
   }
   if (!deviceRow) {

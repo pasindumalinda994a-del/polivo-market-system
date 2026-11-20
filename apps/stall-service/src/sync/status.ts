@@ -21,10 +21,7 @@ export function buildSyncWorkerStatus(input: {
 }): SyncWorkerStatus {
   const stream = tryGetSyncStreamState(input.database, input.stallId);
   const pendingEventCount = countPendingOutboxEvents(input.database, input.stallId);
-  const oldestPendingOccurredAt = getOldestPendingOutboxOccurredAt(
-    input.database,
-    input.stallId,
-  );
+  const oldestPendingOccurredAt = getOldestPendingOutboxOccurredAt(input.database, input.stallId);
   const localTail =
     stream?.localTailSequence ?? getMaxOutboxSequence(input.database, input.stallId);
   const acknowledgedCursor = stream?.acknowledgedCursor ?? 0;

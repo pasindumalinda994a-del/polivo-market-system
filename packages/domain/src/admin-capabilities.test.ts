@@ -26,9 +26,7 @@ describe("admin capability matrix", () => {
   });
 
   it("requires revision guards for profile edits", () => {
-    const profileActions = ADMIN_ACTION_MATRIX.filter((row) =>
-      row.action.endsWith("profile.edit"),
-    );
+    const profileActions = ADMIN_ACTION_MATRIX.filter((row) => row.action.endsWith("profile.edit"));
     expect(profileActions.length).toBeGreaterThan(0);
     expect(profileActions.every((row) => row.revisionGuarded)).toBe(true);
   });

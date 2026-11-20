@@ -61,7 +61,9 @@ export function OverviewPanel({ tenantId }: { tenantId: string }) {
         ]}
       />
       {sales.status === "denied" ? (
-        <p className="text-sm text-muted-foreground">Reporting access is required to view metrics.</p>
+        <p className="text-sm text-muted-foreground">
+          Reporting access is required to view metrics.
+        </p>
       ) : null}
     </div>
   );

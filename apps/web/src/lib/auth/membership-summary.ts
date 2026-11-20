@@ -15,7 +15,10 @@ export type MembershipSummary = {
   capabilities: string[];
 };
 
-export function membershipHasCapability(membership: MembershipSummary, capability: string): boolean {
+export function membershipHasCapability(
+  membership: MembershipSummary,
+  capability: string,
+): boolean {
   if (membership.accessRole === "owner") {
     return true;
   }

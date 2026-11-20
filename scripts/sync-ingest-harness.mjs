@@ -159,17 +159,13 @@ function saleV1Batch(tenantId, stallId, installationId) {
 }
 
 function signWithSecureStorage(rawBody) {
-  const result = spawnSync(
-    "pnpm",
-    ["--filter", "@polivo/stall-service", "sync-sign"],
-    {
-      cwd: root,
-      input: rawBody,
-      encoding: "utf8",
-      env: process.env,
-      shell: true,
-    },
-  );
+  const result = spawnSync("pnpm", ["--filter", "@polivo/stall-service", "sync-sign"], {
+    cwd: root,
+    input: rawBody,
+    encoding: "utf8",
+    env: process.env,
+    shell: true,
+  });
   if (result.status !== 0) {
     console.error(result.stderr || result.stdout || "sync-sign failed");
     return null;
@@ -276,13 +272,10 @@ async function send(bodyObject) {
 }
 
 const mode = process.argv[2] ?? "farmer";
-const tenantId =
-  process.env.POLIVO_SYNC_TENANT_ID?.trim() ||
-  requiredEnv("POLIVO_SYNC_TENANT_ID");
+const tenantId = process.env.POLIVO_SYNC_TENANT_ID?.trim() || requiredEnv("POLIVO_SYNC_TENANT_ID");
 const stallId = process.env.POLIVO_SYNC_STALL_ID?.trim() || tenantId;
 const installationId =
-  process.env.POLIVO_SYNC_INSTALLATION_ID?.trim() ||
-  requiredEnv("POLIVO_SYNC_INSTALLATION_ID");
+  process.env.POLIVO_SYNC_INSTALLATION_ID?.trim() || requiredEnv("POLIVO_SYNC_INSTALLATION_ID");
 
 if (mode === "farmer" || mode === "replay") {
   await send(farmerBatch(tenantId, stallId, installationId, "1"));

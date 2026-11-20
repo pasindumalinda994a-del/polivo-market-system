@@ -6,11 +6,7 @@ import {
   type SyncCloudReceiptLookupResponse,
 } from "@polivo/contracts";
 
-import {
-  redactForLog,
-  serviceUnavailableError,
-  validationError,
-} from "@/lib/auth/errors";
+import { redactForLog, serviceUnavailableError, validationError } from "@/lib/auth/errors";
 import { createPrivilegedSupabaseClient } from "@/lib/auth/supabase-privileged";
 
 import {
@@ -46,13 +42,16 @@ export async function getSyncStreamProgress(input: {
   }
 
   const client = createPrivilegedSupabaseClient();
-  const { data, error } = await client.rpc("host_get_sync_stream_progress" as never, {
-    p_tenant_id: input.auth.tenantId,
-    p_device_id: input.auth.deviceId,
-    p_installation_id: input.auth.installationId,
-    p_credential_version: input.auth.credentialVersion,
-    p_source_stream_id: body.sourceStreamId,
-  } as never);
+  const { data, error } = await client.rpc(
+    "host_get_sync_stream_progress" as never,
+    {
+      p_tenant_id: input.auth.tenantId,
+      p_device_id: input.auth.deviceId,
+      p_installation_id: input.auth.installationId,
+      p_credential_version: input.auth.credentialVersion,
+      p_source_stream_id: body.sourceStreamId,
+    } as never,
+  );
 
   if (error) {
     console.error("sync.progress_rpc_failed", redactForLog({ message: error.message }));
@@ -105,18 +104,21 @@ export async function lookupSyncReceipts(input: {
   }
 
   const client = createPrivilegedSupabaseClient();
-  const { data, error } = await client.rpc("host_lookup_sync_receipts" as never, {
-    p_tenant_id: input.auth.tenantId,
-    p_device_id: input.auth.deviceId,
-    p_installation_id: input.auth.installationId,
-    p_credential_version: input.auth.credentialVersion,
-    p_source_stream_id: body.sourceStreamId,
-    p_stream_generation: body.streamGeneration,
-    p_group_ids: body.groupIds ?? null,
-    p_from_sequence: body.fromSequence == null ? null : Number(body.fromSequence),
-    p_to_sequence: body.toSequence == null ? null : Number(body.toSequence),
-    p_limit: body.limit,
-  } as never);
+  const { data, error } = await client.rpc(
+    "host_lookup_sync_receipts" as never,
+    {
+      p_tenant_id: input.auth.tenantId,
+      p_device_id: input.auth.deviceId,
+      p_installation_id: input.auth.installationId,
+      p_credential_version: input.auth.credentialVersion,
+      p_source_stream_id: body.sourceStreamId,
+      p_stream_generation: body.streamGeneration,
+      p_group_ids: body.groupIds ?? null,
+      p_from_sequence: body.fromSequence == null ? null : Number(body.fromSequence),
+      p_to_sequence: body.toSequence == null ? null : Number(body.toSequence),
+      p_limit: body.limit,
+    } as never,
+  );
 
   if (error) {
     console.error("sync.receipts_rpc_failed", redactForLog({ message: error.message }));
@@ -136,10 +138,7 @@ export async function lookupSyncReceipts(input: {
     const eventPayloadHashes =
       hashesRaw && typeof hashesRaw === "object" && !Array.isArray(hashesRaw)
         ? Object.fromEntries(
-            Object.entries(hashesRaw as Record<string, unknown>).map(([k, v]) => [
-              k,
-              String(v),
-            ]),
+            Object.entries(hashesRaw as Record<string, unknown>).map(([k, v]) => [k, String(v)]),
           )
         : {};
     return {
@@ -191,14 +190,17 @@ export async function getSyncFactSummary(input: {
   }
 
   const client = createPrivilegedSupabaseClient();
-  const { data, error } = await client.rpc("host_get_sync_fact_summary" as never, {
-    p_tenant_id: input.auth.tenantId,
-    p_device_id: input.auth.deviceId,
-    p_installation_id: input.auth.installationId,
-    p_credential_version: input.auth.credentialVersion,
-    p_source_stream_id: body.sourceStreamId,
-    p_through_sequence: Number(body.throughSequence),
-  } as never);
+  const { data, error } = await client.rpc(
+    "host_get_sync_fact_summary" as never,
+    {
+      p_tenant_id: input.auth.tenantId,
+      p_device_id: input.auth.deviceId,
+      p_installation_id: input.auth.installationId,
+      p_credential_version: input.auth.credentialVersion,
+      p_source_stream_id: body.sourceStreamId,
+      p_through_sequence: Number(body.throughSequence),
+    } as never,
+  );
 
   if (error) {
     console.error("sync.fact_summary_rpc_failed", redactForLog({ message: error.message }));

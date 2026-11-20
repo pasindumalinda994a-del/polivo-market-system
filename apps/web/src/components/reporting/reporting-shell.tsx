@@ -25,10 +25,7 @@ import {
   Wallet,
 } from "lucide-react";
 
-import {
-  membershipHasCapability,
-  type MembershipSummary,
-} from "@/lib/auth/membership-summary";
+import { membershipHasCapability, type MembershipSummary } from "@/lib/auth/membership-summary";
 
 export type ReportingShellProps =
   | { state: "allowed"; membership: MembershipSummary; children: React.ReactNode }

@@ -3,9 +3,21 @@
 import { useEffect, useRef, useState } from "react";
 
 import type { AccountStatementResponse } from "@polivo/contracts";
-import { ErrorState, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@polivo/ui";
+import {
+  ErrorState,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@polivo/ui";
 
-import { defaultRollingFilterWindow, ReportFilters, type ReportFilterValues } from "./report-filters";
+import {
+  defaultRollingFilterWindow,
+  ReportFilters,
+  type ReportFilterValues,
+} from "./report-filters";
 import { FreshnessBanner } from "./freshness-banner";
 
 export function StatementPanel({
@@ -95,7 +107,9 @@ function StatementTable({ data }: { data: AccountStatementResponse }) {
               <TableCell>{item.businessDate}</TableCell>
               <TableCell>{item.description ?? item.sourceType}</TableCell>
               <TableCell className="text-right">{(item.amountMinor / 100).toFixed(2)}</TableCell>
-              <TableCell className="text-right">{(item.runningBalanceMinor / 100).toFixed(2)}</TableCell>
+              <TableCell className="text-right">
+                {(item.runningBalanceMinor / 100).toFixed(2)}
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>

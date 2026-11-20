@@ -6,34 +6,34 @@ The local stall service remains authoritative for operational transactions. The 
 
 ## Available pages
 
-| Path | Purpose |
-|------|---------|
-| `/tenants/[tenantId]` | Stall overview metrics + freshness |
-| `/tenants/[tenantId]/sales` | Sales / commission / corrections reports |
-| `/tenants/[tenantId]/payments` | Payment activity |
-| `/tenants/[tenantId]/outstanding` | Outstanding obligations + unapplied |
-| `/tenants/[tenantId]/prices` | Stall vegetable prices (carry-forward aware) |
-| `/tenants/[tenantId]/farmers` | Farmer list and account entry |
-| `/tenants/[tenantId]/farmers/[farmerId]` | Farmer detail |
-| `/tenants/[tenantId]/buyers` | Buyer list and account entry |
-| `/tenants/[tenantId]/buyers/[buyerId]` | Buyer detail |
-| `/tenants/[tenantId]/statements/[partyKind]/[partyId]` | Account statement |
-| `/tenants/[tenantId]/bills/[billKind]/[billId]` | Read-only bill detail |
-| `/tenants/[tenantId]/payments/[paymentId]` | Read-only payment detail |
-| `/tenants/[tenantId]/sync-diagnostics` | Cloud-observable sync freshness (when permitted) |
+| Path                                                   | Purpose                                          |
+| ------------------------------------------------------ | ------------------------------------------------ |
+| `/tenants/[tenantId]`                                  | Stall overview metrics + freshness               |
+| `/tenants/[tenantId]/sales`                            | Sales / commission / corrections reports         |
+| `/tenants/[tenantId]/payments`                         | Payment activity                                 |
+| `/tenants/[tenantId]/outstanding`                      | Outstanding obligations + unapplied              |
+| `/tenants/[tenantId]/prices`                           | Stall vegetable prices (carry-forward aware)     |
+| `/tenants/[tenantId]/farmers`                          | Farmer list and account entry                    |
+| `/tenants/[tenantId]/farmers/[farmerId]`               | Farmer detail                                    |
+| `/tenants/[tenantId]/buyers`                           | Buyer list and account entry                     |
+| `/tenants/[tenantId]/buyers/[buyerId]`                 | Buyer detail                                     |
+| `/tenants/[tenantId]/statements/[partyKind]/[partyId]` | Account statement                                |
+| `/tenants/[tenantId]/bills/[billKind]/[billId]`        | Read-only bill detail                            |
+| `/tenants/[tenantId]/payments/[paymentId]`             | Read-only payment detail                         |
+| `/tenants/[tenantId]/sync-diagnostics`                 | Cloud-observable sync freshness (when permitted) |
 
 Owner administration (Members, Permissions, Devices) remains separate from financial reporting.
 
 ## Permission matrix
 
-| Surface | Access |
-|---------|--------|
+| Surface                                                                                 | Access                                                            |
+| --------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
 | Dashboard, sales, payments, outstanding, prices, farmers/buyers, bills, payments detail | Stall **owner** OR membership capability `reports.view_financial` |
-| Account statements | Owner OR `reports.view_financial` OR `accounts.view` |
-| CSV / PDF export create and retrieve | Owner OR `data.export` (re-checked on artifact download) |
-| Sync diagnostics page | Owner OR `sync.view` |
-| Basic freshness banner on reporting pages | Same as reporting access |
-| Members / Permissions / Devices | Owner only |
+| Account statements                                                                      | Owner OR `reports.view_financial` OR `accounts.view`              |
+| CSV / PDF export create and retrieve                                                    | Owner OR `data.export` (re-checked on artifact download)          |
+| Sync diagnostics page                                                                   | Owner OR `sync.view`                                              |
+| Basic freshness banner on reporting pages                                               | Same as reporting access                                          |
+| Members / Permissions / Devices                                                         | Owner only                                                        |
 
 Hiding a navigation item is not authorization. Every protected API and page re-resolves membership and capabilities on the server.
 
@@ -84,12 +84,12 @@ Reuse Phase 30 / ADR 0020 definitions (`REPORT_DEFINITIONS` in `@polivo/domain`)
 
 Cloud-observable signals come from `get_stall_reporting_freshness` (reporting members) and related sync receipts.
 
-| Label | Meaning |
-|-------|---------|
-| No synchronized data yet | No applied upload / ledger evidence |
-| Cloud data through… | Totals reflect the last applied cutoff (not guaranteed current stall balances) |
-| Host contact stale | Host was observed recently enough for contact metadata, but that does **not** prove financial currency |
-| Freshness unknown | Applied timing could not be determined |
+| Label                    | Meaning                                                                                                |
+| ------------------------ | ------------------------------------------------------------------------------------------------------ |
+| No synchronized data yet | No applied upload / ledger evidence                                                                    |
+| Cloud data through…      | Totals reflect the last applied cutoff (not guaranteed current stall balances)                         |
+| Host contact stale       | Host was observed recently enough for contact metadata, but that does **not** prove financial currency |
+| Freshness unknown        | Applied timing could not be determined                                                                 |
 
 Never display “Live” or “Fully up to date” without evidence that supports the exact claim. A successful configuration acknowledgement does not prove sales uploads are current. Reconciliation mismatch is shown only when cloud-observable; otherwise treat as unknown.
 

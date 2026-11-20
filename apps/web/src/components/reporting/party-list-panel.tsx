@@ -45,12 +45,18 @@ export function PartyListPanel({
     <div className="space-y-4">
       <FreshnessBanner tenantId={tenantId} />
       {rows.length === 0 ? (
-        <EmptyState title={`No ${kind} yet`} description="Synchronized party records will appear here." />
+        <EmptyState
+          title={`No ${kind} yet`}
+          description="Synchronized party records will appear here."
+        />
       ) : (
         <ul className="divide-y rounded-lg border">
           {rows.map((row) => (
             <li key={row.partyId} className="px-4 py-3">
-              <Link className="font-medium text-primary underline-offset-4 hover:underline" href={`${base}${encodeURIComponent(row.partyId)}`}>
+              <Link
+                className="font-medium text-primary underline-offset-4 hover:underline"
+                href={`${base}${encodeURIComponent(row.partyId)}`}
+              >
                 {row.displayName}
               </Link>
               <p className="text-xs text-muted-foreground">{row.shortCode}</p>

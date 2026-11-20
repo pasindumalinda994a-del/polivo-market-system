@@ -302,7 +302,9 @@ app.whenReady().then(() => {
     if (!isTrustedIpcSender(event)) {
       throw new Error("Untrusted IPC sender.");
     }
-    return createSyncRecoveryPlan(input as { requestId: string; actionType: string; groupIds?: string[] });
+    return createSyncRecoveryPlan(
+      input as { requestId: string; actionType: string; groupIds?: string[] },
+    );
   });
   ipcMain.handle("sync:recoveryExecute", async (event, input: unknown) => {
     if (!isTrustedIpcSender(event)) {

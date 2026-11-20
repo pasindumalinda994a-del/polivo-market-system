@@ -6,14 +6,14 @@ Canonical decision: [ADR 0024](../decisions/0024-platform-and-stall-administrati
 
 ## Role matrix
 
-| Role | Authority store | Admin powers |
-| ---- | --------------- | ------------ |
-| Platform administrator | `platform_administrators` (Clerk `sub`) | Stall directory, scoped operational detail, profile edit, audit read across stalls |
-| Market administrator | — | **Not implemented** (`market_location` is free text only) |
-| Stall owner | Active `tenant_memberships.access_role = owner` | Profile, members, invitations, permissions publish, devices, config delivery view, tenant audit |
-| Delegated stall administrator | — | **Not implemented** (owner-only per ADR 0009) |
-| Billing staff / cashier / reporting member | Membership + capabilities | No administrative mutations |
-| Local billing staff / cashier | Local staff identity | Desktop only; not a cloud admin role |
+| Role                                       | Authority store                                 | Admin powers                                                                                    |
+| ------------------------------------------ | ----------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Platform administrator                     | `platform_administrators` (Clerk `sub`)         | Stall directory, scoped operational detail, profile edit, audit read across stalls              |
+| Market administrator                       | —                                               | **Not implemented** (`market_location` is free text only)                                       |
+| Stall owner                                | Active `tenant_memberships.access_role = owner` | Profile, members, invitations, permissions publish, devices, config delivery view, tenant audit |
+| Delegated stall administrator              | —                                               | **Not implemented** (owner-only per ADR 0009)                                                   |
+| Billing staff / cashier / reporting member | Membership + capabilities                       | No administrative mutations                                                                     |
+| Local billing staff / cashier              | Local staff identity                            | Desktop only; not a cloud admin role                                                            |
 
 Platform authority is never inferred from email, display name, or client metadata. Stall owners cannot grant themselves platform access through tenant permission editing.
 

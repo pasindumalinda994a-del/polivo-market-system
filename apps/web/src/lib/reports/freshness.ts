@@ -1,10 +1,10 @@
-import { getStallReportingFreshness, type StallReportingFreshness, type UserReportingClient } from "@polivo/db-cloud";
+import {
+  getStallReportingFreshness,
+  type StallReportingFreshness,
+  type UserReportingClient,
+} from "@polivo/db-cloud";
 
-export type FreshnessLabel =
-  | "no_data"
-  | "through_cutoff"
-  | "host_stale"
-  | "freshness_unknown";
+export type FreshnessLabel = "no_data" | "through_cutoff" | "host_stale" | "freshness_unknown";
 
 export type FreshnessPresentation = {
   label: FreshnessLabel;
@@ -32,7 +32,9 @@ export function mapReportingFreshness(
   const lastApplied = freshness.lastAppliedUploadAt
     ? Date.parse(freshness.lastAppliedUploadAt)
     : Number.NaN;
-  const lastHost = freshness.lastHostContactAt ? Date.parse(freshness.lastHostContactAt) : Number.NaN;
+  const lastHost = freshness.lastHostContactAt
+    ? Date.parse(freshness.lastHostContactAt)
+    : Number.NaN;
 
   if (Number.isFinite(lastApplied)) {
     const appliedIso = freshness.lastAppliedUploadAt!;
@@ -41,7 +43,10 @@ export function mapReportingFreshness(
         ? " Host contact looks stale; totals remain at the last applied cutoff."
         : "";
     return {
-      label: Number.isFinite(lastHost) && nowMs - lastHost > STALE_HOST_MS ? "host_stale" : "through_cutoff",
+      label:
+        Number.isFinite(lastHost) && nowMs - lastHost > STALE_HOST_MS
+          ? "host_stale"
+          : "through_cutoff",
       title: `Cloud data through ${appliedIso}`,
       description: `Figures use applied sync through posting sequence ${freshness.appliedMaxPostingSequence}.${hostNote}`,
       freshness,

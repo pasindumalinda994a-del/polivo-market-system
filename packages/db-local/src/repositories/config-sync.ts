@@ -39,30 +39,24 @@ export type ConfigReceivedSnapshotRecord = {
 function mapDomainState(row: Record<string, unknown>): ConfigDomainStateRecord {
   return {
     domain: row["domain"] as ConfigDomain,
-    effectiveRevision:
-      row["effective_revision"] == null ? null : Number(row["effective_revision"]),
+    effectiveRevision: row["effective_revision"] == null ? null : Number(row["effective_revision"]),
     publicationId: row["publication_id"] == null ? null : String(row["publication_id"]),
     payloadHash: row["payload_hash"] == null ? null : String(row["payload_hash"]),
     issuedAt: row["issued_at"] == null ? null : String(row["issued_at"]),
     maxSnapshotAgeMs:
       row["max_snapshot_age_ms"] == null ? null : Number(row["max_snapshot_age_ms"]),
     lastSuccessfulRefreshAt:
-      row["last_successful_refresh_at"] == null
-        ? null
-        : String(row["last_successful_refresh_at"]),
+      row["last_successful_refresh_at"] == null ? null : String(row["last_successful_refresh_at"]),
     lastPullAttemptAt:
       row["last_pull_attempt_at"] == null ? null : String(row["last_pull_attempt_at"]),
     pendingAck: Number(row["pending_ack"]) === 1,
     pendingAckRevision:
       row["pending_ack_revision"] == null ? null : Number(row["pending_ack_revision"]),
     pendingAckPublicationId:
-      row["pending_ack_publication_id"] == null
-        ? null
-        : String(row["pending_ack_publication_id"]),
+      row["pending_ack_publication_id"] == null ? null : String(row["pending_ack_publication_id"]),
     pendingAckPayloadHash:
       row["pending_ack_payload_hash"] == null ? null : String(row["pending_ack_payload_hash"]),
-    pendingAckResult:
-      row["pending_ack_result"] == null ? null : String(row["pending_ack_result"]),
+    pendingAckResult: row["pending_ack_result"] == null ? null : String(row["pending_ack_result"]),
     pendingAckErrorCode:
       row["pending_ack_error_code"] == null ? null : String(row["pending_ack_error_code"]),
     pendingAckMessage:

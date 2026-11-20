@@ -1,4 +1,8 @@
-import { getStallBinding, openExistingDatabaseAndVerify, type LocalDatabase } from "@polivo/db-local";
+import {
+  getStallBinding,
+  openExistingDatabaseAndVerify,
+  type LocalDatabase,
+} from "@polivo/db-local";
 
 import { buildApp } from "./app.js";
 import { loadConfig } from "./config.js";

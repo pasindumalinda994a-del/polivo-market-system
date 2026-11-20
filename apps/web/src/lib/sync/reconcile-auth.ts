@@ -91,7 +91,10 @@ export async function verifyHostReconcileRequest(input: {
     .maybeSingle();
 
   if (deviceError) {
-    console.error("sync.reconcile.device_lookup_failed", redactForLog({ message: deviceError.message }));
+    console.error(
+      "sync.reconcile.device_lookup_failed",
+      redactForLog({ message: deviceError.message }),
+    );
     throw serviceUnavailableError("Unable to verify host device.");
   }
   if (!deviceRow) {

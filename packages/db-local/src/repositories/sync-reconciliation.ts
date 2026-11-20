@@ -51,13 +51,7 @@ export type SyncRecoveryJobRecord = {
   stallId: string;
   planId: string;
   actionType: string;
-  state:
-    | "requested"
-    | "running"
-    | "completed"
-    | "failed"
-    | "cancelled"
-    | "outcome_uncertain";
+  state: "requested" | "running" | "completed" | "failed" | "cancelled" | "outcome_uncertain";
   actorStaffId: string;
   deviceId: string;
   scopeDescription: string;
@@ -107,17 +101,14 @@ function mapRun(row: Record<string, unknown>): SyncReconciliationRunRecord {
     state: String(row["state"]) as SyncReconciliationRunRecord["state"],
     scope: String(row["scope"]),
     sourceStreamId: row["source_stream_id"] == null ? null : String(row["source_stream_id"]),
-    streamGeneration:
-      row["stream_generation"] == null ? null : Number(row["stream_generation"]),
+    streamGeneration: row["stream_generation"] == null ? null : Number(row["stream_generation"]),
     localCommittedTail:
       row["local_committed_tail"] == null ? null : Number(row["local_committed_tail"]),
     verifiedCloudCursor:
       row["verified_cloud_cursor"] == null ? null : Number(row["verified_cloud_cursor"]),
-    comparableCutoff:
-      row["comparable_cutoff"] == null ? null : Number(row["comparable_cutoff"]),
+    comparableCutoff: row["comparable_cutoff"] == null ? null : Number(row["comparable_cutoff"]),
     manifestVersion: row["manifest_version"] == null ? null : String(row["manifest_version"]),
-    definitionVersion:
-      row["definition_version"] == null ? null : String(row["definition_version"]),
+    definitionVersion: row["definition_version"] == null ? null : String(row["definition_version"]),
     summaryJson: String(row["summary_json"]),
     summaryPhrase: row["summary_phrase"] == null ? null : String(row["summary_phrase"]),
     safeNextAction: row["safe_next_action"] == null ? null : String(row["safe_next_action"]),
@@ -288,9 +279,8 @@ export function getReconciliationRunById(
   executor: DbExecutor,
   id: string,
 ): SyncReconciliationRunRecord {
-  const row = executor.db
-    .prepare(`SELECT * FROM sync_reconciliation_runs WHERE id = ?`)
-    .get(id) as Record<string, unknown> | undefined;
+  const row = executor.db.prepare(`SELECT * FROM sync_reconciliation_runs WHERE id = ?`).get(id) as
+    Record<string, unknown> | undefined;
   if (!row) {
     throw new RepositoryError(`Reconciliation run "${id}" was not found.`);
   }
@@ -366,9 +356,8 @@ export function insertRecoveryPlan(
 }
 
 export function getRecoveryPlanById(executor: DbExecutor, id: string): SyncRecoveryPlanRecord {
-  const row = executor.db
-    .prepare(`SELECT * FROM sync_recovery_plans WHERE id = ?`)
-    .get(id) as Record<string, unknown> | undefined;
+  const row = executor.db.prepare(`SELECT * FROM sync_recovery_plans WHERE id = ?`).get(id) as
+    Record<string, unknown> | undefined;
   if (!row) {
     throw new RepositoryError(`Recovery plan "${id}" was not found.`);
   }
@@ -399,9 +388,7 @@ export function tryGetRecoveryJobByIdempotency(
   idempotencyKey: string,
 ): SyncRecoveryJobRecord | null {
   const row = executor.db
-    .prepare(
-      `SELECT * FROM sync_recovery_jobs WHERE stall_id = ? AND idempotency_key = ?`,
-    )
+    .prepare(`SELECT * FROM sync_recovery_jobs WHERE stall_id = ? AND idempotency_key = ?`)
     .get(stallId, idempotencyKey) as Record<string, unknown> | undefined;
   return row ? mapJob(row) : null;
 }
@@ -443,9 +430,8 @@ export function insertRecoveryJob(
 }
 
 export function getRecoveryJobById(executor: DbExecutor, id: string): SyncRecoveryJobRecord {
-  const row = executor.db
-    .prepare(`SELECT * FROM sync_recovery_jobs WHERE id = ?`)
-    .get(id) as Record<string, unknown> | undefined;
+  const row = executor.db.prepare(`SELECT * FROM sync_recovery_jobs WHERE id = ?`).get(id) as
+    Record<string, unknown> | undefined;
   if (!row) {
     throw new RepositoryError(`Recovery job "${id}" was not found.`);
   }
@@ -518,9 +504,7 @@ export function tryAcquireRecoveryDomainLock(
       `SELECT job_id, expires_at FROM sync_recovery_domain_locks
        WHERE stall_id = ? AND domain_key = ?`,
     )
-    .get(input.stallId, input.domainKey) as
-    | { job_id: string; expires_at: string }
-    | undefined;
+    .get(input.stallId, input.domainKey) as { job_id: string; expires_at: string } | undefined;
 
   if (existing && existing.expires_at > input.acquiredAt && existing.job_id !== input.jobId) {
     return false;
@@ -535,13 +519,7 @@ export function tryAcquireRecoveryDomainLock(
          acquired_at = excluded.acquired_at,
          expires_at = excluded.expires_at`,
     )
-    .run(
-      input.stallId,
-      input.domainKey,
-      input.jobId,
-      input.acquiredAt,
-      input.expiresAt,
-    );
+    .run(input.stallId, input.domainKey, input.jobId, input.acquiredAt, input.expiresAt);
   return true;
 }
 
@@ -603,9 +581,8 @@ export function getDiagnosticExportById(
   executor: DbExecutor,
   id: string,
 ): SyncDiagnosticExportRecord {
-  const row = executor.db
-    .prepare(`SELECT * FROM sync_diagnostic_exports WHERE id = ?`)
-    .get(id) as Record<string, unknown> | undefined;
+  const row = executor.db.prepare(`SELECT * FROM sync_diagnostic_exports WHERE id = ?`).get(id) as
+    Record<string, unknown> | undefined;
   if (!row) {
     throw new RepositoryError(`Diagnostic export "${id}" was not found.`);
   }

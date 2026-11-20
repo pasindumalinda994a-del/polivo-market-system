@@ -1,4 +1,8 @@
-import { REPORT_DEFINITION_VERSION, reportCatalogResponseSchema, type ReportCatalogResponse } from "@polivo/contracts";
+import {
+  REPORT_DEFINITION_VERSION,
+  reportCatalogResponseSchema,
+  type ReportCatalogResponse,
+} from "@polivo/contracts";
 import { REPORT_DEFINITIONS } from "@polivo/domain";
 
 export function loadReportCatalog(): ReportCatalogResponse {

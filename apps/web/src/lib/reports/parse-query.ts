@@ -29,7 +29,10 @@ export function parseReportQueryFromSearchParams(
     buyerId: readString(params, "buyerId"),
     vegetableId: readString(params, "vegetableId"),
     paymentMethod: readString(params, "paymentMethod") as ReportQuery["filters"]["paymentMethod"],
-    paymentDirection: readString(params, "paymentDirection") as ReportQuery["filters"]["paymentDirection"],
+    paymentDirection: readString(
+      params,
+      "paymentDirection",
+    ) as ReportQuery["filters"]["paymentDirection"],
     paymentStatus: readString(params, "paymentStatus") as ReportQuery["filters"]["paymentStatus"],
     grouping: readString(params, "grouping"),
   };

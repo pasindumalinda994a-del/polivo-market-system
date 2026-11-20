@@ -131,10 +131,7 @@ export function applyAccessEnvelope(input: {
     };
   }
 
-  if (
-    state.effectiveRevision === envelope.revision &&
-    state.payloadHash === envelope.payloadHash
-  ) {
+  if (state.effectiveRevision === envelope.revision && state.payloadHash === envelope.payloadHash) {
     // Idempotent replay: ensure pending ack remains without reapplying side effects.
     return runInTransaction(input.database.db, (tx) => {
       applyAccessConfigSnapshot(tx, {

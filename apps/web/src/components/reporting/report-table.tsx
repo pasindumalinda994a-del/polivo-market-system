@@ -1,7 +1,16 @@
 "use client";
 
 import type { ReportResponse } from "@polivo/contracts";
-import { EmptyState, ErrorState, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@polivo/ui";
+import {
+  EmptyState,
+  ErrorState,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@polivo/ui";
 
 export function ReportTable({
   state,

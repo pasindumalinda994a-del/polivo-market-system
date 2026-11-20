@@ -766,8 +766,7 @@ contextBridge.exposeInMainWorld("polivoReports", {
 });
 
 export type SyncApiResult<T> =
-  | { ok: true; data: T; stale?: boolean }
-  | { ok: false; code: string; message: string };
+  { ok: true; data: T; stale?: boolean } | { ok: false; code: string; message: string };
 
 contextBridge.exposeInMainWorld("polivoSync", {
   getStatus: (): Promise<SyncApiResult<unknown>> => ipcRenderer.invoke("sync:getStatus"),
@@ -796,12 +795,10 @@ contextBridge.exposeInMainWorld("polivoSync", {
 });
 
 export type ConfigSyncApiResult<T> =
-  | { ok: true; data: T; stale?: boolean }
-  | { ok: false; code: string; message: string };
+  { ok: true; data: T; stale?: boolean } | { ok: false; code: string; message: string };
 
 contextBridge.exposeInMainWorld("polivoConfigSync", {
   getStatus: (): Promise<ConfigSyncApiResult<unknown>> =>
     ipcRenderer.invoke("configSync:getStatus"),
-  refresh: (): Promise<ConfigSyncApiResult<unknown>> =>
-    ipcRenderer.invoke("configSync:refresh"),
+  refresh: (): Promise<ConfigSyncApiResult<unknown>> => ipcRenderer.invoke("configSync:refresh"),
 });

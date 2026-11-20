@@ -7,13 +7,7 @@ type MetricCard = {
   hint?: string;
 };
 
-export function MetricCards({
-  cards,
-  loading,
-}: {
-  cards: MetricCard[];
-  loading: boolean;
-}) {
+export function MetricCards({ cards, loading }: { cards: MetricCard[]; loading: boolean }) {
   if (loading) {
     return (
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">

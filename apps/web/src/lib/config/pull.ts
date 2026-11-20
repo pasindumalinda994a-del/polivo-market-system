@@ -158,8 +158,7 @@ export async function pullAccessConfig(input: {
 
   const outcome = String(row.outcome);
   const correlationId = `req_${randomUUID().replace(/-/g, "")}`;
-  const publishedRevision =
-    row.published_revision == null ? null : Number(row.published_revision);
+  const publishedRevision = row.published_revision == null ? null : Number(row.published_revision);
   const lastAcknowledgedRevision =
     row.last_acknowledged_revision == null ? null : Number(row.last_acknowledged_revision);
 
@@ -201,7 +200,10 @@ export async function pullAccessConfig(input: {
 
   const payloadParsed = accessConfigPayloadSchema.safeParse(row.payload);
   if (!payloadParsed.success) {
-    console.error("config.pull_payload_invalid", redactForLog({ issues: payloadParsed.error.issues }));
+    console.error(
+      "config.pull_payload_invalid",
+      redactForLog({ issues: payloadParsed.error.issues }),
+    );
     throw serviceUnavailableError("Published access payload is invalid.");
   }
 

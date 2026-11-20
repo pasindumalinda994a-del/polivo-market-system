@@ -30,11 +30,7 @@ export default async function DashboardPage() {
 
   if (membershipResult.memberships.length === 0) {
     return (
-      <DashboardShell
-        membershipState="none"
-        memberships={[]}
-        isPlatformAdmin={isPlatformAdmin}
-      />
+      <DashboardShell membershipState="none" memberships={[]} isPlatformAdmin={isPlatformAdmin} />
     );
   }
 

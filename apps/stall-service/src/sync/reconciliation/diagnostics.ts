@@ -128,7 +128,10 @@ export function createDiagnosticExport(input: {
     targetType: "sync_diagnostic_export",
     targetId: exportId,
     occurredAt: createdAt,
-    changeDetailsJson: JSON.stringify({ contentSha256, byteLength: Buffer.byteLength(contentJson, "utf8") }),
+    changeDetailsJson: JSON.stringify({
+      contentSha256,
+      byteLength: Buffer.byteLength(contentJson, "utf8"),
+    }),
   });
 
   return syncDiagnosticExportResponseSchema.parse({

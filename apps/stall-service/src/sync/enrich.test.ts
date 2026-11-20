@@ -306,7 +306,9 @@ function seedCorrectedSaleWorld(local: LocalDatabase): {
   };
 }
 
-function thinCorrectedOutboxEvent(world: ReturnType<typeof seedCorrectedSaleWorld>): OutboxEventRecord {
+function thinCorrectedOutboxEvent(
+  world: ReturnType<typeof seedCorrectedSaleWorld>,
+): OutboxEventRecord {
   return {
     eventId: "evt-sale-corrected-1",
     tenantId: TENANT_ID,

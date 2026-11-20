@@ -10,7 +10,9 @@ import { beginAs, connectAdmin, FIXTURES, resetFixtures, rollback } from "./pg.j
 import type pg from "pg";
 
 function canonicalHash(payload: unknown): string {
-  return createHash("sha256").update(JSON.stringify(sortValue(payload)), "utf8").digest("hex");
+  return createHash("sha256")
+    .update(JSON.stringify(sortValue(payload)), "utf8")
+    .digest("hex");
 }
 
 function sortValue(value: unknown): unknown {
@@ -33,7 +35,10 @@ const DEVICE = "host-device-a";
 const INSTALL = "install-host-a";
 const NOW = "2026-11-13T10:00:00.000Z";
 
-async function seedHostTenant(client: pg.Client, input?: { revoked?: boolean; terminal?: boolean }) {
+async function seedHostTenant(
+  client: pg.Client,
+  input?: { revoked?: boolean; terminal?: boolean },
+) {
   await resetFixtures(client);
   await client.query(
     `INSERT INTO public.tenants (id, status, display_name, timezone) VALUES ($1, 'active', 'Stall A', 'Asia/Colombo')`,
@@ -146,9 +151,10 @@ describe("cloud sync ingestion apply", () => {
     expect(result?.outcome).toBe("applied");
     expect(result?.committedCursor).toBe("1");
 
-    const farmers = await admin.query(`SELECT id, revision FROM public.farmers WHERE tenant_id = $1`, [
-      TENANT,
-    ]);
+    const farmers = await admin.query(
+      `SELECT id, revision FROM public.farmers WHERE tenant_id = $1`,
+      [TENANT],
+    );
     expect(farmers.rows).toEqual([{ id: "farmer-sync-1", revision: 1 }]);
   });
 
@@ -172,9 +178,10 @@ describe("cloud sync ingestion apply", () => {
       args,
     );
     expect(rows[0]?.apply_sync_ingestion_group.outcome).toBe("already_applied");
-    const count = await admin.query(`SELECT count(*)::int AS c FROM public.farmers WHERE tenant_id = $1`, [
-      TENANT,
-    ]);
+    const count = await admin.query(
+      `SELECT count(*)::int AS c FROM public.farmers WHERE tenant_id = $1`,
+      [TENANT],
+    );
     expect(count.rows[0]?.c).toBe(1);
   });
 

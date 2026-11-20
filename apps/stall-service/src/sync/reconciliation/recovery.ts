@@ -68,7 +68,9 @@ export function createRecoveryPlan(input: {
         input.stallId,
         stream?.localTailSequence ?? 0,
       ).filter((g) =>
-        input.groupIds?.length ? input.groupIds.includes(g.transactionGroupId) : g.ackState !== "acknowledged",
+        input.groupIds?.length
+          ? input.groupIds.includes(g.transactionGroupId)
+          : g.ackState !== "acknowledged",
       );
       const selected = groups.slice(0, 100);
       affectedItemCount = selected.length;
@@ -368,7 +370,9 @@ async function performAction(input: {
         throw Object.assign(new Error("Sync worker unavailable."), { code: "WORKER_UNAVAILABLE" });
       }
       const retry = input.syncWorker.requestManualRetry();
-      return retry.message ?? (retry.accepted ? "Worker wake accepted." : "Worker wake not accepted.");
+      return (
+        retry.message ?? (retry.accepted ? "Worker wake accepted." : "Worker wake not accepted.")
+      );
     }
     case "refresh_configuration":
     case "retry_configuration_application":
@@ -381,7 +385,9 @@ async function performAction(input: {
       const refresh = input.configWorker.requestManualRefresh();
       return (
         refresh.message ??
-        (refresh.accepted ? "Configuration refresh accepted." : "Configuration refresh not accepted.")
+        (refresh.accepted
+          ? "Configuration refresh accepted."
+          : "Configuration refresh not accepted.")
       );
     }
     case "replay_original_events": {

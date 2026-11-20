@@ -18,7 +18,9 @@ export function OutstandingPanel({ tenantId }: { tenantId: string }) {
     return <p className="text-sm text-muted-foreground">Loading parties…</p>;
   }
   if (farmers.status === "denied" || buyers.status === "denied") {
-    return <ErrorState title="Access denied" description="Outstanding requires reporting access." />;
+    return (
+      <ErrorState title="Access denied" description="Outstanding requires reporting access." />
+    );
   }
   if (farmers.status !== "ready" || buyers.status !== "ready") {
     return <ErrorState title="Unable to load parties" description="Try refreshing the page." />;

@@ -17,11 +17,7 @@ import {
   phase27PaymentMethodSchema,
   traderBillNumberSchema,
 } from "../financial.js";
-import {
-  absoluteTimestampSchema,
-  calendarDateSchema,
-  opaqueIdSchema,
-} from "../primitives.js";
+import { absoluteTimestampSchema, calendarDateSchema, opaqueIdSchema } from "../primitives.js";
 import {
   paymentAllocationStatusSchema,
   paymentDirectionSchema,

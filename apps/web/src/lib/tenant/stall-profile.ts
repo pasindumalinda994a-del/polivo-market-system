@@ -10,9 +10,12 @@ import { mapTenantRpcError } from "./rpc-errors";
 
 export async function getStallAdminProfile(tenantId: string): Promise<StallAdminProfile> {
   const client = createRequestUserSupabaseClient();
-  const { data, error } = await client.rpc("get_stall_admin_profile" as never, {
-    p_tenant_id: tenantId,
-  } as never);
+  const { data, error } = await client.rpc(
+    "get_stall_admin_profile" as never,
+    {
+      p_tenant_id: tenantId,
+    } as never,
+  );
   if (error) {
     throw mapTenantRpcError(error);
   }
@@ -38,15 +41,18 @@ export async function updateStallAdminProfile(
   input: UpdateStallProfileRequest,
 ): Promise<UpdateStallProfileResponse> {
   const client = createRequestUserSupabaseClient();
-  const { data, error } = await client.rpc("update_stall_profile" as never, {
-    p_tenant_id: tenantId,
-    p_expected_revision: input.expectedRevision,
-    p_display_name: input.displayName,
-    p_timezone: input.timezone,
-    p_market_location: input.marketLocation ?? null,
-    p_contact: input.contact ?? null,
-    p_admin_notes: input.adminNotes ?? "",
-  } as never);
+  const { data, error } = await client.rpc(
+    "update_stall_profile" as never,
+    {
+      p_tenant_id: tenantId,
+      p_expected_revision: input.expectedRevision,
+      p_display_name: input.displayName,
+      p_timezone: input.timezone,
+      p_market_location: input.marketLocation ?? null,
+      p_contact: input.contact ?? null,
+      p_admin_notes: input.adminNotes ?? "",
+    } as never,
+  );
   if (error) {
     throw mapTenantRpcError(error);
   }

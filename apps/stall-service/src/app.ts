@@ -61,7 +61,8 @@ export type BuildAppOptions = BuildDependenciesOptions & {
   /** Phase 33 configuration pull worker handle for status/refresh routes. */
   configWorker?: ConfigWorkerHandle | null;
   /** Phase 34 cloud reconciliation client (host-authenticated reads). */
-  reconciliationCloudClient?: import("./sync/reconciliation/cloud-client.js").ReconciliationCloudClient | null;
+  reconciliationCloudClient?:
+    import("./sync/reconciliation/cloud-client.js").ReconciliationCloudClient | null;
 };
 
 export type StallApp = ReturnType<typeof buildApp>;

@@ -820,10 +820,7 @@ export function mapSyncStreamStateRow(row: Record<string, unknown>): SyncStreamS
       row["blocking_error_code"],
       "sync_stream_state.blocking_error_code",
     ),
-    blockingMessage: optionalString(
-      row["blocking_message"],
-      "sync_stream_state.blocking_message",
-    ),
+    blockingMessage: optionalString(row["blocking_message"], "sync_stream_state.blocking_message"),
     lastErrorCode: optionalString(row["last_error_code"], "sync_stream_state.last_error_code"),
     updatedAt: requireAbsoluteTimestamp(row["updated_at"], "sync_stream_state.updated_at"),
   };

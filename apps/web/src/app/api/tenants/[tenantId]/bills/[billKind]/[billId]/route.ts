@@ -17,12 +17,7 @@ export async function GET(_request: Request, context: RouteContext) {
     if (billKindRaw !== "trader_bill" && billKindRaw !== "farmer_bill") {
       throw validationError("Invalid bill kind.");
     }
-    const bill = await loadBillDetail(
-      createUserReportingClient(),
-      tenantId,
-      billKindRaw,
-      billId,
-    );
+    const bill = await loadBillDetail(createUserReportingClient(), tenantId, billKindRaw, billId);
     return jsonOk({ bill });
   } catch (error) {
     return jsonError(error);

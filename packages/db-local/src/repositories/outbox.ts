@@ -89,8 +89,7 @@ export function appendOutboxEvent(
 
 export function getOutboxEventById(executor: DbExecutor, eventId: string): OutboxEventRecord {
   const row = executor.db.prepare(`${OUTBOX_SELECT} WHERE event_id = ?`).get(eventId) as
-    | Record<string, unknown>
-    | undefined;
+    Record<string, unknown> | undefined;
   if (!row) {
     throw new RepositoryError(`Outbox event "${eventId}" was not found.`);
   }
@@ -201,12 +200,7 @@ export function recordOutboxAttempt(executor: DbExecutor, input: RecordOutboxAtt
      WHERE event_id = ? AND ack_state IN ('pending', 'failed')`,
   );
   for (const eventId of input.eventIds) {
-    stmt.run(
-      input.attemptedAt,
-      input.nextRetryAt ?? null,
-      input.lastErrorCode ?? null,
-      eventId,
-    );
+    stmt.run(input.attemptedAt, input.nextRetryAt ?? null, input.lastErrorCode ?? null, eventId);
   }
 }
 

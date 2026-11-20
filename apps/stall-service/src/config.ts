@@ -217,10 +217,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): StallServiceCo
   if (syncIngestUrl) {
     try {
       const ingest = new URL(syncIngestUrl);
-      syncProgressUrl =
-        syncProgressUrl ?? new URL("/api/sync/progress", ingest.origin).toString();
-      syncReceiptsUrl =
-        syncReceiptsUrl ?? new URL("/api/sync/receipts", ingest.origin).toString();
+      syncProgressUrl = syncProgressUrl ?? new URL("/api/sync/progress", ingest.origin).toString();
+      syncReceiptsUrl = syncReceiptsUrl ?? new URL("/api/sync/receipts", ingest.origin).toString();
       syncFactSummaryUrl =
         syncFactSummaryUrl ?? new URL("/api/sync/fact-summary", ingest.origin).toString();
     } catch {

@@ -11,16 +11,16 @@ Phase 33 (`33-cloud-configuration-and-access-sync.md`) requires secure delivery 
 
 1. **Ownership matrix (v1).**
 
-| Setting | Authoritative | Editor | Scope | Revision | Local apply | Active sessions | Offline expiry |
-|---|---|---|---|---|---|---|---|
-| Owner-managed role permissions | Cloud | Stall owner (web) | Tenant/stall | Monotonic publication revision | Complete `access` snapshot | Recheck caps on next authorize | ADR 0013 snapshot age |
-| Local staff access assignments | Cloud membership caps via verified `cloud_membership_id` | Owner (web) + local provisioning | Mapped staff only | Membership `capabilities_revision` inside snapshot | Apply only when mapping exists | Disable/revoke on inactive | ADR 0013 |
-| Device revocations | Cloud enrollment | Owner (web) | Stall devices | Included in `access` snapshot | Update local terminal/host projection | Deny revoked devices | Lag until apply; then immediate |
-| Access-policy validity | ADR 0013 | Product ADR | Host | N/A | Enforce locally | Idle/absolute/snapshot | 7d max snapshot age |
-| Stall display settings | Local host trust/meta | Local | Host/terminal | Local | Not cloud-delivered | N/A | N/A |
-| Commission configuration | Local (Phase 20) | Local `commission.manage` | Stall | Local versions | Not cloud-delivered | N/A | N/A |
-| Terminal printer selection | Terminal-local | Desktop | Terminal | Local | Not cloud-delivered | N/A | N/A |
-| Sales, payments, ledger | Local host | Stall-service | Stall | Local | Never mutated by config apply | N/A | N/A |
+| Setting                        | Authoritative                                            | Editor                           | Scope             | Revision                                           | Local apply                           | Active sessions                | Offline expiry                  |
+| ------------------------------ | -------------------------------------------------------- | -------------------------------- | ----------------- | -------------------------------------------------- | ------------------------------------- | ------------------------------ | ------------------------------- |
+| Owner-managed role permissions | Cloud                                                    | Stall owner (web)                | Tenant/stall      | Monotonic publication revision                     | Complete `access` snapshot            | Recheck caps on next authorize | ADR 0013 snapshot age           |
+| Local staff access assignments | Cloud membership caps via verified `cloud_membership_id` | Owner (web) + local provisioning | Mapped staff only | Membership `capabilities_revision` inside snapshot | Apply only when mapping exists        | Disable/revoke on inactive     | ADR 0013                        |
+| Device revocations             | Cloud enrollment                                         | Owner (web)                      | Stall devices     | Included in `access` snapshot                      | Update local terminal/host projection | Deny revoked devices           | Lag until apply; then immediate |
+| Access-policy validity         | ADR 0013                                                 | Product ADR                      | Host              | N/A                                                | Enforce locally                       | Idle/absolute/snapshot         | 7d max snapshot age             |
+| Stall display settings         | Local host trust/meta                                    | Local                            | Host/terminal     | Local                                              | Not cloud-delivered                   | N/A                            | N/A                             |
+| Commission configuration       | Local (Phase 20)                                         | Local `commission.manage`        | Stall             | Local versions                                     | Not cloud-delivered                   | N/A                            | N/A                             |
+| Terminal printer selection     | Terminal-local                                           | Desktop                          | Terminal          | Local                                              | Not cloud-delivered                   | N/A                            | N/A                             |
+| Sales, payments, ledger        | Local host                                               | Stall-service                    | Stall             | Local                                              | Never mutated by config apply         | N/A                            | N/A                             |
 
 2. **Domain model.** Phase 33 delivers one domain: `access`. Snapshots are **complete replacements** for that domain (not deltas). Related profiles, memberships, and device states share one atomic bundle.
 

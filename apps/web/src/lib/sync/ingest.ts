@@ -61,8 +61,7 @@ function mapOutcome(raw: Record<string, unknown>): ApplyGroupResult {
     committedCursor: raw.committedCursor == null ? null : String(raw.committedCursor),
     nextExpectedSequence:
       raw.nextExpectedSequence == null ? null : String(raw.nextExpectedSequence),
-    retryAfterSeconds:
-      raw.retryAfterSeconds == null ? null : Number(raw.retryAfterSeconds),
+    retryAfterSeconds: raw.retryAfterSeconds == null ? null : Number(raw.retryAfterSeconds),
   };
 }
 
@@ -292,9 +291,7 @@ export async function ingestSyncBatch(input: {
       errorCode: mapped.errorCode,
       message: mapped.message,
       retryable: mapped.retryable,
-      ...(mapped.retryAfterSeconds != null
-        ? { retryAfterSeconds: mapped.retryAfterSeconds }
-        : {}),
+      ...(mapped.retryAfterSeconds != null ? { retryAfterSeconds: mapped.retryAfterSeconds } : {}),
     });
 
     if (mapped.outcome !== "applied" && mapped.outcome !== "already_applied") {

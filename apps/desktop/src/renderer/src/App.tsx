@@ -449,9 +449,7 @@ export default function App() {
   const canManageCatalog = Boolean(connection?.capabilities.includes("catalog.manage"));
   const canManageCommission = Boolean(connection?.capabilities.includes("commission.manage"));
   const canManageSettings = Boolean(connection?.capabilities.includes("settings.manage"));
-  const canSyncView = Boolean(
-    connection?.capabilities.includes("sync.view") || canManageSettings,
-  );
+  const canSyncView = Boolean(connection?.capabilities.includes("sync.view") || canManageSettings);
   const canSyncReconcile = Boolean(connection?.capabilities.includes("sync.reconcile"));
   const canSyncRetry = Boolean(connection?.capabilities.includes("sync.retry"));
   const canSyncRecover = Boolean(connection?.capabilities.includes("sync.recover"));

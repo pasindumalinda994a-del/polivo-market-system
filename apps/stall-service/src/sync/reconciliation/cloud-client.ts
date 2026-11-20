@@ -66,8 +66,7 @@ export type ReconciliationCloudClient = {
   getProgress: (input: {
     sourceStreamId: string;
   }) => Promise<
-    | { ok: true; progress: SyncCloudProgressResponse }
-    | { ok: false; code: string; message: string }
+    { ok: true; progress: SyncCloudProgressResponse } | { ok: false; code: string; message: string }
   >;
   lookupReceipts: (input: {
     sourceStreamId: string;
@@ -80,10 +79,7 @@ export type ReconciliationCloudClient = {
     | { ok: true; result: SyncCloudReceiptLookupResponse }
     | { ok: false; code: string; message: string }
   >;
-  getFactSummary: (input: {
-    sourceStreamId: string;
-    throughSequence: string;
-  }) => Promise<
+  getFactSummary: (input: { sourceStreamId: string; throughSequence: string }) => Promise<
     | {
         ok: true;
         summary: {
@@ -119,10 +115,7 @@ export function createHttpReconciliationCloudClient(input: {
       signedAt: string;
     }) => string;
     body: Record<string, unknown>;
-  }): Promise<
-    | { ok: true; json: unknown }
-    | { ok: false; code: string; message: string }
-  > => {
+  }): Promise<{ ok: true; json: unknown } | { ok: false; code: string; message: string }> => {
     if (!args.url || !input.signer) {
       return {
         ok: false,

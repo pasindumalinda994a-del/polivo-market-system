@@ -30,21 +30,18 @@ export function PlatformStallProfileForm(props: {
     setSaving(true);
     setError(null);
     try {
-      const response = await fetch(
-        `/api/tenants/${encodeURIComponent(props.tenantId)}/profile`,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            displayName,
-            timezone,
-            marketLocation: marketLocation || undefined,
-            contact: contact || undefined,
-            adminNotes,
-            expectedRevision,
-          }),
-        },
-      );
+      const response = await fetch(`/api/tenants/${encodeURIComponent(props.tenantId)}/profile`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          displayName,
+          timezone,
+          marketLocation: marketLocation || undefined,
+          contact: contact || undefined,
+          adminNotes,
+          expectedRevision,
+        }),
+      });
       const payload = (await response.json()) as {
         message?: string;
         profileRevision?: number;

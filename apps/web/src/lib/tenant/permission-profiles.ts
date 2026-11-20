@@ -51,9 +51,12 @@ export async function getStallSyncCloudVisibility(tenantId: string): Promise<{
   note: string;
 }> {
   const client = createRequestUserSupabaseClient();
-  const { data, error } = await client.rpc("get_stall_sync_cloud_visibility" as never, {
-    p_tenant_id: tenantId,
-  } as never);
+  const { data, error } = await client.rpc(
+    "get_stall_sync_cloud_visibility" as never,
+    {
+      p_tenant_id: tenantId,
+    } as never,
+  );
 
   if (error) {
     throw mapTenantRpcError(error);
@@ -82,8 +85,7 @@ export async function getStallSyncCloudVisibility(tenantId: string): Promise<{
     lastAppliedUploadAt:
       record.last_applied_upload_at == null ? null : String(record.last_applied_upload_at),
     committedCloudCursor: {
-      value:
-        record.committed_cloud_cursor == null ? null : String(record.committed_cloud_cursor),
+      value: record.committed_cloud_cursor == null ? null : String(record.committed_cloud_cursor),
       observedAt:
         record.committed_cloud_cursor_observed_at == null
           ? null
@@ -105,9 +107,12 @@ export async function getAccessConfigDeliveryStatus(
   tenantId: string,
 ): Promise<ConfigDeliveryStatus> {
   const client = createRequestUserSupabaseClient();
-  const { data, error } = await client.rpc("get_access_config_delivery_status" as never, {
-    p_tenant_id: tenantId,
-  } as never);
+  const { data, error } = await client.rpc(
+    "get_access_config_delivery_status" as never,
+    {
+      p_tenant_id: tenantId,
+    } as never,
+  );
 
   if (error) {
     throw mapTenantRpcError(error);
@@ -130,18 +135,14 @@ export async function getAccessConfigDeliveryStatus(
   const record = row as Record<string, unknown>;
   return {
     domain: "access",
-    publishedRevision:
-      record.published_revision == null ? null : Number(record.published_revision),
+    publishedRevision: record.published_revision == null ? null : Number(record.published_revision),
     lastAcknowledgedRevision:
-      record.last_acknowledged_revision == null
-        ? null
-        : Number(record.last_acknowledged_revision),
-    localApplicationStatus: (record.local_application_status as ConfigDeliveryStatus["localApplicationStatus"]) ??
+      record.last_acknowledged_revision == null ? null : Number(record.last_acknowledged_revision),
+    localApplicationStatus:
+      (record.local_application_status as ConfigDeliveryStatus["localApplicationStatus"]) ??
       "pending_delivery",
     lastAcknowledgementAt:
-      record.last_acknowledgement_at == null
-        ? null
-        : String(record.last_acknowledgement_at),
+      record.last_acknowledgement_at == null ? null : String(record.last_acknowledgement_at),
     lastHostDeviceId:
       record.last_host_device_id == null ? null : String(record.last_host_device_id),
     failureCode: record.failure_code == null ? null : String(record.failure_code),
