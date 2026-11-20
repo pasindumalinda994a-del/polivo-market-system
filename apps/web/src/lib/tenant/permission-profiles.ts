@@ -182,12 +182,7 @@ export async function updatePermissionProfile(
   }
 
   const record = row as { revision: number; published_revision?: number };
-  let delivery: ConfigDeliveryStatus | null = null;
-  try {
-    delivery = await getAccessConfigDeliveryStatus(tenantId);
-  } catch {
-    delivery = null;
-  }
+  const delivery = await getAccessConfigDeliveryStatus(tenantId).catch(() => null);
 
   return {
     revision: Number(record.revision),

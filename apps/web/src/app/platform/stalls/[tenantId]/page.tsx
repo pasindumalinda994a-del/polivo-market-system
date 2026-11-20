@@ -18,7 +18,7 @@ export default async function PlatformStallDetailPage({ params }: StallDetailPag
   const tenantId = decodeURIComponent(rawTenantId);
   await requirePageUser(`/platform/stalls/${encodeURIComponent(tenantId)}`);
 
-  let isAdmin = false;
+  let isAdmin: boolean;
   try {
     isAdmin = await resolvePlatformAdminAccess();
   } catch {

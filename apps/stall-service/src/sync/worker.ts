@@ -330,7 +330,6 @@ export function createOutboxSyncWorker(options: SyncWorkerOptions): SyncWorkerHa
       });
     } catch (error) {
       const code = error instanceof AckValidationError ? error.code : "MALFORMED_ACK";
-      const message = error instanceof Error ? error.message : String(error);
       const nextRetry = nextRetryAtIso(attemptIndex, clock);
       attemptIndex += 1;
       runInTransaction(options.database.db, (tx) => {
@@ -446,7 +445,7 @@ export function createOutboxSyncWorker(options: SyncWorkerOptions): SyncWorkerHa
       return;
     }
     let cycles = 0;
-    let result: "idle" | "progress" | "retry" | "blocked" | "skipped" = "idle";
+    let result: "idle" | "progress" | "retry" | "blocked" | "skipped";
     do {
       wakePending = false;
       result = await runCycle();

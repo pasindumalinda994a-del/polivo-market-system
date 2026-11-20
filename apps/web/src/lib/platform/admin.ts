@@ -3,8 +3,6 @@ import type {
   PlatformDirectoryQuery,
   PlatformStallDirectoryResponse,
   StallAdminProfile,
-  UpdateStallProfileRequest,
-  UpdateStallProfileResponse,
 } from "@polivo/contracts";
 
 import { createRequestUserSupabaseClient } from "@/lib/auth/supabase-user";

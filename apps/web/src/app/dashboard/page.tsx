@@ -10,12 +10,7 @@ export default async function DashboardPage() {
   const user = await requirePageUser("/dashboard");
   const membershipResult = await listActiveMemberships(user.subject);
 
-  let isPlatformAdmin = false;
-  try {
-    isPlatformAdmin = await resolvePlatformAdminAccess();
-  } catch {
-    isPlatformAdmin = false;
-  }
+  const isPlatformAdmin = await resolvePlatformAdminAccess().catch(() => false);
 
   if (membershipResult.status === "unavailable") {
     return (

@@ -150,7 +150,7 @@ export async function runReconciliation(input: {
     });
   }
 
-  let receiptsByGroup = new Map<
+  const receiptsByGroup = new Map<
     string,
     {
       eventIds: string[];

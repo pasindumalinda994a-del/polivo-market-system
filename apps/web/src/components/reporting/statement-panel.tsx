@@ -41,16 +41,22 @@ export function StatementPanel({
 
   useEffect(() => {
     const current = ++generation.current;
-    setState({ status: "loading" });
     const params = new URLSearchParams({
       fromBusinessDate: applied.fromBusinessDate,
       toBusinessDate: applied.toBusinessDate,
       dateBasis: "business_effective",
     });
-    void fetch(
-      `/api/tenants/${encodeURIComponent(tenantId)}/accounts/${partyKind}/${encodeURIComponent(partyId)}/statement?${params}`,
-      { cache: "no-store" },
-    ).then(async (response) => {
+    void (async () => {
+      // Yield so setState is not synchronous from this effect.
+      await Promise.resolve();
+      if (current !== generation.current) {
+        return;
+      }
+      setState({ status: "loading" });
+      const response = await fetch(
+        `/api/tenants/${encodeURIComponent(tenantId)}/accounts/${partyKind}/${encodeURIComponent(partyId)}/statement?${params}`,
+        { cache: "no-store" },
+      );
       if (current !== generation.current) {
         return;
       }
@@ -63,7 +69,7 @@ export function StatementPanel({
         return;
       }
       setState({ status: "ready", data: (await response.json()) as AccountStatementResponse });
-    });
+    })();
   }, [applied, partyId, partyKind, tenantId]);
 
   useEffect(() => {

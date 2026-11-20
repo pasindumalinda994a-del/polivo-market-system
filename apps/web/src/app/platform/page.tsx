@@ -15,7 +15,7 @@ type PlatformPageProps = {
 export default async function PlatformDirectoryPage({ searchParams }: PlatformPageProps) {
   await requirePageUser("/platform");
 
-  let isAdmin = false;
+  let isAdmin: boolean;
   try {
     isAdmin = await resolvePlatformAdminAccess();
   } catch {

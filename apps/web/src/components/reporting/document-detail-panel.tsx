@@ -36,12 +36,18 @@ export function DocumentDetailPanel(
 
   useEffect(() => {
     const current = ++generation.current;
-    setState("loading");
     const path =
       props.kind === "bill"
         ? `/api/tenants/${encodeURIComponent(props.tenantId)}/bills/${encodeURIComponent(props.billKind)}/${encodeURIComponent(props.id)}`
         : `/api/tenants/${encodeURIComponent(props.tenantId)}/payments/${encodeURIComponent(props.id)}`;
-    void fetch(path, { cache: "no-store" }).then(async (response) => {
+    void (async () => {
+      // Yield so setState is not synchronous from this effect.
+      await Promise.resolve();
+      if (current !== generation.current) {
+        return;
+      }
+      setState("loading");
+      const response = await fetch(path, { cache: "no-store" });
       if (current !== generation.current) {
         return;
       }
@@ -54,6 +60,9 @@ export function DocumentDetailPanel(
         return;
       }
       const json = (await response.json()) as BillPayload | PaymentPayload;
+      if (current !== generation.current) {
+        return;
+      }
       if (props.kind === "bill" && "bill" in json) {
         const bill = json.bill;
         setDetail(
@@ -66,7 +75,7 @@ export function DocumentDetailPanel(
         );
       }
       setState("ready");
-    });
+    })();
   }, [props]);
 
   useEffect(() => {

@@ -14,7 +14,7 @@ type AuditPageProps = {
 export default async function PlatformAuditPage({ searchParams }: AuditPageProps) {
   await requirePageUser("/platform/audit");
 
-  let isAdmin = false;
+  let isAdmin: boolean;
   try {
     isAdmin = await resolvePlatformAdminAccess();
   } catch {

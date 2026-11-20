@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { ReportQuery, ReportResponse, ReportTypeDto } from "@polivo/contracts";
 
@@ -57,35 +57,36 @@ export function ReportViewPanel({
     return params.toString();
   }, [appliedFilters, extraFilters]);
 
-  const load = useCallback(async () => {
-    const current = ++generation.current;
-    setView({ status: "loading" });
-    const response = await fetch(
-      `/api/tenants/${encodeURIComponent(tenantId)}/reports/${encodeURIComponent(reportType)}?${queryString}`,
-      { cache: "no-store", credentials: "same-origin" },
-    );
-    if (current !== generation.current) {
-      return;
-    }
-    if (response.status === 401 || response.status === 403) {
-      setView({ status: "denied" });
-      return;
-    }
-    if (!response.ok) {
-      setView({ status: "error", message: "Unable to load this report." });
-      return;
-    }
-    const data = (await response.json()) as ReportResponse;
-    if (current !== generation.current) {
-      return;
-    }
-    setView({ status: "ready", data });
-  }, [queryString, reportType, tenantId]);
-
   useEffect(() => {
-    generation.current += 1;
-    void load();
-  }, [load, tenantId]);
+    const current = ++generation.current;
+    void (async () => {
+      await Promise.resolve();
+      if (current !== generation.current) {
+        return;
+      }
+      setView({ status: "loading" });
+      const response = await fetch(
+        `/api/tenants/${encodeURIComponent(tenantId)}/reports/${encodeURIComponent(reportType)}?${queryString}`,
+        { cache: "no-store", credentials: "same-origin" },
+      );
+      if (current !== generation.current) {
+        return;
+      }
+      if (response.status === 401 || response.status === 403) {
+        setView({ status: "denied" });
+        return;
+      }
+      if (!response.ok) {
+        setView({ status: "error", message: "Unable to load this report." });
+        return;
+      }
+      const data = (await response.json()) as ReportResponse;
+      if (current !== generation.current) {
+        return;
+      }
+      setView({ status: "ready", data });
+    })();
+  }, [queryString, reportType, tenantId]);
 
   return (
     <ReportSection title={title}>

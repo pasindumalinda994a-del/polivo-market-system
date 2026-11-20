@@ -44,10 +44,10 @@ export function createRecoveryPlan(input: {
   const expiresAt = new Date(Date.parse(createdAt) + PLAN_TTL_MS).toISOString();
   const stream = tryGetSyncStreamState(input.database, input.stallId);
 
-  let affectedItemCount = 0;
+  let affectedItemCount: number;
   let eventGroupRange: SyncRecoveryPlan["eventGroupRange"] = null;
-  let safetyRationale = "";
-  let potentialOutcome = "";
+  let safetyRationale: string;
+  let potentialOutcome: string;
   let requiredCapability: "sync.retry" | "sync.recover" = "sync.recover";
   let targetStreamId: string | null = stream?.sourceStreamId ?? null;
   let targetConfigDomain: "access" | null = null;
